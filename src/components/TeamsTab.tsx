@@ -6,6 +6,7 @@ import CreateTeamDialog from "./CreateTeamDialog";
 import EditTeamDialog from "./EditTeamDialog";
 import SelectPlayingXIDialog from "./SelectPlayingXIDialog";
 import TeamDetailsDialog from "./TeamDetailsDialog";
+import PlayerSelectionDialog from "./PlayerSelectionDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Team } from "@/types/cricket";
 
@@ -15,6 +16,7 @@ const TeamsTab = () => {
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [selectingXITeam, setSelectingXITeam] = useState<Team | null>(null);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
+  const [playerSelectionTeam, setPlayerSelectionTeam] = useState<Team | null>(null);
 
   return (
     <div className="space-y-6">
@@ -58,6 +60,7 @@ const TeamsTab = () => {
               onEdit={() => setEditingTeam(team)}
               onSelectXI={() => setSelectingXITeam(team)}
               onViewDetails={() => setViewingTeam(team)}
+              onAddPlayers={() => setPlayerSelectionTeam(team)}
             />
           ))}
         </div>
@@ -84,6 +87,12 @@ const TeamsTab = () => {
         team={viewingTeam} 
         open={!!viewingTeam} 
         onOpenChange={(open) => !open && setViewingTeam(null)} 
+      />
+      
+      <PlayerSelectionDialog 
+        team={playerSelectionTeam} 
+        open={!!playerSelectionTeam} 
+        onOpenChange={(open) => !open && setPlayerSelectionTeam(null)} 
       />
     </div>
   );

@@ -2,16 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Team } from "@/types/cricket";
-import { Users, Globe, Edit, Play } from "lucide-react";
+import { Users, Globe, Edit, Play, Plus } from "lucide-react";
 
 interface TeamCardProps {
   team: Team;
   onEdit: () => void;
   onSelectXI: () => void;
   onViewDetails: () => void;
+  onAddPlayers: () => void;
 }
 
-const TeamCard = ({ team, onEdit, onSelectXI, onViewDetails }: TeamCardProps) => {
+const TeamCard = ({ team, onEdit, onSelectXI, onViewDetails, onAddPlayers }: TeamCardProps) => {
   const overseasCount = team.squad.filter(p => p.isOverseas).length;
   const playingXIOverseas = team.playingXI.filter(p => p.isOverseas).length;
   const hasPlayingXI = team.playingXI.length === 11;
@@ -57,10 +58,10 @@ const TeamCard = ({ team, onEdit, onSelectXI, onViewDetails }: TeamCardProps) =>
             )}
           </div>
           
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={onEdit} className="flex-1">
-              <Edit className="h-4 w-4 mr-1" />
-              Edit Squad
+          <div className="flex space-x-2 mb-2">
+            <Button size="sm" onClick={onAddPlayers} className="flex-1">
+              <Plus className="h-4 w-4 mr-1" />
+              Add Players
             </Button>
             <Button 
               variant={hasPlayingXI ? "secondary" : "default"} 
@@ -72,6 +73,11 @@ const TeamCard = ({ team, onEdit, onSelectXI, onViewDetails }: TeamCardProps) =>
               {hasPlayingXI ? "Update XI" : "Select XI"}
             </Button>
           </div>
+          
+          <Button variant="outline" size="sm" onClick={onEdit} className="w-full">
+            <Edit className="h-4 w-4 mr-1" />
+            Edit Squad
+          </Button>
           
           <Button variant="ghost" size="sm" onClick={onViewDetails} className="w-full">
             View Details
