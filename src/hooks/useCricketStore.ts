@@ -1,0 +1,272 @@
+import { create } from 'zustand';
+import { Team, Player, Match, Fixture } from '@/types/cricket';
+
+
+interface CricketStore {
+  teams: Team[];
+  fixtures: Fixture[];
+  currentMatch: Match | null;
+  
+  // Team actions
+  addTeam: (team: Omit<Team, 'id' | 'playingXI' | 'impactOptions' | 'subUsed'>) => void;
+  updateTeam: (id: string, updates: Partial<Team>) => void;
+  removeTeam: (id: string) => void;
+  
+  // Player actions
+  addPlayerToTeam: (teamId: string, player: Omit<Player, 'id' | 'position'>) => void;
+  updatePlayer: (teamId: string, playerId: string, updates: Partial<Player>) => void;
+  removePlayerFromTeam: (teamId: string, playerId: string) => void;
+  
+  // Playing XI actions
+  setPlayingXI: (teamId: string, playerIds: string[]) => void;
+  setImpactPlayers: (teamId: string, playerIds: string[]) => void;
+  
+  // Fixture actions
+  generateFixtures: () => void;
+  
+  // Match actions
+  createMatch: (team1Id: string, team2Id: string) => Match;
+  setCurrentMatch: (match: Match | null) => void;
+  updateMatch: (updates: Partial<Match>) => void;
+  
+  // Auto-generate sample data
+  generateSampleTeams: (count: number) => void;
+}
+
+const generateId = () => Math.random().toString(36).substring(2, 11);
+
+const createSamplePlayer = (name: string, isOverseas: boolean = false): Omit<Player, 'id'> => ({
+  name,
+  isOverseas,
+  batSkill: Math.floor(Math.random() * 40) + (isOverseas ? 50 : 30),
+  bowlSkill: Math.floor(Math.random() * 40) + (isOverseas ? 30 : 20),
+  runs: 0,
+  balls: 0,
+  fours: 0,
+  sixes: 0,
+  dismissed: false,
+  dismissalInfo: '',
+  oversBowled: 0,
+  maidens: 0,
+  wickets: 0,
+  runsConceded: 0,
+  isPlaying: false,
+});
+
+export const useCricketStore = create<CricketStore>((set, get) => ({
+  teams: [],
+  fixtures: [],
+  currentMatch: null,
+  
+  addTeam: (teamData) => {
+    const team: Team = {
+      ...teamData,
+      id: generateId(),
+      playingXI: [],
+      impactOptions: [],
+      subUsed: false,
+    };
+    set(state => ({
+      teams: [...state.teams, team]
+    }));
+  },
+  
+  updateTeam: (id, updates) => {
+    set(state => ({
+      teams: state.teams.map(team => 
+        team.id === id ? { ...team, ...updates } : team
+      )
+    }));
+  },
+  
+  removeTeam: (id) => {
+    set(state => ({
+      teams: state.teams.filter(team => team.id !== id)
+    }));
+  },
+  
+  addPlayerToTeam: (teamId, playerData) => {
+    const player: Player = {
+      ...playerData,
+      id: generateId(),
+    };
+    
+    set(state => ({
+      teams: state.teams.map(team => 
+        team.id === teamId 
+          ? { ...team, squad: [...team.squad, player] }
+          : team
+      )
+    }));
+  },
+  
+  updatePlayer: (teamId, playerId, updates) => {
+    set(state => ({
+      teams: state.teams.map(team => 
+        team.id === teamId 
+          ? {
+              ...team,
+              squad: team.squad.map(player => 
+                player.id === playerId ? { ...player, ...updates } : player
+              )
+            }
+          : team
+      )
+    }));
+  },
+  
+  removePlayerFromTeam: (teamId, playerId) => {
+    set(state => ({
+      teams: state.teams.map(team => 
+        team.id === teamId 
+          ? {
+              ...team,
+              squad: team.squad.filter(player => player.id !== playerId),
+              playingXI: team.playingXI.filter(player => player.id !== playerId),
+              impactOptions: team.impactOptions.filter(player => player.id !== playerId),
+            }
+          : team
+      )
+    }));
+  },
+  
+  setPlayingXI: (teamId, playerIds) => {
+    set(state => ({
+      teams: state.teams.map(team => {
+        if (team.id !== teamId) return team;
+        
+        const playingXI = playerIds.map((id, index) => {
+          const player = team.squad.find(p => p.id === id);
+          if (!player) return null;
+          return { ...player, isPlaying: true, position: index + 1 };
+        }).filter(Boolean) as Player[];
+        
+        // Reset other players
+        const updatedSquad = team.squad.map(player => ({
+          ...player,
+          isPlaying: playingXI.some(p => p.id === player.id),
+          position: playingXI.find(p => p.id === player.id)?.position
+        }));
+        
+        return { 
+          ...team, 
+          squad: updatedSquad,
+          playingXI 
+        };
+      })
+    }));
+  },
+  
+  setImpactPlayers: (teamId, playerIds) => {
+    set(state => ({
+      teams: state.teams.map(team => 
+        team.id === teamId 
+          ? {
+              ...team,
+              impactOptions: playerIds.map(id => 
+                team.squad.find(p => p.id === id)
+              ).filter(Boolean) as Player[]
+            }
+          : team
+      )
+    }));
+  },
+  
+  generateFixtures: () => {
+    const { teams } = get();
+    const fixtures: Fixture[] = [];
+    
+    for (let i = 0; i < teams.length; i++) {
+      for (let j = i + 1; j < teams.length; j++) {
+        fixtures.push({
+          id: generateId(),
+          team1: teams[i],
+          team2: teams[j],
+          played: false,
+        });
+      }
+    }
+    
+    // Shuffle fixtures
+    for (let i = fixtures.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [fixtures[i], fixtures[j]] = [fixtures[j], fixtures[i]];
+    }
+    
+    set({ fixtures });
+  },
+  
+  createMatch: (team1Id, team2Id) => {
+    const { teams } = get();
+    const team1 = teams.find(t => t.id === team1Id)!;
+    const team2 = teams.find(t => t.id === team2Id)!;
+    
+    const match: Match = {
+      id: generateId(),
+      team1,
+      team2,
+      overs: 20,
+      tossWinner: null,
+      tossChoice: null,
+      firstInnings: null,
+      secondInnings: null,
+      result: null,
+      isLive: false,
+      currentInnings: 1,
+    };
+    
+    return match;
+  },
+  
+  setCurrentMatch: (match) => {
+    set({ currentMatch: match });
+  },
+  
+  updateMatch: (updates) => {
+    set(state => ({
+      currentMatch: state.currentMatch 
+        ? { ...state.currentMatch, ...updates }
+        : null
+    }));
+  },
+  
+  generateSampleTeams: (count) => {
+    const teamNames = [
+      'Mumbai Indians', 'Chennai Super Kings', 'Royal Challengers Bangalore',
+      'Kolkata Knight Riders', 'Delhi Capitals', 'Punjab Kings',
+      'Rajasthan Royals', 'Sunrisers Hyderabad'
+    ];
+    
+    const sampleNames = [
+      'Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis',
+      'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas',
+      'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia',
+      'Martinez', 'Robinson', 'Clark', 'Rodriguez', 'Lewis', 'Lee'
+    ];
+    
+    for (let i = 0; i < Math.min(count, teamNames.length); i++) {
+      const team: Team = {
+        id: generateId(),
+        name: teamNames[i],
+        squad: [],
+        playingXI: [],
+        impactOptions: [],
+        subUsed: false,
+      };
+      
+      // Generate 20 players per team
+      for (let j = 0; j < 20; j++) {
+        const isOverseas = j < 6; // First 6 are overseas
+        const player: Player = {
+          id: generateId(),
+          ...createSamplePlayer(`${sampleNames[j % sampleNames.length]} ${j + 1}`, isOverseas)
+        };
+        team.squad.push(player);
+      }
+      
+      set(state => ({
+        teams: [...state.teams, team]
+      }));
+    }
+  },
+}));

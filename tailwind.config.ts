@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        cricket: {
+          green: "hsl(var(--cricket-green))",
+          pitch: "hsl(var(--cricket-pitch))",
+          ball: "hsl(var(--cricket-ball))",
+          stumps: "hsl(var(--cricket-stumps))",
+          boundary: "hsl(var(--cricket-boundary))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

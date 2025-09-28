@@ -1,12 +1,41 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Toaster } from "@/components/ui/toaster";
+import CricketHeader from "@/components/CricketHeader";
+import TabNavigation from "@/components/TabNavigation";
+import TeamsTab from "@/components/TeamsTab";
+import FixturesTab from "@/components/FixturesTab";
+import LiveMatchTab from "@/components/LiveMatchTab";
+import StatsTab from "@/components/StatsTab";
+import { TabsContent } from "@/components/ui/tabs";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("teams");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30">
+      <CricketHeader />
+      
+      <main className="container mx-auto px-4 py-8">
+        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab}>
+          <TabsContent value="teams">
+            <TeamsTab />
+          </TabsContent>
+          
+          <TabsContent value="fixtures">
+            <FixturesTab />
+          </TabsContent>
+          
+          <TabsContent value="live">
+            <LiveMatchTab />
+          </TabsContent>
+          
+          <TabsContent value="stats">
+            <StatsTab />
+          </TabsContent>
+        </TabNavigation>
+      </main>
+      
+      <Toaster />
     </div>
   );
 };
