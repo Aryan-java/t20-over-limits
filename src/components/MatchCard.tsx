@@ -12,7 +12,7 @@ interface MatchCardProps {
 }
 
 const MatchCard = ({ match, onStartMatch, onViewMatch, isFixture = false }: MatchCardProps) => {
-  const canStart = match.team1.playingXI.length === 11 && match.team2.playingXI.length === 11;
+  const canStart = true; // Always allow starting match, setup will be done in match setup dialog
   
   const getMatchStatus = () => {
     if (match.result) return "completed";
@@ -30,9 +30,9 @@ const MatchCard = ({ match, onStartMatch, onViewMatch, isFixture = false }: Matc
       case "completed":
         return <Badge className="bg-cricket-green text-white">Completed</Badge>;
       case "ready":
-        return <Badge className="bg-accent text-accent-foreground">Ready</Badge>;
+        return <Badge className="bg-accent text-accent-foreground">Ready to Setup</Badge>;
       default:
-        return <Badge variant="outline">Pending Setup</Badge>;
+        return <Badge variant="outline">Ready to Setup</Badge>;
     }
   };
 
@@ -74,29 +74,11 @@ const MatchCard = ({ match, onStartMatch, onViewMatch, isFixture = false }: Matc
       
       <CardContent>
         <div className="space-y-4">
-          {match.isLive && getCurrentScore() && (
-            <div className="bg-cricket-pitch p-3 rounded-lg border">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Current Score:</span>
-                {getCurrentScore()}
-              </div>
-            </div>
-          )}
-          
-          {match.result && (
-            <div className="bg-cricket-green/10 p-3 rounded-lg border border-cricket-green/20">
-              <div className="flex items-center space-x-2">
-                <Trophy className="h-4 w-4 text-cricket-green" />
-                <span className="font-medium text-cricket-green">{match.result}</span>
-              </div>
-            </div>
-          )}
-          
           <div className="flex space-x-2">
-            {status === "ready" && onStartMatch && (
+            {(status === "ready" || status === "pending") && onStartMatch && (
               <Button onClick={onStartMatch} className="flex-1 bg-cricket-green hover:bg-cricket-green/90">
                 <Play className="h-4 w-4 mr-1" />
-                Start Match
+                Setup & Start
               </Button>
             )}
             
@@ -114,12 +96,6 @@ const MatchCard = ({ match, onStartMatch, onViewMatch, isFixture = false }: Matc
               </Button>
             )}
             
-            {status === "pending" && (
-              <Button disabled className="flex-1" variant="outline">
-                <Clock className="h-4 w-4 mr-1" />
-                Setup Required
-              </Button>
-            )}
           </div>
         </div>
       </CardContent>

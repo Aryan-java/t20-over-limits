@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import { Plus, Trash2, Globe } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Globe, Search } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
-import { Player } from "@/types/cricket";
 import { useToast } from "@/hooks/use-toast";
+import { PLAYER_DATABASE } from "@/data/playerDatabase";
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -21,69 +21,52 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
   const { toast } = useToast();
   
   const [teamName, setTeamName] = useState("");
-  const [players, setPlayers] = useState<Omit<Player, 'id'>[]>([]);
-  const [currentPlayer, setCurrentPlayer] = useState({
-    name: "",
-    isOverseas: false,
-    batSkill: 50,
-    bowlSkill: 30,
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [overseasFilter, setOverseasFilter] = useState<string>("all");
+
+  const filteredPlayers = PLAYER_DATABASE.filter(player => {
+    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || player.role === roleFilter;
+    const matchesOverseas = overseasFilter === "all" || 
+      (overseasFilter === "overseas" && player.isOverseas) ||
+      (overseasFilter === "indian" && !player.isOverseas);
+    
+    return matchesSearch && matchesRole && matchesOverseas;
   });
 
-  const addPlayer = () => {
-    if (!currentPlayer.name.trim()) {
-      toast({
-        title: "Error",
-        description: "Player name is required",
-        variant: "destructive"
-      });
-      return;
+  const togglePlayer = (playerName: string) => {
+    if (selectedPlayers.includes(playerName)) {
+      setSelectedPlayers(selectedPlayers.filter(name => name !== playerName));
+    } else {
+      if (selectedPlayers.length >= 25) {
+        toast({
+          title: "Squad Full",
+          description: "Maximum 25 players allowed in squad",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const player = PLAYER_DATABASE.find(p => p.name === playerName);
+      if (player?.isOverseas) {
+        const overseasCount = selectedPlayers.filter(name => 
+          PLAYER_DATABASE.find(p => p.name === name)?.isOverseas
+        ).length;
+        
+        if (overseasCount >= 8) {
+          toast({
+            title: "Overseas Limit Exceeded",
+            description: "Maximum 8 overseas players allowed in squad",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      setSelectedPlayers([...selectedPlayers, playerName]);
     }
-
-    if (players.length >= 25) {
-      toast({
-        title: "Error",
-        description: "Maximum 25 players allowed in squad",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const overseasCount = players.filter(p => p.isOverseas).length;
-    if (currentPlayer.isOverseas && overseasCount >= 8) {
-      toast({
-        title: "Error", 
-        description: "Maximum 8 overseas players allowed in squad",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const newPlayer: Omit<Player, 'id'> = {
-      ...currentPlayer,
-      runs: 0,
-      balls: 0,
-      fours: 0,
-      sixes: 0,
-      dismissed: false,
-      dismissalInfo: '',
-      oversBowled: 0,
-      maidens: 0,
-      wickets: 0,
-      runsConceded: 0,
-      isPlaying: false,
-    };
-
-    setPlayers([...players, newPlayer]);
-    setCurrentPlayer({
-      name: "",
-      isOverseas: false,
-      batSkill: 50,
-      bowlSkill: 30,
-    });
-  };
-
-  const removePlayer = (index: number) => {
-    setPlayers(players.filter((_, i) => i !== index));
   };
 
   const createTeam = () => {
@@ -96,7 +79,7 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
       return;
     }
 
-    if (players.length < 18) {
+    if (selectedPlayers.length < 18) {
       toast({
         title: "Error",
         description: "Minimum 18 players required in squad",
@@ -105,11 +88,28 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
       return;
     }
 
-    // Convert players to full Player objects with IDs
-    const squadWithIds = players.map(p => ({
-      id: Math.random().toString(36).substring(2, 11),
-      ...p
-    }));
+    // Convert selected player names to full Player objects
+    const squadWithIds = selectedPlayers.map(playerName => {
+      const playerData = PLAYER_DATABASE.find(p => p.name === playerName)!;
+      return {
+        id: Math.random().toString(36).substring(2, 11),
+        name: playerData.name,
+        isOverseas: playerData.isOverseas,
+        batSkill: playerData.batSkill,
+        bowlSkill: playerData.bowlSkill,
+        runs: 0,
+        balls: 0,
+        fours: 0,
+        sixes: 0,
+        dismissed: false,
+        dismissalInfo: '',
+        oversBowled: 0,
+        maidens: 0,
+        wickets: 0,
+        runsConceded: 0,
+        isPlaying: false
+      };
+    });
 
     addTeam({
       name: teamName,
@@ -118,29 +118,41 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
 
     toast({
       title: "Success",
-      description: `${teamName} created successfully with ${players.length} players`,
+      description: `${teamName} created successfully with ${selectedPlayers.length} players`,
     });
 
     // Reset form
     setTeamName("");
-    setPlayers([]);
-    setCurrentPlayer({
-      name: "",
-      isOverseas: false,
-      batSkill: 50,
-      bowlSkill: 30,
-    });
-    
+    setSelectedPlayers([]);
     onOpenChange(false);
   };
 
-  const overseasCount = players.filter(p => p.isOverseas).length;
+  const overseasCount = selectedPlayers.filter(name => 
+    PLAYER_DATABASE.find(p => p.name === name)?.isOverseas
+  ).length;
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'Batsman': return 'bg-blue-500';
+      case 'Bowler': return 'bg-red-500';
+      case 'All-rounder': return 'bg-green-500';
+      case 'Wicket-keeper': return 'bg-purple-500';
+      default: return 'bg-gray-500';
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Team</DialogTitle>
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Selected: {selectedPlayers.length}/25 players</span>
+            <Badge variant="outline">
+              <Globe className="h-3 w-3 mr-1" />
+              {overseasCount}/8 overseas
+            </Badge>
+          </div>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -154,100 +166,84 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
             />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Add Players ({players.length}/25)</Label>
-              <Badge variant="outline">
-                <Globe className="h-3 w-3 mr-1" />
-                {overseasCount}/8 overseas
-              </Badge>
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search players..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
+            
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="Batsman">Batsman</SelectItem>
+                <SelectItem value="Bowler">Bowler</SelectItem>
+                <SelectItem value="All-rounder">All-rounder</SelectItem>
+                <SelectItem value="Wicket-keeper">Wicket-keeper</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor="playerName">Player Name</Label>
-                <Input
-                  id="playerName"
-                  value={currentPlayer.name}
-                  onChange={(e) => setCurrentPlayer({...currentPlayer, name: e.target.value})}
-                  placeholder="Enter player name"
-                />
-              </div>
+            <Select value={overseasFilter} onValueChange={setOverseasFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Origin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Players</SelectItem>
+                <SelectItem value="indian">Indian</SelectItem>
+                <SelectItem value="overseas">Overseas</SelectItem>
+              </SelectContent>
+            </Select>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={currentPlayer.isOverseas}
-                  onCheckedChange={(checked) => setCurrentPlayer({...currentPlayer, isOverseas: checked})}
-                />
-                <Label>Overseas Player</Label>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Batting Skill: {currentPlayer.batSkill}</Label>
-                <Slider
-                  value={[currentPlayer.batSkill]}
-                  onValueChange={([value]) => setCurrentPlayer({...currentPlayer, batSkill: value})}
-                  max={100}
-                  step={1}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Bowling Skill: {currentPlayer.bowlSkill}</Label>
-                <Slider
-                  value={[currentPlayer.bowlSkill]}
-                  onValueChange={([value]) => setCurrentPlayer({...currentPlayer, bowlSkill: value})}
-                  max={100}
-                  step={1}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Button onClick={addPlayer} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Player
-                </Button>
-              </div>
-            </div>
+            <Badge variant="outline" className="text-sm justify-center">
+              {filteredPlayers.length} available
+            </Badge>
           </div>
 
-          {players.length > 0 && (
-            <div className="space-y-2">
-              <Label>Squad Players</Label>
-              <div className="max-h-48 overflow-y-auto border rounded-lg">
-                {players.map((player, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 border-b last:border-b-0">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium">{player.name}</span>
-                      {player.isOverseas && (
-                        <Badge variant="outline">
-                          <Globe className="h-3 w-3 mr-1" />
-                          Overseas
-                        </Badge>
-                      )}
-                      <span className="text-sm text-muted-foreground">
-                        Bat: {player.batSkill} | Bowl: {player.bowlSkill}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removePlayer(index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+          {/* Player List */}
+          <div className="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
+            {filteredPlayers.map((player) => (
+              <div key={player.name} className="flex items-center space-x-3 p-2 border rounded hover:bg-muted/50">
+                <Checkbox
+                  checked={selectedPlayers.includes(player.name)}
+                  onCheckedChange={() => togglePlayer(player.name)}
+                />
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium truncate">{player.name}</span>
+                    {player.isOverseas && (
+                      <Badge variant="outline" className="text-xs">
+                        <Globe className="h-3 w-3 mr-1" />
+                        OS
+                      </Badge>
+                    )}
+                    <Badge className={`text-white text-xs ${getRoleColor(player.role)}`}>
+                      {player.role}
+                    </Badge>
                   </div>
-                ))}
+                </div>
+
+                <div className="flex items-center space-x-4 text-sm">
+                  <span className="font-medium">Bat: {player.batSkill}</span>
+                  <span className="font-medium">Bowl: {player.bowlSkill}</span>
+                </div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
 
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={createTeam} disabled={!teamName.trim() || players.length < 18}>
+            <Button onClick={createTeam} disabled={!teamName.trim() || selectedPlayers.length < 18}>
               Create Team
             </Button>
           </div>

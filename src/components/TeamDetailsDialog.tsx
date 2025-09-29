@@ -14,7 +14,6 @@ const TeamDetailsDialog = ({ team, open, onOpenChange }: TeamDetailsDialogProps)
   if (!team) return null;
 
   const overseasCount = team.squad.filter(p => p.isOverseas).length;
-  const overseasInXI = team.playingXI.filter(p => p.isOverseas).length;
   
   const avgBatSkill = Math.round(team.squad.reduce((sum, p) => sum + p.batSkill, 0) / team.squad.length);
   const avgBowlSkill = Math.round(team.squad.reduce((sum, p) => sum + p.bowlSkill, 0) / team.squad.length);
@@ -47,10 +46,8 @@ const TeamDetailsDialog = ({ team, open, onOpenChange }: TeamDetailsDialogProps)
           </div>
 
           <Tabs defaultValue="squad" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="squad">Full Squad</TabsTrigger>
-              <TabsTrigger value="xi">Playing XI</TabsTrigger>
-              <TabsTrigger value="impact">Impact Players</TabsTrigger>
             </TabsList>
             
             <TabsContent value="squad" className="space-y-4">
@@ -65,49 +62,6 @@ const TeamDetailsDialog = ({ team, open, onOpenChange }: TeamDetailsDialogProps)
                   <PlayerRow key={player.id} player={player} />
                 ))}
               </div>
-            </TabsContent>
-            
-            <TabsContent value="xi" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Playing XI ({team.playingXI.length}/11)</h3>
-                <div className="flex space-x-2">
-                  <Badge variant="outline">{overseasInXI}/4 overseas</Badge>
-                  {team.playingXI.length === 11 && (
-                    <Badge className="bg-cricket-green text-white">Ready</Badge>
-                  )}
-                </div>
-              </div>
-              {team.playingXI.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No playing XI selected yet
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {team.playingXI
-                    .sort((a, b) => (a.position || 0) - (b.position || 0))
-                    .map((player) => (
-                      <PlayerRow key={player.id} player={player} />
-                    ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="impact" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Impact Players ({team.impactOptions.length}/4)</h3>
-                <Badge variant="outline">Available for substitution</Badge>
-              </div>
-              {team.impactOptions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No impact players selected yet
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {team.impactOptions.map((player) => (
-                    <PlayerRow key={player.id} player={player} />
-                  ))}
-                </div>
-              )}
             </TabsContent>
           </Tabs>
         </div>

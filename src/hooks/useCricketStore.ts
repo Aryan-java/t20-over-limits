@@ -17,10 +17,6 @@ interface CricketStore {
   updatePlayer: (teamId: string, playerId: string, updates: Partial<Player>) => void;
   removePlayerFromTeam: (teamId: string, playerId: string) => void;
   
-  // Playing XI actions
-  setPlayingXI: (teamId: string, playerIds: string[]) => void;
-  setImpactPlayers: (teamId: string, playerIds: string[]) => void;
-  
   // Fixture actions
   generateFixtures: () => void;
   
@@ -62,8 +58,6 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
     const team: Team = {
       ...teamData,
       id: generateId(),
-      playingXI: [],
-      impactOptions: [],
       subUsed: false,
     };
     set(state => ({
@@ -122,50 +116,6 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
           ? {
               ...team,
               squad: team.squad.filter(player => player.id !== playerId),
-              playingXI: team.playingXI.filter(player => player.id !== playerId),
-              impactOptions: team.impactOptions.filter(player => player.id !== playerId),
-            }
-          : team
-      )
-    }));
-  },
-  
-  setPlayingXI: (teamId, playerIds) => {
-    set(state => ({
-      teams: state.teams.map(team => {
-        if (team.id !== teamId) return team;
-        
-        const playingXI = playerIds.map((id, index) => {
-          const player = team.squad.find(p => p.id === id);
-          if (!player) return null;
-          return { ...player, isPlaying: true, position: index + 1 };
-        }).filter(Boolean) as Player[];
-        
-        // Reset other players
-        const updatedSquad = team.squad.map(player => ({
-          ...player,
-          isPlaying: playingXI.some(p => p.id === player.id),
-          position: playingXI.find(p => p.id === player.id)?.position
-        }));
-        
-        return { 
-          ...team, 
-          squad: updatedSquad,
-          playingXI 
-        };
-      })
-    }));
-  },
-  
-  setImpactPlayers: (teamId, playerIds) => {
-    set(state => ({
-      teams: state.teams.map(team => 
-        team.id === teamId 
-          ? {
-              ...team,
-              impactOptions: playerIds.map(id => 
-                team.squad.find(p => p.id === id)
-              ).filter(Boolean) as Player[]
             }
           : team
       )
@@ -249,8 +199,6 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
         id: generateId(),
         name: teamNames[i],
         squad: [],
-        playingXI: [],
-        impactOptions: [],
         subUsed: false,
       };
       

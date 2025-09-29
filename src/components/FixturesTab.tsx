@@ -1,14 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { Calendar, Shuffle } from "lucide-react";
 import MatchCard from "./MatchCard";
+import MatchSetupDialog from "./MatchSetupDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
+import { useState } from "react";
+import { Team } from "@/types/cricket";
 
 const FixturesTab = () => {
   const { teams, fixtures, generateFixtures, createMatch, setCurrentMatch } = useCricketStore();
+  const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team} | null>(null);
 
   const handleStartMatch = (team1Id: string, team2Id: string) => {
-    const match = createMatch(team1Id, team2Id);
+    const team1 = teams.find(t => t.id === team1Id)!;
+    const team2 = teams.find(t => t.id === team2Id)!;
+    setSetupMatch({ team1, team2 });
+  };
+
+  const handleMatchReady = (team1Setup: any, team2Setup: any) => {
+    // Create match with team setups
+    const match = createMatch(team1Setup.team.id, team2Setup.team.id);
+    // Store team setups in match (you'll need to update the Match type to include this)
     setCurrentMatch(match);
+    setSetupMatch(null);
   };
 
   const completedMatches = fixtures.filter(f => f.played);
@@ -94,6 +107,14 @@ const FixturesTab = () => {
           )}
         </div>
       )}
+
+      <MatchSetupDialog
+        team1={setupMatch?.team1 || null}
+        team2={setupMatch?.team2 || null}
+        open={!!setupMatch}
+        onOpenChange={(open) => !open && setSetupMatch(null)}
+        onMatchReady={handleMatchReady}
+      />
     </div>
   );
 };

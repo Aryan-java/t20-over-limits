@@ -4,7 +4,6 @@ import { Plus, Shuffle } from "lucide-react";
 import TeamCard from "./TeamCard";
 import CreateTeamDialog from "./CreateTeamDialog";
 import EditTeamDialog from "./EditTeamDialog";
-import SelectPlayingXIDialog from "./SelectPlayingXIDialog";
 import TeamDetailsDialog from "./TeamDetailsDialog";
 import PlayerSelectionDialog from "./PlayerSelectionDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
@@ -14,7 +13,6 @@ const TeamsTab = () => {
   const { teams, generateSampleTeams } = useCricketStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-  const [selectingXITeam, setSelectingXITeam] = useState<Team | null>(null);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   const [playerSelectionTeam, setPlayerSelectionTeam] = useState<Team | null>(null);
 
@@ -58,7 +56,6 @@ const TeamsTab = () => {
               key={team.id}
               team={team}
               onEdit={() => setEditingTeam(team)}
-              onSelectXI={() => setSelectingXITeam(team)}
               onViewDetails={() => setViewingTeam(team)}
               onAddPlayers={() => setPlayerSelectionTeam(team)}
             />
@@ -75,12 +72,6 @@ const TeamsTab = () => {
         team={editingTeam} 
         open={!!editingTeam} 
         onOpenChange={(open) => !open && setEditingTeam(null)} 
-      />
-      
-      <SelectPlayingXIDialog 
-        team={selectingXITeam} 
-        open={!!selectingXITeam} 
-        onOpenChange={(open) => !open && setSelectingXITeam(null)} 
       />
       
       <TeamDetailsDialog 

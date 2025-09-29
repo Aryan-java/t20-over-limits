@@ -7,15 +7,12 @@ import { Users, Globe, Edit, Play, Plus } from "lucide-react";
 interface TeamCardProps {
   team: Team;
   onEdit: () => void;
-  onSelectXI: () => void;
   onViewDetails: () => void;
   onAddPlayers: () => void;
 }
 
-const TeamCard = ({ team, onEdit, onSelectXI, onViewDetails, onAddPlayers }: TeamCardProps) => {
+const TeamCard = ({ team, onEdit, onViewDetails, onAddPlayers }: TeamCardProps) => {
   const overseasCount = team.squad.filter(p => p.isOverseas).length;
-  const playingXIOverseas = team.playingXI.filter(p => p.isOverseas).length;
-  const hasPlayingXI = team.playingXI.length === 11;
 
   return (
     <Card className="hover:shadow-lg transition-shadow border-border">
@@ -35,11 +32,6 @@ const TeamCard = ({ team, onEdit, onSelectXI, onViewDetails, onAddPlayers }: Tea
             </div>
           </div>
           <div className="flex flex-col space-y-1">
-            {hasPlayingXI && (
-              <Badge className="bg-cricket-green text-white text-xs">
-                XI Ready
-              </Badge>
-            )}
             {team.subUsed && (
               <Badge variant="destructive" className="text-xs">
                 Sub Used
@@ -51,26 +43,13 @@ const TeamCard = ({ team, onEdit, onSelectXI, onViewDetails, onAddPlayers }: Tea
       <CardContent>
         <div className="space-y-3">
           <div className="text-sm text-muted-foreground">
-            {hasPlayingXI ? (
-              <p>Playing XI: {playingXIOverseas}/4 overseas • {team.impactOptions.length} impact players</p>
-            ) : (
-              <p>No playing XI selected</p>
-            )}
+            <p>Squad ready for match selection</p>
           </div>
           
           <div className="flex space-x-2 mb-2">
             <Button size="sm" onClick={onAddPlayers} className="flex-1">
               <Plus className="h-4 w-4 mr-1" />
               Add Players
-            </Button>
-            <Button 
-              variant={hasPlayingXI ? "secondary" : "default"} 
-              size="sm" 
-              onClick={onSelectXI}
-              className="flex-1"
-            >
-              <Play className="h-4 w-4 mr-1" />
-              {hasPlayingXI ? "Update XI" : "Select XI"}
             </Button>
           </div>
           

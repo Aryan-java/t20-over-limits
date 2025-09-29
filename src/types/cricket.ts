@@ -23,8 +23,6 @@ export interface Team {
   id: string;
   name: string;
   squad: Player[];
-  playingXI: Player[];
-  impactOptions: Player[];
   subUsed: boolean;
 }
 
@@ -78,6 +76,18 @@ export interface Match {
   result: string | null;
   isLive: boolean;
   currentInnings: 1 | 2;
+  team1Setup?: {
+    playingXI: Player[];
+    impactPlayers: Player[];
+    battingOrder: Player[];
+    openingPair: [Player, Player];
+  };
+  team2Setup?: {
+    playingXI: Player[];
+    impactPlayers: Player[];
+    battingOrder: Player[];
+    openingPair: [Player, Player];
+  };
   superOver?: {
     team1Innings: Innings;
     team2Innings: Innings;
