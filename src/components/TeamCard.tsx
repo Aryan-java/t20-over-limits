@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Team } from "@/types/cricket";
-import { Users, Globe, Edit, Play, Plus } from "lucide-react";
+import { Users, Globe, CreditCard as Edit, Play, Plus } from "lucide-react";
 
 interface TeamCardProps {
   team: Team;
