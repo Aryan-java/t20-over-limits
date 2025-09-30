@@ -60,6 +60,7 @@ export interface Innings {
     striker: Player | null;
     nonStriker: Player | null;
   };
+  currentBowler: Player | null;
   battingOrder: Player[];
   isCompleted: boolean;
 }

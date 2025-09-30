@@ -7,11 +7,32 @@ import { useCricketStore } from "@/hooks/useCricketStore";
 import LiveScoreboard from "./LiveScoreboard";
 import TossDialog from "./TossDialog";
 import BallByBallEngine from "./BallByBallEngine";
+import LiveMatchControls from "./LiveMatchControls";
 
 const LiveMatchTab = () => {
   const { currentMatch, setCurrentMatch } = useCricketStore();
   const [showToss, setShowToss] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
+
+  const handleBowlerChange = (bowlerId: string) => {
+    // Update current bowler in match state
+    console.log("Changing bowler to:", bowlerId);
+  };
+
+  const handleNextBatsman = (batsmanId: string) => {
+    // Update batting lineup
+    console.log("Next batsman:", batsmanId);
+  };
+
+  const handleSimulateBall = () => {
+    // Simulate next ball
+    console.log("Simulating ball");
+  };
+
+  const handleUseImpactPlayer = (playerId: string, replacePlayerId: string) => {
+    // Use impact player substitution
+    console.log("Using impact player:", playerId, "to replace:", replacePlayerId);
+  };
 
   if (!currentMatch) {
     return (
@@ -71,6 +92,16 @@ const LiveMatchTab = () => {
           
           {matchStarted && (
             <BallByBallEngine match={currentMatch} />
+          )}
+          
+          {matchStarted && (
+            <LiveMatchControls 
+              match={currentMatch}
+              onBowlerChange={handleBowlerChange}
+              onNextBatsman={handleNextBatsman}
+              onSimulateBall={handleSimulateBall}
+              onUseImpactPlayer={handleUseImpactPlayer}
+            />
           )}
         </div>
         

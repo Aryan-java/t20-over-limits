@@ -158,7 +158,7 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
         setOpeningPair(["", ""]);
       } else {
         // Both teams setup complete
-        if (team1Setup.team && team2Setup.team) {
+        if (team1Setup.playingXI && team2Setup.playingXI) {
           onMatchReady(team1Setup as TeamSetup, team2Setup as TeamSetup);
           onOpenChange(false);
         }
