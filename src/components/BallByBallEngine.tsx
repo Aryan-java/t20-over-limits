@@ -176,9 +176,44 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     // Update bowler stats
     const bowler = { ...innings.currentBowler };
-    bowler.oversBowled = Number(((innings.ballsBowled + 1) / 6).toFixed(2));
+    const ballsInOver = (innings.ballsBowled % 6) + 1;
+    if (ballsInOver === 6) {
+      bowler.oversBowled = Math.floor(innings.ballsBowled / 6) + 1;
+    }
     bowler.runsConceded += runs;
     if (isWicket) bowler.wickets += 1;
+    
+    // Update team squads with new stats
+    const battingTeamId = innings.battingTeam === match.team1.name ? match.team1.id : match.team2.id;
+    const bowlingTeamId = innings.bowlingTeam === match.team1.name ? match.team1.id : match.team2.id;
+    
+    const updatedTeam1 = match.team1.id === battingTeamId
+      ? {
+          ...match.team1,
+          squad: match.team1.squad.map(p => 
+            p.id === striker.id ? striker : 
+            p.id === innings.currentBatsmen.nonStriker?.id ? innings.currentBatsmen.nonStriker : 
+            p
+          )
+        }
+      : {
+          ...match.team1,
+          squad: match.team1.squad.map(p => p.id === bowler.id ? bowler : p)
+        };
+    
+    const updatedTeam2 = match.team2.id === battingTeamId
+      ? {
+          ...match.team2,
+          squad: match.team2.squad.map(p => 
+            p.id === striker.id ? striker : 
+            p.id === innings.currentBatsmen.nonStriker?.id ? innings.currentBatsmen.nonStriker : 
+            p
+          )
+        }
+      : {
+          ...match.team2,
+          squad: match.team2.squad.map(p => p.id === bowler.id ? bowler : p)
+        };
     
     // Rotate strike if odd runs
     let newStriker = striker;
@@ -256,9 +291,13 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     setCommentary(prev => [ballEvent, ...prev]);
     
-    const matchUpdate = match.currentInnings === 1 
-      ? { firstInnings: updatedInnings }
-      : { secondInnings: updatedInnings };
+    const matchUpdate = {
+      team1: updatedTeam1,
+      team2: updatedTeam2,
+      ...(match.currentInnings === 1 
+        ? { firstInnings: updatedInnings }
+        : { secondInnings: updatedInnings })
+    };
     
     updateMatch(matchUpdate);
     
