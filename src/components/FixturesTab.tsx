@@ -18,8 +18,22 @@ const FixturesTab = () => {
 
   const handleMatchReady = (team1Setup: any, team2Setup: any) => {
     // Create match with team setups
-    const match = createMatch(team1Setup.team.id, team2Setup.team.id);
-    // Store team setups in match (you'll need to update the Match type to include this)
+    const match = createMatch(
+      team1Setup.team.id, 
+      team2Setup.team.id,
+      {
+        playingXI: team1Setup.playingXI,
+        impactPlayers: team1Setup.impactPlayers,
+        battingOrder: team1Setup.battingOrder,
+        openingPair: team1Setup.openingPair
+      },
+      {
+        playingXI: team2Setup.playingXI,
+        impactPlayers: team2Setup.impactPlayers,
+        battingOrder: team2Setup.battingOrder,
+        openingPair: team2Setup.openingPair
+      }
+    );
     setCurrentMatch(match);
     setSetupMatch(null);
   };

@@ -150,20 +150,20 @@ const LiveMatchTab = () => {
               <div className="space-y-2">
                 <div className="font-medium">{currentMatch.team1.name}</div>
                 <div className="text-sm text-muted-foreground">
-                  Playing XI: {currentMatch.team1.playingXI.length}/11
+                  Playing XI: {currentMatch.team1Setup?.playingXI?.length || 0}/11
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Impact: {currentMatch.team1.impactOptions.length}/4
+                  Impact: {currentMatch.team1Setup?.impactPlayers?.length || 0}/4
                 </div>
               </div>
               
               <div className="border-t pt-4 space-y-2">
                 <div className="font-medium">{currentMatch.team2.name}</div>
                 <div className="text-sm text-muted-foreground">
-                  Playing XI: {currentMatch.team2.playingXI.length}/11
+                  Playing XI: {currentMatch.team2Setup?.playingXI?.length || 0}/11
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Impact: {currentMatch.team2.impactOptions.length}/4
+                  Impact: {currentMatch.team2Setup?.impactPlayers?.length || 0}/4
                 </div>
               </div>
             </CardContent>

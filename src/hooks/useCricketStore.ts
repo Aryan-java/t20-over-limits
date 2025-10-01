@@ -21,7 +21,7 @@ interface CricketStore {
   generateFixtures: () => void;
   
   // Match actions
-  createMatch: (team1Id: string, team2Id: string) => Match;
+  createMatch: (team1Id: string, team2Id: string, team1Setup?: Match['team1Setup'], team2Setup?: Match['team2Setup']) => Match;
   setCurrentMatch: (match: Match | null) => void;
   updateMatch: (updates: Partial<Match>) => void;
   
@@ -146,7 +146,7 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
     set({ fixtures });
   },
   
-  createMatch: (team1Id, team2Id) => {
+  createMatch: (team1Id, team2Id, team1Setup, team2Setup) => {
     const { teams } = get();
     const team1 = teams.find(t => t.id === team1Id)!;
     const team2 = teams.find(t => t.id === team2Id)!;
@@ -155,6 +155,8 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
       id: generateId(),
       team1,
       team2,
+      team1Setup: team1Setup || null,
+      team2Setup: team2Setup || null,
       overs: 20,
       tossWinner: null,
       tossChoice: null,
