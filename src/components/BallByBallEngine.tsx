@@ -184,7 +184,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             <div className="flex space-x-2">
               <Button
                 onClick={handleBallSimulation}
-                disabled={!innings || innings.isCompleted}
+                disabled={!innings || innings.isCompleted || !innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker}
                 className="bg-cricket-green hover:bg-cricket-green/90"
               >
                 <Zap className="h-4 w-4 mr-1" />

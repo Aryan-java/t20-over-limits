@@ -58,6 +58,40 @@ const LiveMatchTab = () => {
 
   const handleTossComplete = () => {
     setShowToss(false);
+    // Initialize first innings after toss
+    const battingTeam = currentMatch.tossChoice === 'bat' 
+      ? currentMatch.tossWinner?.name 
+      : (currentMatch.tossWinner?.name === currentMatch.team1.name ? currentMatch.team2.name : currentMatch.team1.name);
+    
+    const bowlingTeam = currentMatch.tossChoice === 'bowl' 
+      ? currentMatch.tossWinner?.name 
+      : (currentMatch.tossWinner?.name === currentMatch.team1.name ? currentMatch.team2.name : currentMatch.team1.name);
+    
+    const battingSetup = battingTeam === currentMatch.team1.name ? currentMatch.team1Setup : currentMatch.team2Setup;
+    
+    if (battingSetup) {
+      const firstInnings = {
+        battingTeam: battingTeam || '',
+        bowlingTeam: bowlingTeam || '',
+        totalRuns: 0,
+        wickets: 0,
+        ballsBowled: 0,
+        overs: [],
+        currentBatsmen: {
+          striker: battingSetup.openingPair[0] || null,
+          nonStriker: battingSetup.openingPair[1] || null,
+        },
+        currentBowler: null,
+        battingOrder: battingSetup.battingOrder || [],
+        isCompleted: false,
+      };
+      
+      updateMatch({ 
+        firstInnings,
+        isLive: true 
+      });
+    }
+    
     setMatchStarted(true);
   };
 
