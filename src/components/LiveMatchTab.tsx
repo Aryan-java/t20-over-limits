@@ -10,7 +10,7 @@ import BallByBallEngine from "./BallByBallEngine";
 import LiveMatchControls from "./LiveMatchControls";
 
 const LiveMatchTab = () => {
-  const { currentMatch, setCurrentMatch } = useCricketStore();
+  const { currentMatch, setCurrentMatch, updateMatch } = useCricketStore();
   const [showToss, setShowToss] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
 
