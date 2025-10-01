@@ -309,6 +309,11 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
           {/* Impact Players */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Impact Players ({selectedImpact.length}/4)</h3>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <strong>Note:</strong> You can only use ONE impact player per match. Choose wisely!
+              </p>
+            </div>
             
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {availableForImpact.map((player) => (

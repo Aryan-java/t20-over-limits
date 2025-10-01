@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Team, Player, Match, Fixture } from '@/types/cricket';
+import { PLAYER_DATABASE } from '@/data/playerDatabase';
 
 
 interface CricketStore {
@@ -189,13 +190,6 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
       'Rajasthan Royals', 'Sunrisers Hyderabad'
     ];
     
-    const sampleNames = [
-      'Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis',
-      'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas',
-      'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia',
-      'Martinez', 'Robinson', 'Clark', 'Rodriguez', 'Lewis', 'Lee'
-    ];
-    
     for (let i = 0; i < Math.min(count, teamNames.length); i++) {
       const team: Team = {
         id: generateId(),
@@ -204,14 +198,57 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
         subUsed: false,
       };
       
-      // Generate 20 players per team
-      for (let j = 0; j < 20; j++) {
-        const isOverseas = j < 6; // First 6 are overseas
+      // Get random players from database for each team
+      const availablePlayers = [...PLAYER_DATABASE];
+      const selectedPlayers: string[] = [];
+      
+      // Ensure we have a good mix of players
+      let overseasCount = 0;
+      const maxOverseas = 8;
+      
+      while (team.squad.length < 20 && availablePlayers.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availablePlayers.length);
+        const playerData = availablePlayers[randomIndex];
+        
+        // Check overseas limit
+        if (playerData.isOverseas && overseasCount >= maxOverseas) {
+          availablePlayers.splice(randomIndex, 1);
+          continue;
+        }
+        
+        // Check if player already selected by another team
+        if (selectedPlayers.includes(playerData.name)) {
+          availablePlayers.splice(randomIndex, 1);
+          continue;
+        }
+        
         const player: Player = {
           id: generateId(),
-          ...createSamplePlayer(`${sampleNames[j % sampleNames.length]} ${j + 1}`, isOverseas)
+          name: playerData.name,
+          isOverseas: playerData.isOverseas,
+          batSkill: playerData.batSkill,
+          bowlSkill: playerData.bowlSkill,
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          dismissed: false,
+          dismissalInfo: '',
+          oversBowled: 0,
+          maidens: 0,
+          wickets: 0,
+          runsConceded: 0,
+          isPlaying: false,
         };
+        
         team.squad.push(player);
+        selectedPlayers.push(playerData.name);
+        
+        if (playerData.isOverseas) {
+          overseasCount++;
+        }
+        
+        availablePlayers.splice(randomIndex, 1);
       }
       
       set(state => ({

@@ -29,6 +29,7 @@ const LiveMatchControls = ({
   const [selectedBatsman, setSelectedBatsman] = useState("");
   const [impactPlayer, setImpactPlayer] = useState("");
   const [replacePlayer, setReplacePlayer] = useState("");
+  const [impactPlayerUsed, setImpactPlayerUsed] = useState(false);
 
   const getCurrentInnings = () => {
     return match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
@@ -109,6 +110,7 @@ const LiveMatchControls = ({
   const handleImpactPlayer = () => {
     if (impactPlayer && replacePlayer) {
       onUseImpactPlayer(impactPlayer, replacePlayer);
+      setImpactPlayerUsed(true);
       setShowImpactSelection(false);
       setImpactPlayer("");
       setReplacePlayer("");
@@ -171,10 +173,11 @@ const LiveMatchControls = ({
             <Button 
               variant="outline" 
               onClick={() => setShowImpactSelection(true)}
+              disabled={impactPlayerUsed}
               className="flex items-center space-x-2"
             >
               <Target className="h-4 w-4" />
-              <span>Impact Player</span>
+              <span>{impactPlayerUsed ? "Impact Used" : "Impact Player"}</span>
             </Button>
           </div>
 
@@ -262,9 +265,15 @@ const LiveMatchControls = ({
       <Dialog open={showImpactSelection} onOpenChange={setShowImpactSelection}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Use Impact Player</DialogTitle>
+            <DialogTitle>Use Impact Player (One Per Match)</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                You can only use ONE impact player substitution per match. This cannot be undone.
+              </p>
+            </div>
+            
             <div>
               <label className="text-sm font-medium">Impact Player</label>
               <Select value={impactPlayer} onValueChange={setImpactPlayer}>

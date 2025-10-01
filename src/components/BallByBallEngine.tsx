@@ -99,11 +99,39 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
   const confirmBallOutcome = (customRuns?: number, customWicket?: boolean) => {
     const innings = getCurrentInnings();
-    if (!innings) return;
+    if (!innings || !innings.currentBatsmen.striker) return;
 
     const runs = customRuns !== undefined ? customRuns : ballOutcome?.runs || 0;
     const isWicket = customWicket !== undefined ? customWicket : ballOutcome?.isWicket || false;
 
+    // Update match state
+    const updatedInnings = {
+      ...innings,
+      totalRuns: innings.totalRuns + runs,
+      ballsBowled: innings.ballsBowled + 1,
+      wickets: isWicket ? innings.wickets + 1 : innings.wickets
+    };
+    
+    // Update striker's stats
+    if (innings.currentBatsmen.striker) {
+      innings.currentBatsmen.striker.runs += runs;
+      innings.currentBatsmen.striker.balls += 1;
+      
+      if (runs === 4) innings.currentBatsmen.striker.fours += 1;
+      if (runs === 6) innings.currentBatsmen.striker.sixes += 1;
+      
+      if (isWicket) {
+        innings.currentBatsmen.striker.dismissed = true;
+        innings.currentBatsmen.striker.dismissalInfo = "bowled";
+      }
+    }
+    
+    // Update match with new innings data
+    const matchUpdate = match.currentInnings === 1 
+      ? { firstInnings: updatedInnings }
+      : { secondInnings: updatedInnings };
+    
+    updateMatch(matchUpdate);
     const ballEvent: BallEvent = {
       ballNumber: currentBall + 1,
       bowler: innings.currentBowler?.name || "Unknown",

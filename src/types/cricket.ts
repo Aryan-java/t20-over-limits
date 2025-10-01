@@ -88,6 +88,7 @@ export interface Match {
     impactPlayers: Player[];
     battingOrder: Player[];
     openingPair: [Player, Player];
+    impactPlayerUsed?: boolean;
   };
   superOver?: {
     team1Innings: Innings;
