@@ -24,8 +24,8 @@ const SelectPlayingXIDialog = ({ team, open, onOpenChange }: SelectPlayingXIDial
 
   useEffect(() => {
     if (team) {
-      setSelectedXI(team.playingXI.map(p => p.id));
-      setSelectedImpact(team.impactOptions.map(p => p.id));
+      setSelectedXI([]);
+      setSelectedImpact([]);
       setStep('xi');
     }
   }, [team]);

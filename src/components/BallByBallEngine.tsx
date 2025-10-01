@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, Pause, SkipForward, RotateCcw, Zap } from "lucide-react";
+import { Play, RotateCcw, Zap } from "lucide-react";
 import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 
@@ -14,15 +14,12 @@ interface BallByBallEngineProps {
 
 const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const { updateMatch } = useCricketStore();
-  const [isSimulating, setIsSimulating] = useState(false);
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
-  const [currentBall, setCurrentBall] = useState(0);
-  const [showBowlerDialog, setShowBowlerDialog] = useState(false);
+  const [showBowlerDialog, setShowBowlerDialog] = useState(true);
   const [showBatsmanDialog, setShowBatsmanDialog] = useState(false);
   const [selectedBowler, setSelectedBowler] = useState("");
   const [selectedBatsman, setSelectedBatsman] = useState("");
-  const [ballOutcome, setBallOutcome] = useState<{runs: number, isWicket: boolean} | null>(null);
-  const [showOutcomeDialog, setShowOutcomeDialog] = useState(false);
+  const [nextBatsmanIndex, setNextBatsmanIndex] = useState(2);
 
   const getCurrentInnings = () => {
     return match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
@@ -48,8 +45,12 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
   const getAvailableBowlers = () => {
     const bowlingTeam = getBowlingTeam();
+    const innings = getCurrentInnings();
     const maxOvers = Math.floor(match.overs / 5);
-    return bowlingTeam.filter(player => player.oversBowled < maxOvers);
+    return bowlingTeam.filter(player => 
+      player.oversBowled < maxOvers && 
+      player.id !== innings?.currentBowler?.id
+    );
   };
 
   const getAvailableBatsmen = () => {
@@ -64,15 +65,25 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     );
   };
 
-  const simulateBallOutcome = () => {
+  const simulateBallOutcome = (batsman: Player, bowler: Player) => {
+    const batSkill = batsman.batSkill;
+    const bowlSkill = bowler.bowlSkill;
+    
+    // Calculate probabilities based on skills
+    const skillDiff = batSkill - bowlSkill;
+    const dotProb = Math.max(20, 45 - skillDiff * 0.3);
+    const wicketProb = Math.max(3, 8 - skillDiff * 0.1);
+    const boundaryProb = Math.max(8, 15 + skillDiff * 0.2);
+    const sixProb = Math.max(2, 6 + skillDiff * 0.15);
+    
     const outcomes = [
-      { runs: 0, isWicket: false, weight: 40, commentary: "Dot ball! Good bowling." },
-      { runs: 1, isWicket: false, weight: 30, commentary: "Single taken." },
-      { runs: 2, isWicket: false, weight: 15, commentary: "Two runs scored." },
-      { runs: 3, isWicket: false, weight: 5, commentary: "Three runs taken." },
-      { runs: 4, isWicket: false, weight: 8, commentary: "FOUR! Beautiful shot!" },
-      { runs: 6, isWicket: false, weight: 4, commentary: "SIX! What a shot!" },
-      { runs: 0, isWicket: true, weight: 3, commentary: "WICKET! Clean bowled!" },
+      { runs: 0, isWicket: false, weight: dotProb },
+      { runs: 1, isWicket: false, weight: 35 },
+      { runs: 2, isWicket: false, weight: 15 },
+      { runs: 3, isWicket: false, weight: 3 },
+      { runs: 4, isWicket: false, weight: boundaryProb },
+      { runs: 6, isWicket: false, weight: sixProb },
+      { runs: 0, isWicket: true, weight: wicketProb },
     ];
 
     const totalWeight = outcomes.reduce((sum, outcome) => sum + outcome.weight, 0);
@@ -88,120 +99,191 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     return outcomes[0];
   };
 
-  const handleBallSimulation = () => {
+  const handleBowlerSelection = () => {
+    if (!selectedBowler) return;
+    
     const innings = getCurrentInnings();
-    if (!innings || innings.isCompleted) return;
-
-    const outcome = simulateBallOutcome();
-    setBallOutcome(outcome);
-    setShowOutcomeDialog(true);
-  };
-
-  const confirmBallOutcome = (customRuns?: number, customWicket?: boolean) => {
-    const innings = getCurrentInnings();
-    if (!innings || !innings.currentBatsmen.striker) return;
-
-    const runs = customRuns !== undefined ? customRuns : ballOutcome?.runs || 0;
-    const isWicket = customWicket !== undefined ? customWicket : ballOutcome?.isWicket || false;
-
-    // Update match state
+    if (!innings) return;
+    
+    const bowler = getBowlingTeam().find(p => p.id === selectedBowler);
+    if (!bowler) return;
+    
+    // Update current bowler
     const updatedInnings = {
       ...innings,
-      totalRuns: innings.totalRuns + runs,
-      ballsBowled: innings.ballsBowled + 1,
-      wickets: isWicket ? innings.wickets + 1 : innings.wickets
+      currentBowler: bowler
     };
     
-    // Update striker's stats
-    if (innings.currentBatsmen.striker) {
-      innings.currentBatsmen.striker.runs += runs;
-      innings.currentBatsmen.striker.balls += 1;
-      
-      if (runs === 4) innings.currentBatsmen.striker.fours += 1;
-      if (runs === 6) innings.currentBatsmen.striker.sixes += 1;
-      
-      if (isWicket) {
-        innings.currentBatsmen.striker.dismissed = true;
-        innings.currentBatsmen.striker.dismissalInfo = "bowled";
-      }
-    }
-    
-    // Update match with new innings data
     const matchUpdate = match.currentInnings === 1 
       ? { firstInnings: updatedInnings }
       : { secondInnings: updatedInnings };
     
     updateMatch(matchUpdate);
+    setShowBowlerDialog(false);
+    setSelectedBowler("");
+  };
+
+  const handleBatsmanSelection = () => {
+    if (!selectedBatsman) return;
+    
+    const innings = getCurrentInnings();
+    if (!innings) return;
+    
+    const batsman = getBattingTeam().find(p => p.id === selectedBatsman);
+    if (!batsman) return;
+    
+    // Replace striker with new batsman
+    const updatedInnings = {
+      ...innings,
+      currentBatsmen: {
+        ...innings.currentBatsmen,
+        striker: batsman
+      }
+    };
+    
+    const matchUpdate = match.currentInnings === 1 
+      ? { firstInnings: updatedInnings }
+      : { secondInnings: updatedInnings };
+    
+    updateMatch(matchUpdate);
+    setShowBatsmanDialog(false);
+    setSelectedBatsman("");
+    setNextBatsmanIndex(prev => prev + 1);
+  };
+
+  const handleSimulateBall = () => {
+    const innings = getCurrentInnings();
+    if (!innings || innings.isCompleted || !innings.currentBowler) return;
+    if (!innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker) return;
+
+    const outcome = simulateBallOutcome(innings.currentBatsmen.striker, innings.currentBowler);
+    
+    const runs = outcome.runs;
+    const isWicket = outcome.isWicket;
+    
+    // Update striker's stats
+    const striker = { ...innings.currentBatsmen.striker };
+    striker.runs += runs;
+    striker.balls += 1;
+    
+    if (runs === 4) striker.fours += 1;
+    if (runs === 6) striker.sixes += 1;
+    
+    if (isWicket) {
+      striker.dismissed = true;
+      striker.dismissalInfo = `b ${innings.currentBowler.name}`;
+    }
+    
+    // Update bowler stats
+    const bowler = { ...innings.currentBowler };
+    bowler.oversBowled = Number(((innings.ballsBowled + 1) / 6).toFixed(2));
+    bowler.runsConceded += runs;
+    if (isWicket) bowler.wickets += 1;
+    
+    // Rotate strike if odd runs
+    let newStriker = striker;
+    let newNonStriker = innings.currentBatsmen.nonStriker;
+    
+    if (runs % 2 === 1 && !isWicket) {
+      newStriker = innings.currentBatsmen.nonStriker;
+      newNonStriker = striker;
+    }
+    
+    // Check if over complete
+    const newBallsBowled = innings.ballsBowled + 1;
+    const isOverComplete = newBallsBowled % 6 === 0;
+    
+    // Rotate strike at end of over
+    if (isOverComplete && !isWicket) {
+      [newStriker, newNonStriker] = [newNonStriker, newStriker];
+    }
+    
+    // Update innings
+    const updatedInnings = {
+      ...innings,
+      totalRuns: innings.totalRuns + runs,
+      ballsBowled: newBallsBowled,
+      wickets: isWicket ? innings.wickets + 1 : innings.wickets,
+      currentBatsmen: {
+        striker: isWicket ? null : newStriker,
+        nonStriker: newNonStriker
+      },
+      currentBowler: isOverComplete ? null : bowler,
+      isCompleted: 
+        newBallsBowled >= match.overs * 6 || 
+        (isWicket && innings.wickets + 1 >= 10)
+    };
+    
+    // Generate commentary
+    const generateCommentary = (): string => {
+      const over = Math.floor(newBallsBowled / 6);
+      const ball = (newBallsBowled % 6) || 6;
+      
+      if (isWicket) {
+        const wicketTexts = [
+          `OUT! ${innings.currentBatsmen.striker.name} b ${innings.currentBowler.name}! What a delivery!`,
+          `WICKET! ${innings.currentBowler.name} strikes! ${innings.currentBatsmen.striker.name} departs for ${striker.runs}`,
+          `Bowled him! ${innings.currentBowler.name} gets the breakthrough!`,
+          `Gone! Clean bowled! ${innings.currentBatsmen.striker.name} has to walk back`
+        ];
+        return wicketTexts[Math.floor(Math.random() * wicketTexts.length)];
+      }
+      
+      if (runs === 0) {
+        return `Dot ball! ${innings.currentBowler.name} keeps it tight`;
+      } else if (runs === 1) {
+        return `${innings.currentBatsmen.striker.name} takes a quick single`;
+      } else if (runs === 2) {
+        return `Good running between the wickets, they pick up two`;
+      } else if (runs === 3) {
+        return `Excellent running! Three runs taken`;
+      } else if (runs === 4) {
+        return `FOUR! Beautiful shot from ${innings.currentBatsmen.striker.name}! That raced away to the boundary`;
+      } else if (runs === 6) {
+        return `SIX! Massive hit from ${innings.currentBatsmen.striker.name}! That's gone all the way!`;
+      }
+      return `${runs} runs scored`;
+    };
+    
     const ballEvent: BallEvent = {
-      ballNumber: currentBall + 1,
-      bowler: innings.currentBowler?.name || "Unknown",
-      batsman: innings.currentBatsmen.striker?.name || "Unknown",
+      ballNumber: newBallsBowled,
+      bowler: innings.currentBowler.name,
+      batsman: innings.currentBatsmen.striker.name,
       runs,
       isWicket,
-      commentary: generateCommentary(runs, isWicket),
+      commentary: generateCommentary(),
     };
-
-    setCommentary(prev => [ballEvent, ...prev.slice(0, 19)]);
-    setCurrentBall(prev => prev + 1);
-    setShowOutcomeDialog(false);
-    setBallOutcome(null);
-
-    // Check if over is complete
-    if ((currentBall + 1) % 6 === 0) {
+    
+    setCommentary(prev => [ballEvent, ...prev]);
+    
+    const matchUpdate = match.currentInnings === 1 
+      ? { firstInnings: updatedInnings }
+      : { secondInnings: updatedInnings };
+    
+    updateMatch(matchUpdate);
+    
+    // Show dialogs
+    if (isOverComplete) {
       setShowBowlerDialog(true);
     }
-
-    // Check if wicket fell
-    if (isWicket) {
+    
+    if (isWicket && innings.wickets + 1 < 10) {
       setShowBatsmanDialog(true);
     }
   };
 
-  const generateCommentary = (runs: number, isWicket: boolean): string => {
-    if (isWicket) {
-      const wicketCommentaries = [
-        "WICKET! What a delivery!",
-        "OUT! The bowler strikes!",
-        "Gone! Excellent bowling!",
-        "WICKET! The batsman departs!"
-      ];
-      return wicketCommentaries[Math.floor(Math.random() * wicketCommentaries.length)];
-    }
-
-    switch (runs) {
-      case 0: return "Dot ball! Good bowling.";
-      case 1: return "Single taken.";
-      case 2: return "Two runs scored.";
-      case 3: return "Three runs taken.";
-      case 4: return "FOUR! Beautiful shot!";
-      case 6: return "SIX! What a shot!";
-      default: return `${runs} runs scored.`;
-    }
-  };
-
-  const handleBowlerChange = () => {
-    if (selectedBowler) {
-      // Update current bowler logic here
-      setShowBowlerDialog(false);
-      setSelectedBowler("");
-    }
-  };
-
-  const handleBatsmanChange = () => {
-    if (selectedBatsman) {
-      // Update batting lineup logic here
-      setShowBatsmanDialog(false);
-      setSelectedBatsman("");
-    }
-  };
-
   const formatBallNumber = (ballNum: number) => {
-    const over = Math.floor((ballNum - 1) / 6) + 1;
-    const ball = ((ballNum - 1) % 6) + 1;
+    const over = Math.floor(ballNum / 6);
+    const ball = (ballNum % 6) || 6;
     return `${over}.${ball}`;
   };
 
   const innings = getCurrentInnings();
+  const canSimulate = innings && 
+    !innings.isCompleted && 
+    innings.currentBowler && 
+    innings.currentBatsmen.striker && 
+    innings.currentBatsmen.nonStriker;
 
   return (
     <div className="space-y-4">
@@ -211,8 +293,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             <span>Ball-by-Ball Simulation</span>
             <div className="flex space-x-2">
               <Button
-                onClick={handleBallSimulation}
-                disabled={!innings || innings.isCompleted || !innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker}
+                onClick={handleSimulateBall}
+                disabled={!canSimulate}
                 className="bg-cricket-green hover:bg-cricket-green/90"
               >
                 <Zap className="h-4 w-4 mr-1" />
@@ -222,8 +304,6 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                 variant="outline"
                 onClick={() => {
                   setCommentary([]);
-                  setCurrentBall(0);
-                  setIsSimulating(false);
                 }}
               >
                 <RotateCcw className="h-4 w-4" />
@@ -236,7 +316,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             {commentary.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <div className="text-4xl mb-2">🏏</div>
-                <p>Click "Simulate Ball" to start the match simulation</p>
+                <p>Select a bowler to start the match simulation</p>
               </div>
             ) : (
               <div className="max-h-96 overflow-y-auto space-y-3">
@@ -287,61 +367,11 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         </CardContent>
       </Card>
 
-      {/* Ball Outcome Dialog */}
-      <Dialog open={showOutcomeDialog} onOpenChange={setShowOutcomeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ball Outcome</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-center p-4 bg-muted/20 rounded-lg">
-              <div className="text-2xl font-bold mb-2">
-                {ballOutcome?.isWicket ? "WICKET!" : `${ballOutcome?.runs} RUNS`}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {ballOutcome?.commentary}
-              </p>
-            </div>
-            
-            <div className="text-sm text-muted-foreground text-center">
-              You can accept this outcome or choose a different result:
-            </div>
-            
-            <div className="grid grid-cols-4 gap-2">
-              {[0, 1, 2, 3, 4, 6].map(runs => (
-                <Button
-                  key={runs}
-                  variant="outline"
-                  onClick={() => confirmBallOutcome(runs, false)}
-                  className="h-12"
-                >
-                  {runs}
-                </Button>
-              ))}
-              <Button
-                variant="destructive"
-                onClick={() => confirmBallOutcome(0, true)}
-                className="h-12"
-              >
-                W
-              </Button>
-            </div>
-            
-            <Button 
-              onClick={() => confirmBallOutcome()}
-              className="w-full"
-            >
-              Accept Outcome
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Bowler Selection Dialog */}
       <Dialog open={showBowlerDialog} onOpenChange={setShowBowlerDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Select Bowler for Next Over</DialogTitle>
+            <DialogTitle>Select Bowler for {innings ? `Over ${Math.floor(innings.ballsBowled / 6) + 1}` : 'Next Over'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Select value={selectedBowler} onValueChange={setSelectedBowler}>
@@ -351,19 +381,18 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
               <SelectContent>
                 {getAvailableBowlers().map(player => (
                   <SelectItem key={player.id} value={player.id}>
-                    {player.name} ({player.oversBowled} overs bowled)
+                    {player.name} ({player.oversBowled} overs, {player.wickets} wickets, {player.runsConceded} runs)
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex space-x-2">
-              <Button onClick={handleBowlerChange} disabled={!selectedBowler}>
-                Set Bowler
-              </Button>
-              <Button variant="outline" onClick={() => setShowBowlerDialog(false)}>
-                Skip
-              </Button>
-            </div>
+            <Button 
+              onClick={handleBowlerSelection} 
+              disabled={!selectedBowler}
+              className="w-full"
+            >
+              Set Bowler
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -375,6 +404,9 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             <DialogTitle>Select Next Batsman</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="p-3 bg-destructive/10 rounded-lg text-sm">
+              Wicket! Select the next batsman to come in.
+            </div>
             <Select value={selectedBatsman} onValueChange={setSelectedBatsman}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose next batsman" />
@@ -387,14 +419,13 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex space-x-2">
-              <Button onClick={handleBatsmanChange} disabled={!selectedBatsman}>
-                Send In
-              </Button>
-              <Button variant="outline" onClick={() => setShowBatsmanDialog(false)}>
-                Skip
-              </Button>
-            </div>
+            <Button 
+              onClick={handleBatsmanSelection} 
+              disabled={!selectedBatsman}
+              className="w-full"
+            >
+              Send In
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

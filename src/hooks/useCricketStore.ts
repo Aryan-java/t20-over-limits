@@ -28,6 +28,10 @@ interface CricketStore {
   
   // Auto-generate sample data
   generateSampleTeams: (count: number) => void;
+  
+  // Playing XI and Impact Players
+  setPlayingXI: (teamId: string, playerIds: string[]) => void;
+  setImpactPlayers: (teamId: string, playerIds: string[]) => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -180,6 +184,38 @@ export const useCricketStore = create<CricketStore>((set, get) => ({
       currentMatch: state.currentMatch 
         ? { ...state.currentMatch, ...updates }
         : null
+    }));
+  },
+  
+  setPlayingXI: (teamId: string, playerIds: string[]) => {
+    set(state => ({
+      currentMatch: state.currentMatch ? {
+        ...state.currentMatch,
+        team1Setup: state.currentMatch.team1.id === teamId && state.currentMatch.team1Setup ? {
+          ...state.currentMatch.team1Setup,
+          playingXI: state.currentMatch.team1.squad.filter(p => playerIds.includes(p.id))
+        } : state.currentMatch.team1Setup,
+        team2Setup: state.currentMatch.team2.id === teamId && state.currentMatch.team2Setup ? {
+          ...state.currentMatch.team2Setup,
+          playingXI: state.currentMatch.team2.squad.filter(p => playerIds.includes(p.id))
+        } : state.currentMatch.team2Setup,
+      } : null
+    }));
+  },
+  
+  setImpactPlayers: (teamId: string, playerIds: string[]) => {
+    set(state => ({
+      currentMatch: state.currentMatch ? {
+        ...state.currentMatch,
+        team1Setup: state.currentMatch.team1.id === teamId && state.currentMatch.team1Setup ? {
+          ...state.currentMatch.team1Setup,
+          impactPlayers: state.currentMatch.team1.squad.filter(p => playerIds.includes(p.id))
+        } : state.currentMatch.team1Setup,
+        team2Setup: state.currentMatch.team2.id === teamId && state.currentMatch.team2Setup ? {
+          ...state.currentMatch.team2Setup,
+          impactPlayers: state.currentMatch.team2.squad.filter(p => playerIds.includes(p.id))
+        } : state.currentMatch.team2Setup,
+      } : null
     }));
   },
   
