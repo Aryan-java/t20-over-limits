@@ -17,8 +17,11 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
   const [showBowlerDialog, setShowBowlerDialog] = useState(true);
   const [showBatsmanDialog, setShowBatsmanDialog] = useState(false);
+  const [showInningsBreakDialog, setShowInningsBreakDialog] = useState(false);
   const [selectedBowler, setSelectedBowler] = useState("");
   const [selectedBatsman, setSelectedBatsman] = useState("");
+  const [openingBatsman1, setOpeningBatsman1] = useState("");
+  const [openingBatsman2, setOpeningBatsman2] = useState("");
   const [nextBatsmanIndex, setNextBatsmanIndex] = useState(2);
 
   const getCurrentInnings = () => {
@@ -301,14 +304,67 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     updateMatch(matchUpdate);
     
+    // Check if first innings just ended
+    if (updatedInnings.isCompleted && match.currentInnings === 1) {
+      setShowInningsBreakDialog(true);
+      return;
+    }
+    
     // Show dialogs
-    if (isOverComplete) {
+    if (isOverComplete && !updatedInnings.isCompleted) {
       setShowBowlerDialog(true);
     }
     
-    if (isWicket && innings.wickets + 1 < 10) {
+    if (isWicket && innings.wickets + 1 < 10 && !updatedInnings.isCompleted) {
       setShowBatsmanDialog(true);
     }
+  };
+
+  const handleStartSecondInnings = () => {
+    if (!openingBatsman1 || !openingBatsman2) return;
+    
+    const firstInnings = match.firstInnings;
+    if (!firstInnings) return;
+
+    // Swap teams
+    const newBattingTeam = firstInnings.bowlingTeam;
+    const newBowlingTeam = firstInnings.battingTeam;
+    
+    const battingSquad = newBattingTeam === match.team1.name 
+      ? (match.team1Setup?.playingXI || [])
+      : (match.team2Setup?.playingXI || []);
+    
+    const batsman1 = battingSquad.find(p => p.id === openingBatsman1);
+    const batsman2 = battingSquad.find(p => p.id === openingBatsman2);
+    
+    if (!batsman1 || !batsman2) return;
+
+    const secondInnings = {
+      battingTeam: newBattingTeam,
+      bowlingTeam: newBowlingTeam,
+      totalRuns: 0,
+      wickets: 0,
+      ballsBowled: 0,
+      overs: [],
+      currentBatsmen: {
+        striker: batsman1,
+        nonStriker: batsman2
+      },
+      currentBowler: null,
+      battingOrder: battingSquad,
+      isCompleted: false
+    };
+
+    updateMatch({
+      currentInnings: 2,
+      secondInnings
+    });
+
+    setShowInningsBreakDialog(false);
+    setShowBowlerDialog(true);
+    setOpeningBatsman1("");
+    setOpeningBatsman2("");
+    setCommentary([]);
   };
 
   const formatBallNumber = (ballNum: number) => {
@@ -464,6 +520,66 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
               className="w-full"
             >
               Send In
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Innings Break Dialog */}
+      <Dialog open={showInningsBreakDialog} onOpenChange={setShowInningsBreakDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Innings Break - Start Second Innings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-cricket-green/10 rounded-lg">
+              <p className="font-semibold">First Innings Complete!</p>
+              <p className="text-sm mt-1">
+                {match.firstInnings?.battingTeam}: {match.firstInnings?.totalRuns}/{match.firstInnings?.wickets} 
+                {` (${Math.floor((match.firstInnings?.ballsBowled || 0) / 6)}.${(match.firstInnings?.ballsBowled || 0) % 6} overs)`}
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="font-medium">Select Opening Batsmen for {match.firstInnings?.bowlingTeam}:</p>
+              
+              <Select value={openingBatsman1} onValueChange={setOpeningBatsman1}>
+                <SelectTrigger>
+                  <SelectValue placeholder="First batsman" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(match.firstInnings?.bowlingTeam === match.team1.name 
+                    ? match.team1Setup?.playingXI 
+                    : match.team2Setup?.playingXI)?.map(player => (
+                    <SelectItem key={player.id} value={player.id}>
+                      {player.name} (Bat: {player.batSkill})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={openingBatsman2} onValueChange={setOpeningBatsman2}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Second batsman" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(match.firstInnings?.bowlingTeam === match.team1.name 
+                    ? match.team1Setup?.playingXI 
+                    : match.team2Setup?.playingXI)?.filter(p => p.id !== openingBatsman1).map(player => (
+                    <SelectItem key={player.id} value={player.id}>
+                      {player.name} (Bat: {player.batSkill})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button 
+              onClick={handleStartSecondInnings} 
+              disabled={!openingBatsman1 || !openingBatsman2}
+              className="w-full bg-cricket-green hover:bg-cricket-green/90"
+            >
+              Start Second Innings
             </Button>
           </div>
         </DialogContent>
