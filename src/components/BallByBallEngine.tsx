@@ -23,6 +23,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [openingBatsman1, setOpeningBatsman1] = useState("");
   const [openingBatsman2, setOpeningBatsman2] = useState("");
   const [nextBatsmanIndex, setNextBatsmanIndex] = useState(2);
+  const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
 
   const getCurrentInnings = () => {
     return match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
@@ -49,11 +50,17 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const getAvailableBowlers = () => {
     const bowlingTeam = getBowlingTeam();
     const innings = getCurrentInnings();
-    const maxOvers = Math.floor(match.overs / 5);
-    return bowlingTeam.filter(player => 
-      player.oversBowled < maxOvers && 
-      player.id !== innings?.currentBowler?.id
-    );
+    const maxOvers = Math.floor(match.overs / 5); // Max 4 overs per bowler in 20 over match
+    
+    return bowlingTeam.filter(player => {
+      // Can't bowl if already bowled max overs
+      if (player.oversBowled >= maxOvers) return false;
+      
+      // Can't bowl consecutive overs
+      if (lastBowlerId && player.id === lastBowlerId) return false;
+      
+      return true;
+    });
   };
 
   const getAvailableBatsmen = () => {
@@ -102,13 +109,13 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     return outcomes[0];
   };
 
-  const handleBowlerSelection = () => {
-    if (!selectedBowler) return;
+  const handleBowlerSelection = (bowlerId: string) => {
+    if (!bowlerId) return;
     
     const innings = getCurrentInnings();
     if (!innings) return;
     
-    const bowler = getBowlingTeam().find(p => p.id === selectedBowler);
+    const bowler = getBowlingTeam().find(p => p.id === bowlerId);
     if (!bowler) return;
     
     // Update current bowler
@@ -230,6 +237,11 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     // Check if over complete
     const newBallsBowled = innings.ballsBowled + 1;
     const isOverComplete = newBallsBowled % 6 === 0;
+    
+    // Track last bowler for consecutive over rule
+    if (isOverComplete) {
+      setLastBowlerId(bowler.id);
+    }
     
     // Rotate strike at end of over
     if (isOverComplete && !isWicket) {
@@ -365,6 +377,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     setOpeningBatsman1("");
     setOpeningBatsman2("");
     setCommentary([]);
+    setLastBowlerId(null); // Reset for second innings
   };
 
   const formatBallNumber = (ballNum: number) => {
@@ -464,30 +477,70 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
       {/* Bowler Selection Dialog */}
       <Dialog open={showBowlerDialog} onOpenChange={setShowBowlerDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Select Bowler for {innings ? `Over ${Math.floor(innings.ballsBowled / 6) + 1}` : 'Next Over'}</DialogTitle>
+            <DialogTitle>
+              Select Bowler for {innings ? `Over ${Math.floor(innings.ballsBowled / 6) + 1}` : 'Next Over'}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Bowling Team: {innings?.bowlingTeam}
+            </p>
           </DialogHeader>
-          <div className="space-y-4">
-            <Select value={selectedBowler} onValueChange={setSelectedBowler}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose bowler" />
-              </SelectTrigger>
-              <SelectContent>
-                {getAvailableBowlers().map(player => (
-                  <SelectItem key={player.id} value={player.id}>
-                    {player.name} ({player.oversBowled} overs, {player.wickets} wickets, {player.runsConceded} runs)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button 
-              onClick={handleBowlerSelection} 
-              disabled={!selectedBowler}
-              className="w-full"
-            >
-              Set Bowler
-            </Button>
+          <div className="space-y-3 mt-4">
+            {getAvailableBowlers().length === 0 ? (
+              <div className="p-4 bg-destructive/10 rounded-lg text-center">
+                <p className="text-sm font-medium">No bowlers available!</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  All bowlers have either completed their quota or the previous bowler cannot bowl consecutive overs.
+                </p>
+              </div>
+            ) : (
+              getAvailableBowlers().map(player => {
+                const maxOvers = Math.floor(match.overs / 5);
+                const economy = player.oversBowled > 0 
+                  ? (player.runsConceded / player.oversBowled).toFixed(2)
+                  : '0.00';
+                
+                return (
+                  <Card 
+                    key={player.id}
+                    className="cursor-pointer hover:border-cricket-green transition-colors"
+                    onClick={() => handleBowlerSelection(player.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{player.name}</h3>
+                          <div className="flex items-center gap-4 mt-2 text-sm">
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">Overs:</span>
+                              <Badge variant="outline">{player.oversBowled}/{maxOvers}</Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">Wickets:</span>
+                              <Badge className="bg-destructive text-white">{player.wickets}</Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">Runs:</span>
+                              <Badge variant="secondary">{player.runsConceded}</Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">Economy:</span>
+                              <Badge variant="outline">{economy}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <Badge className="bg-cricket-green text-white">
+                            Bowl Skill: {player.bowlSkill}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
         </DialogContent>
       </Dialog>
