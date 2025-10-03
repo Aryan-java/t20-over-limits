@@ -5,6 +5,7 @@ import TabNavigation from "@/components/TabNavigation";
 import TeamsTab from "@/components/TeamsTab";
 import FixturesTab from "@/components/FixturesTab";
 import LiveMatchTab from "@/components/LiveMatchTab";
+import HistoryTab from "@/components/HistoryTab";
 import StatsTab from "@/components/StatsTab";
 import { TabsContent } from "@/components/ui/tabs";
 
@@ -20,15 +21,19 @@ const Index = () => {
           <TabsContent value="teams">
             <TeamsTab />
           </TabsContent>
-          
+
           <TabsContent value="fixtures">
             <FixturesTab />
           </TabsContent>
-          
+
           <TabsContent value="live">
             <LiveMatchTab />
           </TabsContent>
-          
+
+          <TabsContent value="history">
+            <HistoryTab />
+          </TabsContent>
+
           <TabsContent value="stats">
             <StatsTab />
           </TabsContent>

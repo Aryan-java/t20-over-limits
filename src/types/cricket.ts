@@ -1,9 +1,22 @@
+export interface PlayerPerformanceHistory {
+  last5MatchesRuns: number;
+  last5MatchesWickets: number;
+  totalMatches: number;
+  totalRuns: number;
+  totalWickets: number;
+  averageRuns: number;
+  averageWickets: number;
+  formRating: number;
+}
+
 export interface Player {
   id: string;
   name: string;
   isOverseas: boolean;
   batSkill: number; // 0-100
   bowlSkill: number; // 0-100
+  currentTeamId?: string;
+  performanceHistory?: PlayerPerformanceHistory;
   // Match stats
   runs: number;
   balls: number;
@@ -76,6 +89,9 @@ export interface Match {
   secondInnings: Innings | null;
   result: string | null;
   isLive: boolean;
+  isCompleted: boolean;
+  matchDate: Date;
+  manOfTheMatch?: Player | null;
   currentInnings: 1 | 2;
   team1Setup?: {
     playingXI: Player[];
@@ -102,4 +118,8 @@ export interface Fixture {
   team2: Team;
   played: boolean;
   match?: Match;
+}
+
+export interface MatchHistory extends Match {
+  completedAt: Date;
 }

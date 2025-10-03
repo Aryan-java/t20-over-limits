@@ -100,20 +100,21 @@ const FixturesTab = () => {
 
           {completedMatches.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-                <h3 className="text-xl font-semibold">Completed Matches</h3>
-                <span className="text-sm text-muted-foreground">({completedMatches.length})</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold">Recently Completed</h3>
+                  <span className="text-sm text-muted-foreground">({completedMatches.length})</span>
+                </div>
+                <p className="text-sm text-muted-foreground">View all matches in the History tab</p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {completedMatches.map((fixture) => (
+                {completedMatches.slice(0, 4).map((fixture) => (
                   <MatchCard
                     key={fixture.id}
                     match={fixture.match!}
-                    onViewMatch={() => {
-                      // Handle view completed match
-                    }}
+                    onViewMatch={() => {}}
                   />
                 ))}
               </div>

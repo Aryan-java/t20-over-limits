@@ -117,14 +117,24 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const simulateBallOutcome = (batsman: Player, bowler: Player) => {
     const batSkill = batsman.batSkill;
     const bowlSkill = bowler.bowlSkill;
-    
-    // Calculate probabilities based on skills
+
+    const batsmanForm = batsman.performanceHistory?.formRating || 50;
+    const bowlerForm = bowler.performanceHistory?.formRating || 50;
+
+    const batsmanLast5Runs = batsman.performanceHistory?.last5MatchesRuns || 0;
+    const bowlerLast5Wickets = bowler.performanceHistory?.last5MatchesWickets || 0;
+
+    const formBonus = (batsmanForm - bowlerForm) * 0.15;
+    const recentFormBonus = (batsmanLast5Runs * 0.02) - (bowlerLast5Wickets * 0.5);
+
     const skillDiff = batSkill - bowlSkill;
-    const dotProb = Math.max(20, 45 - skillDiff * 0.3);
-    const wicketProb = Math.max(3, 8 - skillDiff * 0.1);
-    const boundaryProb = Math.max(8, 15 + skillDiff * 0.2);
-    const sixProb = Math.max(2, 6 + skillDiff * 0.15);
-    
+    const totalDiff = skillDiff + formBonus + recentFormBonus;
+
+    const dotProb = Math.max(20, 45 - totalDiff * 0.3);
+    const wicketProb = Math.max(3, 8 - totalDiff * 0.1);
+    const boundaryProb = Math.max(8, 15 + totalDiff * 0.2);
+    const sixProb = Math.max(2, 6 + totalDiff * 0.15);
+
     const outcomes = [
       { runs: 0, isWicket: false, weight: dotProb },
       { runs: 1, isWicket: false, weight: 35 },
@@ -137,7 +147,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
     const totalWeight = outcomes.reduce((sum, outcome) => sum + outcome.weight, 0);
     const random = Math.random() * totalWeight;
-    
+
     let weightSum = 0;
     for (const outcome of outcomes) {
       weightSum += outcome.weight;
@@ -374,23 +384,38 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         // Second innings ended - determine match result
         const firstInnings = match.firstInnings!;
         const secondInnings = updatedInnings;
-        
+
         let result = '';
-        let winner = '';
-        
+        let winnerId: string | null = null;
+
         if (secondInnings.totalRuns > firstInnings.totalRuns) {
-          winner = secondInnings.battingTeam;
           const wicketsLeft = 10 - secondInnings.wickets;
-          result = `${winner} won by ${wicketsLeft} wickets`;
+          result = `${secondInnings.battingTeam} won by ${wicketsLeft} wickets`;
+          winnerId = secondInnings.battingTeam === matchUpdate.team1.name ? matchUpdate.team1.id : matchUpdate.team2.id;
         } else if (secondInnings.totalRuns < firstInnings.totalRuns) {
-          winner = firstInnings.battingTeam;
           const runsDiff = firstInnings.totalRuns - secondInnings.totalRuns;
-          result = `${winner} won by ${runsDiff} runs`;
+          result = `${firstInnings.battingTeam} won by ${runsDiff} runs`;
+          winnerId = firstInnings.battingTeam === matchUpdate.team1.name ? matchUpdate.team1.id : matchUpdate.team2.id;
         } else {
           result = 'Match Tied';
         }
-        
-        updateMatch({ result });
+
+        const manOfTheMatch = calculateManOfTheMatch();
+
+        const completedMatch = {
+          ...match,
+          ...matchUpdate,
+          result,
+          isCompleted: true,
+          manOfTheMatch,
+        };
+
+        updateMatch(completedMatch);
+
+        // Save to history using store
+        const { completeMatch } = useCricketStore.getState();
+        completeMatch(completedMatch);
+
         setShowMatchResultDialog(true);
         return;
       }
