@@ -24,6 +24,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [openingBatsman2, setOpeningBatsman2] = useState("");
   const [nextBatsmanIndex, setNextBatsmanIndex] = useState(2);
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
+  const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
 
   const getCurrentInnings = () => {
     return match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
@@ -73,6 +74,44 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       player.id !== innings.currentBatsmen.striker?.id &&
       player.id !== innings.currentBatsmen.nonStriker?.id
     );
+  };
+
+  const calculateManOfTheMatch = () => {
+    if (!match.firstInnings || !match.secondInnings) return null;
+    
+    const allPlayers = [
+      ...match.team1.squad.filter(p => p.isPlaying),
+      ...match.team2.squad.filter(p => p.isPlaying)
+    ];
+    
+    // Calculate player scores based on performance
+    const playerScores = allPlayers.map(player => {
+      let score = 0;
+      
+      // Batting contribution
+      score += player.runs * 1.5;
+      score += player.fours * 2;
+      score += player.sixes * 4;
+      if (player.balls > 0) {
+        const strikeRate = (player.runs / player.balls) * 100;
+        if (strikeRate > 150) score += 10;
+      }
+      
+      // Bowling contribution
+      score += player.wickets * 25;
+      score += player.maidens * 10;
+      if (player.oversBowled > 0) {
+        const economy = player.runsConceded / player.oversBowled;
+        if (economy < 6) score += 15;
+        if (economy < 5) score += 10;
+      }
+      
+      return { player, score };
+    });
+    
+    // Return player with highest score
+    playerScores.sort((a, b) => b.score - a.score);
+    return playerScores[0]?.player || null;
   };
 
   const simulateBallOutcome = (batsman: Player, bowler: Player) => {
@@ -186,10 +225,6 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     // Update bowler stats
     const bowler = { ...innings.currentBowler };
-    const ballsInOver = (innings.ballsBowled % 6) + 1;
-    if (ballsInOver === 6) {
-      bowler.oversBowled = Math.floor(innings.ballsBowled / 6) + 1;
-    }
     bowler.runsConceded += runs;
     if (isWicket) bowler.wickets += 1;
     
@@ -238,8 +273,9 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const newBallsBowled = innings.ballsBowled + 1;
     const isOverComplete = newBallsBowled % 6 === 0;
     
-    // Track last bowler for consecutive over rule
+    // Update bowler's overs count when over is complete
     if (isOverComplete) {
+      bowler.oversBowled = Math.floor(newBallsBowled / 6);
       setLastBowlerId(bowler.id);
     }
     
@@ -248,20 +284,33 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       [newStriker, newNonStriker] = [newNonStriker, newStriker];
     }
     
+    // Calculate new totals
+    const newTotalRuns = innings.totalRuns + runs;
+    const newWickets = isWicket ? innings.wickets + 1 : innings.wickets;
+    
+    // Check if innings is completed
+    let isInningsComplete = newBallsBowled >= match.overs * 6 || newWickets >= 10;
+    
+    // In second innings, check if target is chased
+    if (match.currentInnings === 2 && match.firstInnings) {
+      const target = match.firstInnings.totalRuns + 1;
+      if (newTotalRuns >= target) {
+        isInningsComplete = true;
+      }
+    }
+    
     // Update innings
     const updatedInnings = {
       ...innings,
-      totalRuns: innings.totalRuns + runs,
+      totalRuns: newTotalRuns,
       ballsBowled: newBallsBowled,
-      wickets: isWicket ? innings.wickets + 1 : innings.wickets,
+      wickets: newWickets,
       currentBatsmen: {
         striker: isWicket ? null : newStriker,
         nonStriker: newNonStriker
       },
       currentBowler: isOverComplete ? null : bowler,
-      isCompleted: 
-        newBallsBowled >= match.overs * 6 || 
-        (isWicket && innings.wickets + 1 >= 10)
+      isCompleted: isInningsComplete
     };
     
     // Generate commentary
@@ -316,10 +365,35 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     updateMatch(matchUpdate);
     
-    // Check if first innings just ended
-    if (updatedInnings.isCompleted && match.currentInnings === 1) {
-      setShowInningsBreakDialog(true);
-      return;
+    // Check if innings just ended
+    if (updatedInnings.isCompleted) {
+      if (match.currentInnings === 1) {
+        setShowInningsBreakDialog(true);
+        return;
+      } else {
+        // Second innings ended - determine match result
+        const firstInnings = match.firstInnings!;
+        const secondInnings = updatedInnings;
+        
+        let result = '';
+        let winner = '';
+        
+        if (secondInnings.totalRuns > firstInnings.totalRuns) {
+          winner = secondInnings.battingTeam;
+          const wicketsLeft = 10 - secondInnings.wickets;
+          result = `${winner} won by ${wicketsLeft} wickets`;
+        } else if (secondInnings.totalRuns < firstInnings.totalRuns) {
+          winner = firstInnings.battingTeam;
+          const runsDiff = firstInnings.totalRuns - secondInnings.totalRuns;
+          result = `${winner} won by ${runsDiff} runs`;
+        } else {
+          result = 'Match Tied';
+        }
+        
+        updateMatch({ result });
+        setShowMatchResultDialog(true);
+        return;
+      }
     }
     
     // Show dialogs
@@ -327,7 +401,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       setShowBowlerDialog(true);
     }
     
-    if (isWicket && innings.wickets + 1 < 10 && !updatedInnings.isCompleted) {
+    if (isWicket && newWickets < 10 && !updatedInnings.isCompleted) {
       setShowBatsmanDialog(true);
     }
   };
@@ -633,6 +707,69 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
               className="w-full bg-cricket-green hover:bg-cricket-green/90"
             >
               Start Second Innings
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Match Result Dialog */}
+      <Dialog open={showMatchResultDialog} onOpenChange={setShowMatchResultDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-center">Match Complete! 🏆</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Result */}
+            <div className="p-4 bg-cricket-green/10 rounded-lg text-center">
+              <p className="text-xl font-bold text-cricket-green">{match.result}</p>
+            </div>
+            
+            {/* Innings Summary */}
+            <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
+              <div className="flex justify-between">
+                <span className="font-medium">{match.firstInnings?.battingTeam}</span>
+                <span className="font-bold">
+                  {match.firstInnings?.totalRuns}/{match.firstInnings?.wickets}
+                  {` (${Math.floor((match.firstInnings?.ballsBowled || 0) / 6)}.${(match.firstInnings?.ballsBowled || 0) % 6})`}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">{match.secondInnings?.battingTeam}</span>
+                <span className="font-bold">
+                  {match.secondInnings?.totalRuns}/{match.secondInnings?.wickets}
+                  {` (${Math.floor((match.secondInnings?.ballsBowled || 0) / 6)}.${(match.secondInnings?.ballsBowled || 0) % 6})`}
+                </span>
+              </div>
+            </div>
+
+            {/* Man of the Match */}
+            {(() => {
+              const motm = calculateManOfTheMatch();
+              return motm ? (
+                <div className="p-4 bg-yellow-500/10 border-2 border-yellow-500/20 rounded-lg">
+                  <p className="text-sm font-semibold text-muted-foreground mb-2">Man of the Match</p>
+                  <p className="text-xl font-bold">{motm.name}</p>
+                  <div className="flex gap-4 mt-2 text-sm">
+                    {motm.runs > 0 && (
+                      <span className="text-muted-foreground">
+                        {motm.runs} runs ({motm.balls} balls)
+                      </span>
+                    )}
+                    {motm.wickets > 0 && (
+                      <span className="text-muted-foreground">
+                        {motm.wickets}-{motm.runsConceded} ({motm.oversBowled} ov)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            <Button 
+              onClick={() => setShowMatchResultDialog(false)}
+              className="w-full bg-cricket-green hover:bg-cricket-green/90"
+            >
+              Close
             </Button>
           </div>
         </DialogContent>

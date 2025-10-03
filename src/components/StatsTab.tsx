@@ -2,9 +2,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Trophy, Target, Users } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
+import PointsTable from "./PointsTable";
 
 const StatsTab = () => {
-  const { teams, fixtures } = useCricketStore();
+  const { teams, fixtures, currentMatch } = useCricketStore();
+
+  // Get all completed matches
+  const completedMatches = fixtures
+    .filter(f => f.match && f.match.result && f.match.secondInnings?.isCompleted)
+    .map(f => f.match!);
+  
+  // Add current match if it's completed
+  if (currentMatch?.result && currentMatch.secondInnings?.isCompleted) {
+    completedMatches.push(currentMatch);
+  }
 
   const totalMatches = fixtures.length;
   const playedMatches = fixtures.filter(f => f.played).length;
@@ -94,6 +105,9 @@ const StatsTab = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Points Table */}
+      <PointsTable teams={teams} matches={completedMatches} />
 
       {/* Team Rankings */}
       <Card>
