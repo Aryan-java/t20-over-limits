@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Calendar, Play, BarChart3, History } from "lucide-react";
+import { Users, Calendar, Play, ChartBar as BarChart3, History } from "lucide-react";
 
 interface TabNavigationProps {
   activeTab: string;
