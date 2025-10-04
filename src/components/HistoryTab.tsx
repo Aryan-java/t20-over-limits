@@ -1,12 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, Calendar, TrendingUp, Award } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { MatchHistory } from "@/types/cricket";
 import { useState } from "react";
-import DetailedScorecard from "./DetailedScorecard";
+import MatchScorecardDialog from "./MatchScorecardDialog";
 
 export default function HistoryTab() {
   const { matchHistory } = useCricketStore();
@@ -168,14 +167,11 @@ export default function HistoryTab() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedMatch} onOpenChange={() => setSelectedMatch(null)}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Match Scorecard</DialogTitle>
-          </DialogHeader>
-          {selectedMatch && <DetailedScorecard match={selectedMatch} />}
-        </DialogContent>
-      </Dialog>
+      <MatchScorecardDialog
+        match={selectedMatch}
+        open={!!selectedMatch}
+        onOpenChange={() => setSelectedMatch(null)}
+      />
     </div>
   );
 }

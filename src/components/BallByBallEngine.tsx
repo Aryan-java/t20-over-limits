@@ -238,6 +238,10 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     bowler.runsConceded += runs;
     if (isWicket) bowler.wickets += 1;
     
+    // Update overs bowled (includes partial overs)
+    const newBallsBowled = innings.ballsBowled + 1;
+    bowler.oversBowled = Math.floor(newBallsBowled / 6) + (newBallsBowled % 6) / 10;
+    
     // Update team squads with new stats
     const battingTeamId = innings.battingTeam === match.team1.name ? match.team1.id : match.team2.id;
     const bowlingTeamId = innings.bowlingTeam === match.team1.name ? match.team1.id : match.team2.id;
@@ -280,12 +284,10 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     }
     
     // Check if over complete
-    const newBallsBowled = innings.ballsBowled + 1;
     const isOverComplete = newBallsBowled % 6 === 0;
     
-    // Update bowler's overs count when over is complete
+    // Track last bowler when over is complete
     if (isOverComplete) {
-      bowler.oversBowled = Math.floor(newBallsBowled / 6);
       setLastBowlerId(bowler.id);
     }
     
