@@ -24,6 +24,7 @@ const MatchScorecardDialog = ({ match, open, onOpenChange }: MatchScorecardDialo
             <DetailedScorecard
               innings={match.firstInnings}
               title={`${match.firstInnings.battingTeam} - First Innings`}
+              bowlers={(match.firstInnings.bowlingTeam === match.team1.name ? match.team1.squad : match.team2.squad)}
             />
           )}
           
@@ -33,6 +34,7 @@ const MatchScorecardDialog = ({ match, open, onOpenChange }: MatchScorecardDialo
               innings={match.secondInnings}
               title={`${match.secondInnings.battingTeam} - Second Innings`}
               target={match.firstInnings ? match.firstInnings.totalRuns + 1 : undefined}
+              bowlers={(match.secondInnings.bowlingTeam === match.team1.name ? match.team1.squad : match.team2.squad)}
             />
           )}
         </div>

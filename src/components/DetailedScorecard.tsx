@@ -1,14 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Innings } from "@/types/cricket";
+import { Innings, Player } from "@/types/cricket";
 
 interface DetailedScorecardProps {
   innings: Innings;
   title: string;
   target?: number;
+  bowlers?: Player[];
 }
 
-const DetailedScorecard = ({ innings, title, target }: DetailedScorecardProps) => {
+const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecardProps) => {
   const formatOvers = (balls: number) => {
     const overs = Math.floor(balls / 6);
     const remainingBalls = balls % 6;
@@ -23,6 +24,19 @@ const DetailedScorecard = ({ innings, title, target }: DetailedScorecardProps) =
   const calculateEconomy = (runs: number, balls: number) => {
     if (balls === 0) return "0.00";
     return ((runs / balls) * 6).toFixed(2);
+  };
+
+  const oversToBalls = (overs: number) => {
+    const whole = Math.floor(overs);
+    const balls = Math.round((overs - whole) * 10);
+    return whole * 6 + balls;
+  };
+
+  const formatOversValue = (overs: number) => {
+    const balls = oversToBalls(overs);
+    const ov = Math.floor(balls / 6);
+    const rem = balls % 6;
+    return `${ov}.${rem}`;
   };
 
   const getBattingStatus = (player: any) => {
@@ -120,8 +134,19 @@ const DetailedScorecard = ({ innings, title, target }: DetailedScorecardProps) =
                 </tr>
               </thead>
               <tbody>
-                {/* Note: Bowling figures would need to be tracked separately */}
-                {/* For now showing placeholder */}
+                {bowlers && bowlers.filter(b => oversToBalls(b.oversBowled) > 0).map((bowler) => {
+                  const balls = oversToBalls(bowler.oversBowled);
+                  return (
+                    <tr key={bowler.id} className="border-b hover:bg-muted/50">
+                      <td className="py-2">{bowler.name}</td>
+                      <td className="text-right py-2">{formatOversValue(bowler.oversBowled)}</td>
+                      <td className="text-right py-2">{bowler.maidens || 0}</td>
+                      <td className="text-right py-2">{bowler.runsConceded}</td>
+                      <td className="text-right py-2">{bowler.wickets}</td>
+                      <td className="text-right py-2">{calculateEconomy(bowler.runsConceded, balls)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

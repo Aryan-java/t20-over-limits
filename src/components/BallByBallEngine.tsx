@@ -26,6 +26,18 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
   const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
 
+  // Helper conversions between overs (e.g., 2.3) and balls
+  const oversToBalls = (overs: number) => {
+    const whole = Math.floor(overs);
+    const balls = Math.round((overs - whole) * 10);
+    return whole * 6 + balls;
+  };
+  const ballsToOvers = (balls: number) => {
+    const ov = Math.floor(balls / 6);
+    const rem = balls % 6;
+    return ov + rem / 10;
+  };
+
   const getCurrentInnings = () => {
     return match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
   };
@@ -55,7 +67,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     return bowlingTeam.filter(player => {
       // Can't bowl if already bowled max overs
-      if (player.oversBowled >= maxOvers) return false;
+      if (Math.floor(player.oversBowled) >= maxOvers) return false;
       
       // Can't bowl consecutive overs
       if (lastBowlerId && player.id === lastBowlerId) return false;
@@ -238,9 +250,10 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     bowler.runsConceded += runs;
     if (isWicket) bowler.wickets += 1;
     
-    // Update overs bowled (includes partial overs)
+    // Update overs bowled (per bowler, includes partial overs)
     const newBallsBowled = innings.ballsBowled + 1;
-    bowler.oversBowled = Math.floor(newBallsBowled / 6) + (newBallsBowled % 6) / 10;
+    const bowlerBalls = oversToBalls(bowler.oversBowled) + 1;
+    bowler.oversBowled = ballsToOvers(bowlerBalls);
     
     // Update team squads with new stats
     const battingTeamId = innings.battingTeam === match.team1.name ? match.team1.id : match.team2.id;
@@ -322,6 +335,11 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         nonStriker: newNonStriker
       },
       currentBowler: isOverComplete ? null : bowler,
+      battingOrder: innings.battingOrder.map(p =>
+        p.id === striker.id
+          ? striker
+          : (innings.currentBatsmen.nonStriker && p.id === innings.currentBatsmen.nonStriker.id ? (newNonStriker as Player) : p)
+      ),
       isCompleted: isInningsComplete
     };
     
@@ -367,9 +385,26 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     setCommentary(prev => [ballEvent, ...prev]);
     
+    // Rebuild team setups so playing XI reflect latest player stats
+    const rebuildSetup = (setup: any, team: any) => {
+      if (!setup) return setup;
+      const find = (id: string) => team.squad.find((s: any) => s.id === id);
+      return {
+        ...setup,
+        playingXI: setup.playingXI?.map((p: any) => find(p.id) || p) || setup.playingXI,
+        impactPlayers: setup.impactPlayers?.map((p: any) => find(p.id) || p) || setup.impactPlayers,
+        battingOrder: setup.battingOrder?.map((p: any) => find(p.id) || p) || setup.battingOrder,
+        openingPair: setup.openingPair
+          ? [find(setup.openingPair[0].id) || setup.openingPair[0], find(setup.openingPair[1].id) || setup.openingPair[1]]
+          : setup.openingPair,
+      };
+    };
+
     const matchUpdate = {
       team1: updatedTeam1,
       team2: updatedTeam2,
+      team1Setup: match.team1Setup ? rebuildSetup(match.team1Setup, updatedTeam1) : match.team1Setup,
+      team2Setup: match.team2Setup ? rebuildSetup(match.team2Setup, updatedTeam2) : match.team2Setup,
       ...(match.currentInnings === 1 
         ? { firstInnings: updatedInnings }
         : { secondInnings: updatedInnings })
@@ -598,8 +633,9 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             ) : (
               getAvailableBowlers().map(player => {
                 const maxOvers = Math.floor(match.overs / 5);
-                const economy = player.oversBowled > 0 
-                  ? (player.runsConceded / player.oversBowled).toFixed(2)
+                const bowlerBalls = oversToBalls(player.oversBowled);
+                const economy = bowlerBalls > 0 
+                  ? (player.runsConceded / (bowlerBalls / 6)).toFixed(2)
                   : '0.00';
                 
                 return (
