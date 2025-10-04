@@ -57,22 +57,26 @@ const LiveMatchTab = () => {
   };
 
   const handleTossComplete = () => {
+    // Use fresh state to avoid any stale data after toss update
+    const m = useCricketStore.getState().currentMatch;
+    if (!m || !m.tossWinner || !m.tossChoice) {
+      setShowToss(false);
+      return;
+    }
+
     setShowToss(false);
-    // Initialize first innings after toss
-    const battingTeam = currentMatch.tossChoice === 'bat' 
-      ? currentMatch.tossWinner?.name 
-      : (currentMatch.tossWinner?.name === currentMatch.team1.name ? currentMatch.team2.name : currentMatch.team1.name);
-    
-    const bowlingTeam = currentMatch.tossChoice === 'bowl' 
-      ? currentMatch.tossWinner?.name 
-      : (currentMatch.tossWinner?.name === currentMatch.team1.name ? currentMatch.team2.name : currentMatch.team1.name);
-    
-    const battingSetup = battingTeam === currentMatch.team1.name ? currentMatch.team1Setup : currentMatch.team2Setup;
-    
-    if (battingSetup) {
+
+    // Determine batting and bowling teams based on toss result and choice
+    const otherTeamName = m.tossWinner.name === m.team1.name ? m.team2.name : m.team1.name;
+    const battingTeam = m.tossChoice === 'bat' ? m.tossWinner.name : otherTeamName;
+    const bowlingTeam = m.tossChoice === 'bowl' ? m.tossWinner.name : otherTeamName;
+
+    const battingSetup = battingTeam === m.team1.name ? m.team1Setup : m.team2Setup;
+
+    if (battingSetup && battingSetup.openingPair) {
       const firstInnings = {
-        battingTeam: battingTeam || '',
-        bowlingTeam: bowlingTeam || '',
+        battingTeam,
+        bowlingTeam,
         totalRuns: 0,
         wickets: 0,
         ballsBowled: 0,
@@ -88,13 +92,12 @@ const LiveMatchTab = () => {
 
       updateMatch({
         firstInnings,
-        isLive: true
+        isLive: true,
       });
     }
-    
+
     setMatchStarted(true);
   };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
