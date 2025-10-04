@@ -80,12 +80,14 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const battingTeam = getBattingTeam();
     const innings = getCurrentInnings();
     if (!innings) return [];
-    
-    return battingTeam.filter(player => 
-      !player.dismissed &&
-      player.id !== innings.currentBatsmen.striker?.id &&
-      player.id !== innings.currentBatsmen.nonStriker?.id
-    );
+
+    return battingTeam.filter(player => {
+      const hasBatted = player.balls > 0 || player.dismissed;
+      const isCurrentlyBatting = player.id === innings.currentBatsmen.striker?.id ||
+                                  player.id === innings.currentBatsmen.nonStriker?.id;
+
+      return !hasBatted && !isCurrentlyBatting;
+    });
   };
 
   const calculateManOfTheMatch = () => {
@@ -254,17 +256,35 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const newBallsBowled = innings.ballsBowled + 1;
     const bowlerBalls = oversToBalls(bowler.oversBowled) + 1;
     bowler.oversBowled = ballsToOvers(bowlerBalls);
-    
+
+    // Update batting order to include all batters who have faced balls
+    const updatedBattingOrder = [...innings.battingOrder];
+    const strikerInOrder = updatedBattingOrder.find(p => p.id === striker.id);
+    if (!strikerInOrder) {
+      updatedBattingOrder.push(striker);
+    } else {
+      const index = updatedBattingOrder.findIndex(p => p.id === striker.id);
+      updatedBattingOrder[index] = striker;
+    }
+
+    // Also update non-striker in batting order if they exist
+    if (innings.currentBatsmen.nonStriker) {
+      const nonStrikerIndex = updatedBattingOrder.findIndex(p => p.id === innings.currentBatsmen.nonStriker!.id);
+      if (nonStrikerIndex === -1) {
+        updatedBattingOrder.push(innings.currentBatsmen.nonStriker);
+      }
+    }
+
     // Update team squads with new stats
     const battingTeamId = innings.battingTeam === match.team1.name ? match.team1.id : match.team2.id;
     const bowlingTeamId = innings.bowlingTeam === match.team1.name ? match.team1.id : match.team2.id;
-    
+
     const updatedTeam1 = match.team1.id === battingTeamId
       ? {
           ...match.team1,
-          squad: match.team1.squad.map(p => 
-            p.id === striker.id ? striker : 
-            p.id === innings.currentBatsmen.nonStriker?.id ? innings.currentBatsmen.nonStriker : 
+          squad: match.team1.squad.map(p =>
+            p.id === striker.id ? striker :
+            p.id === innings.currentBatsmen.nonStriker?.id ? innings.currentBatsmen.nonStriker :
             p
           )
         }
@@ -272,13 +292,13 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           ...match.team1,
           squad: match.team1.squad.map(p => p.id === bowler.id ? bowler : p)
         };
-    
+
     const updatedTeam2 = match.team2.id === battingTeamId
       ? {
           ...match.team2,
-          squad: match.team2.squad.map(p => 
-            p.id === striker.id ? striker : 
-            p.id === innings.currentBatsmen.nonStriker?.id ? innings.currentBatsmen.nonStriker : 
+          squad: match.team2.squad.map(p =>
+            p.id === striker.id ? striker :
+            p.id === innings.currentBatsmen.nonStriker?.id ? innings.currentBatsmen.nonStriker :
             p
           )
         }
@@ -335,11 +355,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         nonStriker: newNonStriker
       },
       currentBowler: isOverComplete ? null : bowler,
-      battingOrder: innings.battingOrder.map(p =>
-        p.id === striker.id
-          ? striker
-          : (innings.currentBatsmen.nonStriker && p.id === innings.currentBatsmen.nonStriker.id ? (newNonStriker as Player) : p)
-      ),
+      battingOrder: updatedBattingOrder,
       isCompleted: isInningsComplete
     };
     
@@ -499,7 +515,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         nonStriker: batsman2
       },
       currentBowler: null,
-      battingOrder: battingSquad,
+      battingOrder: [batsman1, batsman2],
       isCompleted: false
     };
 

@@ -91,28 +91,32 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
                 </tr>
               </thead>
               <tbody>
-                {innings.battingOrder.map((player, index) => (
-                  <tr key={player.id} className="border-b hover:bg-muted/50">
-                    <td className="py-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">{player.name}</span>
-                        {(player === innings.currentBatsmen.striker || player === innings.currentBatsmen.nonStriker) && (
-                          <Badge variant="outline" className="text-xs">
-                            {player === innings.currentBatsmen.striker ? "*" : ""}
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td className="text-right py-2 font-medium">{player.runs}</td>
-                    <td className="text-right py-2">{player.balls}</td>
-                    <td className="text-right py-2">{player.fours}</td>
-                    <td className="text-right py-2">{player.sixes}</td>
-                    <td className="text-right py-2">{calculateStrikeRate(player.runs, player.balls)}</td>
-                    <td className="text-left py-2 text-sm text-muted-foreground">
-                      {getBattingStatus(player)}
-                    </td>
-                  </tr>
-                ))}
+                {innings.battingOrder
+                  .filter(player => player.balls > 0 || player.dismissed ||
+                    player.id === innings.currentBatsmen.striker?.id ||
+                    player.id === innings.currentBatsmen.nonStriker?.id)
+                  .map((player, index) => (
+                    <tr key={player.id} className="border-b hover:bg-muted/50">
+                      <td className="py-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{player.name}</span>
+                          {(player === innings.currentBatsmen.striker || player === innings.currentBatsmen.nonStriker) && (
+                            <Badge variant="outline" className="text-xs">
+                              {player === innings.currentBatsmen.striker ? "*" : ""}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="text-right py-2 font-medium">{player.runs}</td>
+                      <td className="text-right py-2">{player.balls}</td>
+                      <td className="text-right py-2">{player.fours}</td>
+                      <td className="text-right py-2">{player.sixes}</td>
+                      <td className="text-right py-2">{calculateStrikeRate(player.runs, player.balls)}</td>
+                      <td className="text-left py-2 text-sm text-muted-foreground">
+                        {getBattingStatus(player)}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

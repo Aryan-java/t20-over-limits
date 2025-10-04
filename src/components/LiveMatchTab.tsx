@@ -82,13 +82,13 @@ const LiveMatchTab = () => {
           nonStriker: battingSetup.openingPair[1] || null,
         },
         currentBowler: null,
-        battingOrder: battingSetup.battingOrder || [],
+        battingOrder: [battingSetup.openingPair[0], battingSetup.openingPair[1]],
         isCompleted: false,
       };
-      
-      updateMatch({ 
+
+      updateMatch({
         firstInnings,
-        isLive: true 
+        isLive: true
       });
     }
     
