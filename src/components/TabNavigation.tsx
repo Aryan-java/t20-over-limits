@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Calendar, Play, ChartBar as BarChart3, History, Trophy } from "lucide-react";
+import { Users, Calendar, Play, ChartBar as BarChart3, Trophy } from "lucide-react";
 
 interface TabNavigationProps {
   activeTab: string;
@@ -10,7 +10,7 @@ interface TabNavigationProps {
 const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps) => {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-6 mb-6">
+      <TabsList className="grid w-full grid-cols-5 mb-6">
         <TabsTrigger value="teams" className="flex items-center space-x-2">
           <Users className="h-4 w-4" />
           <span>Teams</span>
@@ -19,17 +19,13 @@ const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps)
           <Calendar className="h-4 w-4" />
           <span>Fixtures</span>
         </TabsTrigger>
-        <TabsTrigger value="tournament" className="flex items-center space-x-2">
-          <Trophy className="h-4 w-4" />
-          <span>Tournament</span>
-        </TabsTrigger>
         <TabsTrigger value="live" className="flex items-center space-x-2">
           <Play className="h-4 w-4" />
           <span>Live Match</span>
         </TabsTrigger>
-        <TabsTrigger value="history" className="flex items-center space-x-2">
-          <History className="h-4 w-4" />
-          <span>History</span>
+        <TabsTrigger value="tournament" className="flex items-center space-x-2">
+          <Trophy className="h-4 w-4" />
+          <span>Tournament</span>
         </TabsTrigger>
         <TabsTrigger value="stats" className="flex items-center space-x-2">
           <BarChart3 className="h-4 w-4" />

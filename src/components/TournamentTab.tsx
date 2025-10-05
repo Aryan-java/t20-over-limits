@@ -1,304 +1,335 @@
-import { useCricketStore } from "@/hooks/useCricketStore";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Trophy, Award, Target, ChevronRight, RotateCcw } from "lucide-react";
-import MatchCard from "./MatchCard";
 import { useState } from "react";
-import MatchSetupDialog from "./MatchSetupDialog";
-import { Team } from "@/types/cricket";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Trophy, Award, Calendar, ChevronRight } from "lucide-react";
+import { useCricketStore } from "@/hooks/useCricketStore";
+import { MatchHistory, Player } from "@/types/cricket";
+import DetailedScorecard from "./DetailedScorecard";
 
-const TournamentTab = () => {
-  const { tournament, fixtures, teams, startPlayoffs, resetTournament, createMatch, setCurrentMatch } = useCricketStore();
-  const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team} | null>(null);
-  const [showResetDialog, setShowResetDialog] = useState(false);
-  const { toast } = useToast();
+export default function TournamentTab() {
+  const { matchHistory, teams } = useCricketStore();
+  const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
 
-  const handleStartMatch = (team1Id: string, team2Id: string) => {
-    const team1 = teams.find(t => t.id === team1Id)!;
-    const team2 = teams.find(t => t.id === team2Id)!;
-    setSetupMatch({ team1, team2 });
-  };
-
-  const handleResetTournament = () => {
-    resetTournament();
-    setShowResetDialog(false);
-    toast({
-      title: "Tournament Reset",
-      description: "All fixtures and match history have been cleared. You can now start a new tournament.",
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
-  const handleMatchReady = (team1Setup: any, team2Setup: any) => {
-    const match = createMatch(
-      team1Setup.team.id, 
-      team2Setup.team.id,
-      {
-        playingXI: team1Setup.playingXI,
-        impactPlayers: team1Setup.impactPlayers,
-        battingOrder: team1Setup.battingOrder,
-        openingPair: team1Setup.openingPair
-      },
-      {
-        playingXI: team2Setup.playingXI,
-        impactPlayers: team2Setup.impactPlayers,
-        battingOrder: team2Setup.battingOrder,
-        openingPair: team2Setup.openingPair
-      }
-    );
-    setCurrentMatch(match);
-    setSetupMatch(null);
+  const getWinningTeam = (match: MatchHistory) => {
+    if (!match.result) return null;
+    if (match.result.includes(match.team1.name)) return match.team1;
+    if (match.result.includes(match.team2.name)) return match.team2;
+    return null;
   };
 
-  if (!tournament) {
-    return (
-      <div className="text-center py-12 bg-muted/20 rounded-lg border-2 border-dashed">
-        <div className="space-y-3">
-          <div className="text-4xl">🏆</div>
-          <h3 className="text-lg font-medium">No Tournament Active</h3>
-          <p className="text-muted-foreground">Generate fixtures to start the tournament</p>
-        </div>
-      </div>
-    );
-  }
+  const getOrangeCapHolder = () => {
+    const allPlayers: Player[] = [];
 
-  const leagueMatches = fixtures.filter(f => f.stage === 'league');
-  const completedLeague = leagueMatches.filter(f => f.played);
+    teams.forEach(team => {
+      team.squad.forEach(player => {
+        if (player.performanceHistory && player.performanceHistory.totalRuns > 0) {
+          allPlayers.push(player);
+        }
+      });
+    });
+
+    if (allPlayers.length === 0) return null;
+
+    allPlayers.sort((a, b) => {
+      const runsA = a.performanceHistory?.totalRuns || 0;
+      const runsB = b.performanceHistory?.totalRuns || 0;
+      return runsB - runsA;
+    });
+
+    return allPlayers[0];
+  };
+
+  const getPurpleCapHolder = () => {
+    const allPlayers: Player[] = [];
+
+    teams.forEach(team => {
+      team.squad.forEach(player => {
+        if (player.performanceHistory && player.performanceHistory.totalWickets > 0) {
+          allPlayers.push(player);
+        }
+      });
+    });
+
+    if (allPlayers.length === 0) return null;
+
+    allPlayers.sort((a, b) => {
+      const wicketsA = a.performanceHistory?.totalWickets || 0;
+      const wicketsB = b.performanceHistory?.totalWickets || 0;
+      return wicketsB - wicketsA;
+    });
+
+    return allPlayers[0];
+  };
+
+  const orangeCapHolder = getOrangeCapHolder();
+  const purpleCapHolder = getPurpleCapHolder();
 
   return (
-    <div className="space-y-8">
-      {tournament && (
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={() => setShowResetDialog(true)}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset Tournament
-          </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Tournament Dashboard</h2>
+          <p className="text-muted-foreground">Match results and tournament leaders</p>
         </div>
-      )}
+      </div>
 
-      {/* Orange and Purple Cap */}
-      {/* Orange and Purple Cap */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6 bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
-          <div className="flex items-start justify-between">
-            <div className="space-y-3 flex-1">
-              <div className="flex items-center space-x-2">
-                <Award className="h-5 w-5 text-orange-500" />
-                <h3 className="text-lg font-semibold">Orange Cap</h3>
+        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-700">
+              <div className="p-2 bg-orange-500 rounded-lg">
+                <Award className="h-5 w-5 text-white" />
               </div>
-              {tournament.orangeCapHolder ? (
-                <div>
-                  <p className="text-2xl font-bold text-orange-500">
-                    {tournament.orangeCapHolder.runs} runs
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {tournament.orangeCapHolder.player.name}
-                  </p>
-                  {tournament.orangeCapHolder.player.isOverseas && (
-                    <Badge variant="secondary" className="mt-2">Overseas</Badge>
-                  )}
+              Orange Cap - Most Runs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {orangeCapHolder ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold">{orangeCapHolder.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {teams.find(t => t.id === orangeCapHolder.currentTeamId)?.name}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold text-orange-600">
+                      {orangeCapHolder.performanceHistory?.totalRuns}
+                    </div>
+                    <div className="text-sm text-muted-foreground">runs</div>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No matches played yet</p>
-              )}
-            </div>
-            <div className="text-5xl">🧢</div>
-          </div>
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">
+                      {orangeCapHolder.performanceHistory?.totalMatches}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Matches</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">
+                      {orangeCapHolder.performanceHistory?.averageRuns.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Average</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">
+                      {orangeCapHolder.performanceHistory?.formRating.toFixed(0)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Form</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Award className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                <p>No runs scored yet</p>
+              </div>
+            )}
+          </CardContent>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-          <div className="flex items-start justify-between">
-            <div className="space-y-3 flex-1">
-              <div className="flex items-center space-x-2">
-                <Target className="h-5 w-5 text-purple-500" />
-                <h3 className="text-lg font-semibold">Purple Cap</h3>
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-purple-700">
+              <div className="p-2 bg-purple-500 rounded-lg">
+                <Trophy className="h-5 w-5 text-white" />
               </div>
-              {tournament.purpleCapHolder ? (
-                <div>
-                  <p className="text-2xl font-bold text-purple-500">
-                    {tournament.purpleCapHolder.wickets} wickets
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {tournament.purpleCapHolder.player.name}
-                  </p>
-                  {tournament.purpleCapHolder.player.isOverseas && (
-                    <Badge variant="secondary" className="mt-2">Overseas</Badge>
-                  )}
+              Purple Cap - Most Wickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {purpleCapHolder ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold">{purpleCapHolder.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {teams.find(t => t.id === purpleCapHolder.currentTeamId)?.name}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold text-purple-600">
+                      {purpleCapHolder.performanceHistory?.totalWickets}
+                    </div>
+                    <div className="text-sm text-muted-foreground">wickets</div>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No matches played yet</p>
-              )}
-            </div>
-            <div className="text-5xl">🎯</div>
-          </div>
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">
+                      {purpleCapHolder.performanceHistory?.totalMatches}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Matches</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">
+                      {purpleCapHolder.performanceHistory?.averageWickets.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Avg/Match</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold">
+                      {purpleCapHolder.performanceHistory?.formRating.toFixed(0)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Form</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Trophy className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                <p>No wickets taken yet</p>
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
 
-      {/* League Stage */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-bold">League Stage</h2>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-6 w-6 text-cricket-green" />
+              Matches Played
+            </CardTitle>
+            <Badge variant="secondary">
+              {matchHistory.length} {matchHistory.length === 1 ? 'Match' : 'Matches'}
+            </Badge>
           </div>
-          <Badge variant={tournament.isLeagueComplete ? "default" : "secondary"}>
-            {completedLeague.length}/{leagueMatches.length} matches
-          </Badge>
-        </div>
-        
-        {tournament.isLeagueComplete && !tournament.isPlayoffStarted && (
-          <div className="mb-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">League Stage Complete!</p>
-                <p className="text-sm text-muted-foreground">Ready to start playoffs with top 4 teams</p>
-              </div>
-              <Button onClick={startPlayoffs}>
-                Start Playoffs <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
+        </CardHeader>
+        <CardContent>
+          {matchHistory.length === 0 ? (
+            <div className="text-center py-12">
+              <Trophy className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Matches Played Yet</h3>
+              <p className="text-muted-foreground">
+                Complete matches to see them here
+              </p>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-3">
+              {matchHistory.map((match) => {
+                const winner = getWinningTeam(match);
+                const isTied = match.result?.includes('Tied');
+
+                return (
+                  <Card
+                    key={match.id}
+                    className="hover:shadow-md transition-all cursor-pointer hover:border-cricket-green"
+                    onClick={() => setSelectedMatch(match)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(match.matchDate)}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">{match.team1.name}</span>
+                                {winner?.id === match.team1.id && (
+                                  <Trophy className="h-4 w-4 text-yellow-500" />
+                                )}
+                              </div>
+                              <div className="text-2xl font-bold">
+                                {match.firstInnings?.battingTeam === match.team1.name
+                                  ? `${match.firstInnings?.totalRuns}/${match.firstInnings?.wickets}`
+                                  : `${match.secondInnings?.totalRuns}/${match.secondInnings?.wickets}`}
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">{match.team2.name}</span>
+                                {winner?.id === match.team2.id && (
+                                  <Trophy className="h-4 w-4 text-yellow-500" />
+                                )}
+                              </div>
+                              <div className="text-2xl font-bold">
+                                {match.firstInnings?.battingTeam === match.team2.name
+                                  ? `${match.firstInnings?.totalRuns}/${match.firstInnings?.wickets}`
+                                  : `${match.secondInnings?.totalRuns}/${match.secondInnings?.wickets}`}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium">{match.result}</p>
+                              {match.manOfTheMatch && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Award className="h-3 w-3 text-yellow-500" />
+                                  <span>{match.manOfTheMatch.name}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <ChevronRight className="h-5 w-5 text-muted-foreground ml-4" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      {/* Playoffs */}
-      {tournament.isPlayoffStarted && (
-        <Card className="p-6">
-          <div className="flex items-center space-x-2 mb-6">
-            <Trophy className="h-6 w-6 text-yellow-500" />
-            <h2 className="text-2xl font-bold">Playoffs</h2>
-          </div>
+      <Dialog open={!!selectedMatch} onOpenChange={() => setSelectedMatch(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Match Scorecard - {selectedMatch?.team1.name} vs {selectedMatch?.team2.name}
+            </DialogTitle>
+          </DialogHeader>
 
-          <div className="space-y-6">
-            {/* Qualifier 1 */}
-            {tournament.playoffMatches.qualifier1 && (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-blue-500">Qualifier 1</Badge>
-                  <p className="text-sm text-muted-foreground">Winner → Final</p>
-                </div>
-                <MatchCard
-                  match={tournament.playoffMatches.qualifier1.match || createMatch(
-                    tournament.playoffMatches.qualifier1.team1.id,
-                    tournament.playoffMatches.qualifier1.team2.id
-                  )}
-                  onStartMatch={() => handleStartMatch(
-                    tournament.playoffMatches.qualifier1!.team1.id,
-                    tournament.playoffMatches.qualifier1!.team2.id
-                  )}
-                  onViewMatch={() => {}}
-                  isFixture={!tournament.playoffMatches.qualifier1.played}
+          {selectedMatch && (
+            <div className="space-y-6">
+              {selectedMatch.firstInnings && (
+                <DetailedScorecard
+                  innings={selectedMatch.firstInnings}
+                  title={`${selectedMatch.firstInnings.battingTeam} - First Innings`}
+                  bowlers={
+                    selectedMatch.firstInnings.bowlingTeam === selectedMatch.team1.name
+                      ? selectedMatch.team1.squad
+                      : selectedMatch.team2.squad
+                  }
                 />
-              </div>
-            )}
+              )}
 
-            {/* Eliminator */}
-            {tournament.playoffMatches.eliminator && (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-red-500">Eliminator</Badge>
-                  <p className="text-sm text-muted-foreground">Loser eliminated</p>
-                </div>
-                <MatchCard
-                  match={tournament.playoffMatches.eliminator.match || createMatch(
-                    tournament.playoffMatches.eliminator.team1.id,
-                    tournament.playoffMatches.eliminator.team2.id
-                  )}
-                  onStartMatch={() => handleStartMatch(
-                    tournament.playoffMatches.eliminator!.team1.id,
-                    tournament.playoffMatches.eliminator!.team2.id
-                  )}
-                  onViewMatch={() => {}}
-                  isFixture={!tournament.playoffMatches.eliminator.played}
+              {selectedMatch.secondInnings && (
+                <DetailedScorecard
+                  innings={selectedMatch.secondInnings}
+                  title={`${selectedMatch.secondInnings.battingTeam} - Second Innings`}
+                  target={selectedMatch.firstInnings ? selectedMatch.firstInnings.totalRuns + 1 : undefined}
+                  bowlers={
+                    selectedMatch.secondInnings.bowlingTeam === selectedMatch.team1.name
+                      ? selectedMatch.team1.squad
+                      : selectedMatch.team2.squad
+                  }
                 />
-              </div>
-            )}
-
-            {/* Qualifier 2 */}
-            {tournament.playoffMatches.qualifier2 && (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-green-500">Qualifier 2</Badge>
-                  <p className="text-sm text-muted-foreground">Winner → Final</p>
-                </div>
-                <MatchCard
-                  match={tournament.playoffMatches.qualifier2.match || createMatch(
-                    tournament.playoffMatches.qualifier2.team1.id,
-                    tournament.playoffMatches.qualifier2.team2.id
-                  )}
-                  onStartMatch={() => handleStartMatch(
-                    tournament.playoffMatches.qualifier2!.team1.id,
-                    tournament.playoffMatches.qualifier2!.team2.id
-                  )}
-                  onViewMatch={() => {}}
-                  isFixture={!tournament.playoffMatches.qualifier2.played}
-                />
-              </div>
-            )}
-
-            {/* Final */}
-            {tournament.playoffMatches.final && (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-yellow-500 text-black">🏆 Final</Badge>
-                  <p className="text-sm text-muted-foreground">Tournament decider</p>
-                </div>
-                <MatchCard
-                  match={tournament.playoffMatches.final.match || createMatch(
-                    tournament.playoffMatches.final.team1.id,
-                    tournament.playoffMatches.final.team2.id
-                  )}
-                  onStartMatch={() => handleStartMatch(
-                    tournament.playoffMatches.final!.team1.id,
-                    tournament.playoffMatches.final!.team2.id
-                  )}
-                  onViewMatch={() => {}}
-                  isFixture={!tournament.playoffMatches.final.played}
-                />
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      <MatchSetupDialog
-        team1={setupMatch?.team1 || null}
-        team2={setupMatch?.team2 || null}
-        open={!!setupMatch}
-        onOpenChange={(open) => !open && setSetupMatch(null)}
-        onMatchReady={handleMatchReady}
-      />
-
-      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset Tournament?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will clear all fixtures, match history, and tournament progress. 
-              Team rosters will be preserved. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleResetTournament} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Reset Tournament
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default TournamentTab;
+}
