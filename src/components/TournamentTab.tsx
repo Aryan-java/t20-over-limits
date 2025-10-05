@@ -2,20 +2,42 @@ import { useCricketStore } from "@/hooks/useCricketStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Award, Target, ChevronRight } from "lucide-react";
+import { Trophy, Award, Target, ChevronRight, RotateCcw } from "lucide-react";
 import MatchCard from "./MatchCard";
 import { useState } from "react";
 import MatchSetupDialog from "./MatchSetupDialog";
 import { Team } from "@/types/cricket";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const TournamentTab = () => {
-  const { tournament, fixtures, teams, startPlayoffs, createMatch, setCurrentMatch } = useCricketStore();
+  const { tournament, fixtures, teams, startPlayoffs, resetTournament, createMatch, setCurrentMatch } = useCricketStore();
   const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team} | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const { toast } = useToast();
 
   const handleStartMatch = (team1Id: string, team2Id: string) => {
     const team1 = teams.find(t => t.id === team1Id)!;
     const team2 = teams.find(t => t.id === team2Id)!;
     setSetupMatch({ team1, team2 });
+  };
+
+  const handleResetTournament = () => {
+    resetTournament();
+    setShowResetDialog(false);
+    toast({
+      title: "Tournament Reset",
+      description: "All fixtures and match history have been cleared. You can now start a new tournament.",
+    });
   };
 
   const handleMatchReady = (team1Setup: any, team2Setup: any) => {
@@ -56,6 +78,16 @@ const TournamentTab = () => {
 
   return (
     <div className="space-y-8">
+      {tournament && (
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => setShowResetDialog(true)}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Reset Tournament
+          </Button>
+        </div>
+      )}
+
+      {/* Orange and Purple Cap */}
       {/* Orange and Purple Cap */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="p-6 bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
@@ -247,6 +279,24 @@ const TournamentTab = () => {
         onOpenChange={(open) => !open && setSetupMatch(null)}
         onMatchReady={handleMatchReady}
       />
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Tournament?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all fixtures, match history, and tournament progress. 
+              Team rosters will be preserved. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetTournament} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reset Tournament
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

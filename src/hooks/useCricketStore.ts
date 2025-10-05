@@ -28,6 +28,7 @@ interface CricketStore {
   initializeTournament: () => void;
   startPlayoffs: () => void;
   updateTournamentStats: () => void;
+  resetTournament: () => void;
 
   // Match actions
   createMatch: (team1Id: string, team2Id: string, team1Setup?: Match['team1Setup'], team2Setup?: Match['team2Setup']) => Match;
@@ -318,6 +319,15 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         purpleCapHolder: purpleCapPlayer ? { player: purpleCapPlayer, wickets: maxWickets } : null,
       } : null,
     }));
+  },
+
+  resetTournament: () => {
+    set({
+      fixtures: [],
+      tournament: null,
+      matchHistory: [],
+      currentMatch: null,
+    });
   },
   
   createMatch: (team1Id, team2Id, team1Setup, team2Setup) => {
