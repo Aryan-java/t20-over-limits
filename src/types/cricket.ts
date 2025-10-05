@@ -118,8 +118,25 @@ export interface Fixture {
   team2: Team;
   played: boolean;
   match?: Match;
+  stage: MatchStage;
 }
 
 export interface MatchHistory extends Match {
   completedAt: Date;
+}
+
+export type MatchStage = 'league' | 'qualifier1' | 'eliminator' | 'qualifier2' | 'final';
+
+export interface Tournament {
+  leagueMatches: Fixture[];
+  playoffMatches: {
+    qualifier1: Fixture | null;
+    eliminator: Fixture | null;
+    qualifier2: Fixture | null;
+    final: Fixture | null;
+  };
+  isLeagueComplete: boolean;
+  isPlayoffStarted: boolean;
+  orangeCapHolder: { player: Player; runs: number } | null;
+  purpleCapHolder: { player: Player; wickets: number } | null;
 }

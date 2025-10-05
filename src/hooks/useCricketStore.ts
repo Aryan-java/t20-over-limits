@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Team, Player, Match, Fixture, MatchHistory } from '@/types/cricket';
+import { Team, Player, Match, Fixture, MatchHistory, Tournament } from '@/types/cricket';
 import { PLAYER_DATABASE } from '@/data/playerDatabase';
 
 
@@ -9,6 +9,7 @@ interface CricketStore {
   fixtures: Fixture[];
   currentMatch: Match | null;
   matchHistory: MatchHistory[];
+  tournament: Tournament | null;
 
   // Team actions
   addTeam: (team: Omit<Team, 'id' | 'playingXI' | 'impactOptions' | 'subUsed'>) => void;
@@ -22,6 +23,11 @@ interface CricketStore {
 
   // Fixture actions
   generateFixtures: () => void;
+  
+  // Tournament actions
+  initializeTournament: () => void;
+  startPlayoffs: () => void;
+  updateTournamentStats: () => void;
 
   // Match actions
   createMatch: (team1Id: string, team2Id: string, team1Setup?: Match['team1Setup'], team2Setup?: Match['team2Setup']) => Match;
@@ -65,6 +71,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   fixtures: [],
   currentMatch: null,
   matchHistory: [],
+  tournament: null,
   
   addTeam: (teamData) => {
     const team: Team = {
@@ -171,6 +178,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           team1: teams[i],
           team2: teams[j],
           played: false,
+          stage: 'league',
         });
       }
     }
@@ -182,6 +190,134 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     }
     
     set({ fixtures });
+    get().initializeTournament();
+  },
+
+  initializeTournament: () => {
+    const { fixtures } = get();
+    const tournament: Tournament = {
+      leagueMatches: fixtures.filter(f => f.stage === 'league'),
+      playoffMatches: {
+        qualifier1: null,
+        eliminator: null,
+        qualifier2: null,
+        final: null,
+      },
+      isLeagueComplete: false,
+      isPlayoffStarted: false,
+      orangeCapHolder: null,
+      purpleCapHolder: null,
+    };
+    set({ tournament });
+  },
+
+  startPlayoffs: () => {
+    const { teams, matchHistory } = get();
+    
+    // Calculate points table to get top 4 teams
+    const teamStats = teams.map(team => {
+      const matches = matchHistory.filter(
+        m => m.team1.id === team.id || m.team2.id === team.id
+      );
+      
+      let wins = 0, points = 0, totalRunsScored = 0, totalRunsConceded = 0, totalBallsFaced = 0, totalBallsBowled = 0;
+      
+      matches.forEach(match => {
+        const isTeam1 = match.team1.id === team.id;
+        const teamInnings = isTeam1 ? match.firstInnings : match.secondInnings;
+        const opposingInnings = isTeam1 ? match.secondInnings : match.firstInnings;
+        
+        if (teamInnings) {
+          totalRunsScored += teamInnings.totalRuns;
+          totalBallsFaced += teamInnings.ballsBowled;
+        }
+        if (opposingInnings) {
+          totalRunsConceded += opposingInnings.totalRuns;
+          totalBallsBowled += opposingInnings.ballsBowled;
+        }
+        
+        if (match.result?.includes(team.name)) {
+          wins++;
+          points += 2;
+        }
+      });
+      
+      const nrr = totalBallsFaced > 0 && totalBallsBowled > 0
+        ? (totalRunsScored / (totalBallsFaced / 6)) - (totalRunsConceded / (totalBallsBowled / 6))
+        : 0;
+      
+      return { team, points, nrr, wins };
+    });
+    
+    // Sort by points, then NRR
+    teamStats.sort((a, b) => b.points - a.points || b.nrr - a.nrr);
+    
+    const top4 = teamStats.slice(0, 4);
+    
+    // Create playoff fixtures
+    const qualifier1: Fixture = {
+      id: generateId(),
+      team1: top4[0].team,
+      team2: top4[1].team,
+      played: false,
+      stage: 'qualifier1',
+    };
+    
+    const eliminator: Fixture = {
+      id: generateId(),
+      team1: top4[2].team,
+      team2: top4[3].team,
+      played: false,
+      stage: 'eliminator',
+    };
+    
+    set(state => ({
+      tournament: state.tournament ? {
+        ...state.tournament,
+        playoffMatches: {
+          ...state.tournament.playoffMatches,
+          qualifier1,
+          eliminator,
+        },
+        isLeagueComplete: true,
+        isPlayoffStarted: true,
+      } : null,
+      fixtures: [...state.fixtures, qualifier1, eliminator],
+    }));
+  },
+
+  updateTournamentStats: () => {
+    const { teams, matchHistory } = get();
+    
+    let maxRuns = 0;
+    let maxWickets = 0;
+    let orangeCapPlayer: Player | null = null;
+    let purpleCapPlayer: Player | null = null;
+    
+    teams.forEach(team => {
+      team.squad.forEach(player => {
+        const totalRuns = player.performanceHistory?.totalRuns || 0;
+        const totalWickets = player.performanceHistory?.totalWickets || 0;
+        
+        if (totalRuns > maxRuns) {
+          maxRuns = totalRuns;
+          orangeCapPlayer = player;
+        }
+        
+        if (totalWickets > maxWickets) {
+          maxWickets = totalWickets;
+          purpleCapPlayer = player;
+        }
+      });
+    });
+    
+    set(state => ({
+      tournament: state.tournament ? {
+        ...state.tournament,
+        orangeCapHolder: orangeCapPlayer ? { player: orangeCapPlayer, runs: maxRuns } : null,
+        purpleCapHolder: purpleCapPlayer ? { player: purpleCapPlayer, wickets: maxWickets } : null,
+      } : null,
+    }));
   },
   
   createMatch: (team1Id, team2Id, team1Setup, team2Setup) => {
@@ -282,6 +418,25 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       ),
       currentMatch: null,
     }));
+    
+    // Update tournament stats after match completion
+    get().updateTournamentStats();
+    
+    // Check if league is complete
+    const { fixtures, tournament } = get();
+    if (tournament && !tournament.isLeagueComplete) {
+      const leagueMatches = fixtures.filter(f => f.stage === 'league');
+      const allLeagueComplete = leagueMatches.every(f => f.played);
+      
+      if (allLeagueComplete) {
+        set(state => ({
+          tournament: state.tournament ? {
+            ...state.tournament,
+            isLeagueComplete: true,
+          } : null,
+        }));
+      }
+    }
   },
 
   getMatchHistory: () => {

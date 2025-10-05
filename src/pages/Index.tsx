@@ -7,6 +7,7 @@ import FixturesTab from "@/components/FixturesTab";
 import LiveMatchTab from "@/components/LiveMatchTab";
 import HistoryTab from "@/components/HistoryTab";
 import StatsTab from "@/components/StatsTab";
+import TournamentTab from "@/components/TournamentTab";
 import { TabsContent } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -36,6 +37,10 @@ const Index = () => {
 
           <TabsContent value="stats">
             <StatsTab />
+          </TabsContent>
+
+          <TabsContent value="tournament">
+            <TournamentTab />
           </TabsContent>
         </TabNavigation>
       </main>
