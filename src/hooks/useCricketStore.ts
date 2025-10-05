@@ -15,6 +15,7 @@ interface CricketStore {
   addTeam: (team: Omit<Team, 'id' | 'playingXI' | 'impactOptions' | 'subUsed'>) => void;
   updateTeam: (id: string, updates: Partial<Team>) => void;
   removeTeam: (id: string) => void;
+  resetTeams: () => void;
 
   // Player actions
   addPlayerToTeam: (teamId: string, player: Omit<Player, 'id' | 'position'>) => void;
@@ -23,6 +24,7 @@ interface CricketStore {
 
   // Fixture actions
   generateFixtures: () => void;
+  resetFixtures: () => void;
   
   // Tournament actions
   initializeTournament: () => void;
@@ -97,6 +99,16 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     set(state => ({
       teams: state.teams.filter(team => team.id !== id)
     }));
+  },
+
+  resetTeams: () => {
+    set({
+      teams: [],
+      fixtures: [],
+      tournament: null,
+      matchHistory: [],
+      currentMatch: null,
+    });
   },
   
   addPlayerToTeam: (teamId, playerData) => {
@@ -192,6 +204,15 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     
     set({ fixtures });
     get().initializeTournament();
+  },
+
+  resetFixtures: () => {
+    set({
+      fixtures: [],
+      tournament: null,
+      matchHistory: [],
+      currentMatch: null,
+    });
   },
 
   initializeTournament: () => {

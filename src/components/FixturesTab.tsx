@@ -1,14 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Calendar, Shuffle } from "lucide-react";
+import { Calendar, Shuffle, RotateCcw } from "lucide-react";
 import MatchCard from "./MatchCard";
 import MatchSetupDialog from "./MatchSetupDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { useState } from "react";
 import { Team } from "@/types/cricket";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const FixturesTab = () => {
-  const { teams, fixtures, generateFixtures, createMatch, setCurrentMatch } = useCricketStore();
+  const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch } = useCricketStore();
   const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team} | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const { toast } = useToast();
 
   const handleStartMatch = (team1Id: string, team2Id: string) => {
     const team1 = teams.find(t => t.id === team1Id)!;
@@ -38,6 +51,15 @@ const FixturesTab = () => {
     setSetupMatch(null);
   };
 
+  const handleResetFixtures = () => {
+    resetFixtures();
+    setShowResetDialog(false);
+    toast({
+      title: "Fixtures Reset",
+      description: "All fixtures and match history have been cleared. Teams are preserved.",
+    });
+  };
+
   const completedMatches = fixtures.filter(f => f.played);
   const upcomingMatches = fixtures.filter(f => !f.played);
 
@@ -50,6 +72,12 @@ const FixturesTab = () => {
         </div>
         
         <div className="flex space-x-2">
+          {fixtures.length > 0 && (
+            <Button variant="outline" onClick={() => setShowResetDialog(true)}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              <span>Reset Fixtures</span>
+            </Button>
+          )}
           <Button 
             variant="outline" 
             onClick={generateFixtures}
@@ -130,6 +158,24 @@ const FixturesTab = () => {
         onOpenChange={(open) => !open && setSetupMatch(null)}
         onMatchReady={handleMatchReady}
       />
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Fixtures?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all fixtures and match history. 
+              Teams will be preserved. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetFixtures} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reset Fixtures
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

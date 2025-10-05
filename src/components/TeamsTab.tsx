@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Shuffle } from "lucide-react";
+import { Plus, Shuffle, RotateCcw } from "lucide-react";
 import TeamCard from "./TeamCard";
 import CreateTeamDialog from "./CreateTeamDialog";
 import EditTeamDialog from "./EditTeamDialog";
@@ -8,13 +8,35 @@ import TeamDetailsDialog from "./TeamDetailsDialog";
 import PlayerSelectionDialog from "./PlayerSelectionDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Team } from "@/types/cricket";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const TeamsTab = () => {
-  const { teams, generateSampleTeams } = useCricketStore();
+  const { teams, generateSampleTeams, resetTeams } = useCricketStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   const [playerSelectionTeam, setPlayerSelectionTeam] = useState<Team | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const { toast } = useToast();
+
+  const handleResetTeams = () => {
+    resetTeams();
+    setShowResetDialog(false);
+    toast({
+      title: "Teams Reset",
+      description: "All teams, fixtures, and match history have been cleared.",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -25,9 +47,16 @@ const TeamsTab = () => {
         </div>
         
         <div className="flex space-x-2">
+          {teams.length > 0 && (
+            <Button variant="outline" onClick={() => setShowResetDialog(true)}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              <span>Reset Teams</span>
+            </Button>
+          )}
           <Button 
             variant="outline" 
             onClick={() => generateSampleTeams(4)}
+            disabled={teams.length > 0}
             className="flex items-center space-x-2"
           >
             <Shuffle className="h-4 w-4" />
@@ -85,6 +114,24 @@ const TeamsTab = () => {
         open={!!playerSelectionTeam} 
         onOpenChange={(open) => !open && setPlayerSelectionTeam(null)} 
       />
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset All Teams?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete all teams, fixtures, and match history. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetTeams} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reset All Teams
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
