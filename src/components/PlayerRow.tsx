@@ -1,7 +1,8 @@
 import { Player } from "@/types/cricket";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp, Target, Edit2, Trash2 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Globe, TrendingUp, Target, Edit2, Trash2, User } from "lucide-react";
 
 interface PlayerRowProps {
   player: Player;
@@ -39,6 +40,12 @@ const PlayerRow = ({
   return (
     <div className={`flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors ${className}`}>
       <div className="flex items-center space-x-4 flex-1">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={player.imageUrl} alt={player.name} />
+          <AvatarFallback>
+            <User className="h-5 w-5" />
+          </AvatarFallback>
+        </Avatar>
         <div className="flex-1">
           <div className="flex items-center space-x-2">
             <span className="font-medium">{player.name}</span>

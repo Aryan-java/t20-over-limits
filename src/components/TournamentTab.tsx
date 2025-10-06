@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { MatchHistory, Player, Fixture } from "@/types/cricket";
 import DetailedScorecard from "./DetailedScorecard";
@@ -167,6 +168,12 @@ export default function TournamentTab() {
                       <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index === 0 ? 'bg-orange-500 text-white' : 'bg-muted'}`}>
                         {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
                       </div>
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={player.imageUrl} alt={player.name} />
+                        <AvatarFallback>
+                          <User className="h-5 w-5" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <p className="font-semibold">{player.name}</p>
                         <p className="text-xs text-muted-foreground">
@@ -213,6 +220,12 @@ export default function TournamentTab() {
                       <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index === 0 ? 'bg-purple-500 text-white' : 'bg-muted'}`}>
                         {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
                       </div>
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={player.imageUrl} alt={player.name} />
+                        <AvatarFallback>
+                          <User className="h-5 w-5" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <p className="font-semibold">{player.name}</p>
                         <p className="text-xs text-muted-foreground">

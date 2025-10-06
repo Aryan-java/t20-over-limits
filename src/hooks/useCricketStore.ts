@@ -550,6 +550,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         const player: Player = {
           id: generateId(),
           name: playerData.name,
+          imageUrl: playerData.imageUrl,
           isOverseas: playerData.isOverseas,
           batSkill: playerData.batSkill,
           bowlSkill: playerData.bowlSkill,

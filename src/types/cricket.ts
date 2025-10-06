@@ -12,6 +12,7 @@ export interface PlayerPerformanceHistory {
 export interface Player {
   id: string;
   name: string;
+  imageUrl?: string;
   isOverseas: boolean;
   batSkill: number; // 0-100
   bowlSkill: number; // 0-100
