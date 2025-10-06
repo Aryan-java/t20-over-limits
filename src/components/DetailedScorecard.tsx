@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 import { Innings, Player } from "@/types/cricket";
 
 interface DetailedScorecardProps {
@@ -99,6 +101,12 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
                     <tr key={player.id} className="border-b hover:bg-muted/50">
                       <td className="py-2">
                         <div className="flex items-center space-x-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={player.imageUrl} alt={player.name} />
+                            <AvatarFallback>
+                              <User className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
                           <span className="font-medium">{player.name}</span>
                           {(player === innings.currentBatsmen.striker || player === innings.currentBatsmen.nonStriker) && (
                             <Badge variant="outline" className="text-xs">
@@ -142,7 +150,17 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
                   const balls = oversToBalls(bowler.oversBowled);
                   return (
                     <tr key={bowler.id} className="border-b hover:bg-muted/50">
-                      <td className="py-2">{bowler.name}</td>
+                      <td className="py-2">
+                        <div className="flex items-center space-x-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={bowler.imageUrl} alt={bowler.name} />
+                            <AvatarFallback>
+                              <User className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{bowler.name}</span>
+                        </div>
+                      </td>
                       <td className="text-right py-2">{formatOversValue(bowler.oversBowled)}</td>
                       <td className="text-right py-2">{bowler.maidens || 0}</td>
                       <td className="text-right py-2">{bowler.runsConceded}</td>
