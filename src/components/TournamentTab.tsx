@@ -1,33 +1,30 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trophy, Award, Calendar, ChevronRight } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
-import { MatchHistory, Player } from "@/types/cricket";
+import { MatchHistory, Player, Fixture } from "@/types/cricket";
 import DetailedScorecard from "./DetailedScorecard";
+import MatchSetupDialog from "./MatchSetupDialog";
+import { useToast } from "@/hooks/use-toast";
+import PointsTable from "./PointsTable";
 
 export default function TournamentTab() {
-  const { matchHistory, teams } = useCricketStore();
+  const { matchHistory, teams, fixtures, tournament, generateFixtures, resetTournament, startPlayoffs, createMatch, setCurrentMatch } = useCricketStore();
   const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
+  const [matchSetupDialogOpen, setMatchSetupDialogOpen] = useState(false);
+  const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
+  const { toast } = useToast();
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const handleStartMatch = (fixture: Fixture) => {
+    setSelectedFixture(fixture);
+    setMatchSetupDialogOpen(true);
   };
 
-  const getWinningTeam = (match: MatchHistory) => {
-    if (!match.result) return null;
-    if (match.result.includes(match.team1.name)) return match.team1;
-    if (match.result.includes(match.team2.name)) return match.team2;
-    return null;
-  };
-
-  const getOrangeCapHolder = () => {
+  const getTopRunScorers = () => {
     const allPlayers: Player[] = [];
 
     teams.forEach(team => {
@@ -38,7 +35,7 @@ export default function TournamentTab() {
       });
     });
 
-    if (allPlayers.length === 0) return null;
+    if (allPlayers.length === 0) return [];
 
     allPlayers.sort((a, b) => {
       const runsA = a.performanceHistory?.totalRuns || 0;
@@ -46,10 +43,10 @@ export default function TournamentTab() {
       return runsB - runsA;
     });
 
-    return allPlayers[0];
+    return allPlayers.slice(0, 5);
   };
 
-  const getPurpleCapHolder = () => {
+  const getTopWicketTakers = () => {
     const allPlayers: Player[] = [];
 
     teams.forEach(team => {
@@ -60,7 +57,7 @@ export default function TournamentTab() {
       });
     });
 
-    if (allPlayers.length === 0) return null;
+    if (allPlayers.length === 0) return [];
 
     allPlayers.sort((a, b) => {
       const wicketsA = a.performanceHistory?.totalWickets || 0;
@@ -68,18 +65,86 @@ export default function TournamentTab() {
       return wicketsB - wicketsA;
     });
 
-    return allPlayers[0];
+    return allPlayers.slice(0, 5);
   };
 
-  const orangeCapHolder = getOrangeCapHolder();
-  const purpleCapHolder = getPurpleCapHolder();
+  const topRunScorers = getTopRunScorers();
+  const topWicketTakers = getTopWicketTakers();
+
+  const handleGenerateFixtures = () => {
+    if (teams.length < 2) {
+      toast({
+        title: "Not enough teams",
+        description: "You need at least 2 teams to generate fixtures.",
+        variant: "destructive",
+      });
+      return;
+    }
+    generateFixtures();
+    toast({
+      title: "Fixtures Generated",
+      description: `${fixtures.length} league stage matches created!`,
+    });
+  };
+
+  const handleResetTournament = () => {
+    resetTournament();
+    toast({
+      title: "Tournament Reset",
+      description: "All fixtures and match history have been cleared.",
+    });
+  };
+
+  const handleStartPlayoffs = () => {
+    startPlayoffs();
+    toast({
+      title: "Playoffs Started!",
+      description: "Qualifier 1 and Eliminator fixtures have been generated.",
+    });
+  };
+
+  const leagueMatches = fixtures.filter(f => f.stage === 'league');
+  const playoffMatches = fixtures.filter(f => f.stage !== 'league');
+  const leagueComplete = tournament?.isLeagueComplete || false;
+  const playoffStarted = tournament?.isPlayoffStarted || false;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Tournament Dashboard</h2>
-          <p className="text-muted-foreground">Match results and tournament leaders</p>
+          <p className="text-muted-foreground">League stage, playoffs, and tournament leaders</p>
+        </div>
+        <div className="flex gap-2">
+          {fixtures.length === 0 ? (
+            <Button onClick={handleGenerateFixtures} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Generate League Fixtures
+            </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  Reset Tournament
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset Tournament?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will delete all fixtures and match history. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetTournament}>
+                    Reset
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -90,51 +155,41 @@ export default function TournamentTab() {
               <div className="p-2 bg-orange-500 rounded-lg">
                 <Award className="h-5 w-5 text-white" />
               </div>
-              Orange Cap - Most Runs
+              Orange Cap - Top 5 Run Scorers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {orangeCapHolder ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{orangeCapHolder.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {teams.find(t => t.id === orangeCapHolder.currentTeamId)?.name}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-4xl font-bold text-orange-600">
-                      {orangeCapHolder.performanceHistory?.totalRuns}
+            {topRunScorers.length > 0 ? (
+              <div className="space-y-3">
+                {topRunScorers.map((player, index) => (
+                  <div key={player.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index === 0 ? 'bg-orange-500 text-white' : 'bg-muted'}`}>
+                        {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{player.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {teams.find(t => t.id === player.currentTeamId)?.name}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">runs</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">
-                      {orangeCapHolder.performanceHistory?.totalMatches}
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-orange-600">
+                        {player.performanceHistory?.totalRuns}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Avg: {player.performanceHistory?.averageRuns.toFixed(1)}
+                      </p>
                     </div>
-                    <div className="text-xs text-muted-foreground">Matches</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">
-                      {orangeCapHolder.performanceHistory?.averageRuns.toFixed(1)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Average</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">
-                      {orangeCapHolder.performanceHistory?.formRating.toFixed(0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Form</div>
-                  </div>
-                </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Award className="h-12 w-12 mx-auto mb-2 opacity-30" />
                 <p>No runs scored yet</p>
+                <p className="text-sm mt-1">Complete matches to see leaders</p>
               </div>
             )}
           </CardContent>
@@ -146,151 +201,196 @@ export default function TournamentTab() {
               <div className="p-2 bg-purple-500 rounded-lg">
                 <Trophy className="h-5 w-5 text-white" />
               </div>
-              Purple Cap - Most Wickets
+              Purple Cap - Top 5 Wicket Takers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {purpleCapHolder ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{purpleCapHolder.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {teams.find(t => t.id === purpleCapHolder.currentTeamId)?.name}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-4xl font-bold text-purple-600">
-                      {purpleCapHolder.performanceHistory?.totalWickets}
+            {topWicketTakers.length > 0 ? (
+              <div className="space-y-3">
+                {topWicketTakers.map((player, index) => (
+                  <div key={player.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index === 0 ? 'bg-purple-500 text-white' : 'bg-muted'}`}>
+                        {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{player.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {teams.find(t => t.id === player.currentTeamId)?.name}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">wickets</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">
-                      {purpleCapHolder.performanceHistory?.totalMatches}
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-purple-600">
+                        {player.performanceHistory?.totalWickets}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Avg: {player.performanceHistory?.averageWickets.toFixed(1)}/match
+                      </p>
                     </div>
-                    <div className="text-xs text-muted-foreground">Matches</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">
-                      {purpleCapHolder.performanceHistory?.averageWickets.toFixed(1)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Avg/Match</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">
-                      {purpleCapHolder.performanceHistory?.formRating.toFixed(0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Form</div>
-                  </div>
-                </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Trophy className="h-12 w-12 mx-auto mb-2 opacity-30" />
                 <p>No wickets taken yet</p>
+                <p className="text-sm mt-1">Complete matches to see leaders</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-cricket-green" />
-              Matches Played
-            </CardTitle>
-            <Badge variant="secondary">
-              {matchHistory.length} {matchHistory.length === 1 ? 'Match' : 'Matches'}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {matchHistory.length === 0 ? (
-            <div className="text-center py-12">
-              <Trophy className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Matches Played Yet</h3>
-              <p className="text-muted-foreground">
-                Complete matches to see them here
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {matchHistory.map((match) => {
-                const winner = getWinningTeam(match);
-                const isTied = match.result?.includes('Tied');
+      {fixtures.length > 0 && (
+        <>
+          <PointsTable teams={teams} matches={matchHistory} />
 
-                return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-6 w-6 text-cricket-green" />
+                  League Stage
+                </CardTitle>
+                <Badge variant={leagueComplete ? "default" : "secondary"}>
+                  {leagueMatches.filter(f => f.played).length} / {leagueMatches.length} Matches
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {leagueMatches.map((fixture) => (
                   <Card
-                    key={match.id}
-                    className="hover:shadow-md transition-all cursor-pointer hover:border-cricket-green"
-                    onClick={() => setSelectedMatch(match)}
+                    key={fixture.id}
+                    className={`hover:shadow-md transition-all ${fixture.played ? 'opacity-75' : ''}`}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(match.matchDate)}
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">{fixture.team1.name}</span>
+                            <span className="text-sm text-muted-foreground px-4">vs</span>
+                            <span className="font-semibold">{fixture.team2.name}</span>
                           </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{match.team1.name}</span>
-                                {winner?.id === match.team1.id && (
-                                  <Trophy className="h-4 w-4 text-yellow-500" />
-                                )}
-                              </div>
-                              <div className="text-2xl font-bold">
-                                {match.firstInnings?.battingTeam === match.team1.name
-                                  ? `${match.firstInnings?.totalRuns}/${match.firstInnings?.wickets}`
-                                  : `${match.secondInnings?.totalRuns}/${match.secondInnings?.wickets}`}
-                              </div>
+                          {fixture.played && fixture.match && (
+                            <div className="mt-2 pt-2 border-t">
+                              <p className="text-sm font-medium text-cricket-green">
+                                {fixture.match.result}
+                              </p>
                             </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{match.team2.name}</span>
-                                {winner?.id === match.team2.id && (
-                                  <Trophy className="h-4 w-4 text-yellow-500" />
-                                )}
-                              </div>
-                              <div className="text-2xl font-bold">
-                                {match.firstInnings?.battingTeam === match.team2.name
-                                  ? `${match.firstInnings?.totalRuns}/${match.firstInnings?.wickets}`
-                                  : `${match.secondInnings?.totalRuns}/${match.secondInnings?.wickets}`}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 pt-3 border-t">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium">{match.result}</p>
-                              {match.manOfTheMatch && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Award className="h-3 w-3 text-yellow-500" />
-                                  <span>{match.manOfTheMatch.name}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          )}
                         </div>
-
-                        <ChevronRight className="h-5 w-5 text-muted-foreground ml-4" />
+                        {!fixture.played ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStartMatch(fixture)}
+                            className="ml-4 gap-2"
+                          >
+                            <Play className="h-4 w-4" />
+                            Start Match
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fixture.match && setSelectedMatch(fixture.match as MatchHistory)}
+                            className="ml-4 gap-2"
+                          >
+                            View Scorecard
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {leagueComplete && !playoffStarted && (
+            <Card className="border-yellow-500/50 bg-yellow-500/5">
+              <CardContent className="p-6 text-center">
+                <Trophy className="h-12 w-12 mx-auto mb-3 text-yellow-500" />
+                <h3 className="text-xl font-bold mb-2">League Stage Complete!</h3>
+                <p className="text-muted-foreground mb-4">
+                  Ready to start the playoffs with top 4 teams
+                </p>
+                <Button onClick={handleStartPlayoffs} size="lg" className="gap-2">
+                  <Play className="h-5 w-5" />
+                  Start Playoffs
+                </Button>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+
+          {playoffStarted && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-6 w-6 text-yellow-500" />
+                  Playoffs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {playoffMatches.map((fixture) => (
+                    <Card
+                      key={fixture.id}
+                      className={`hover:shadow-md transition-all border-yellow-500/30 ${fixture.played ? 'opacity-75' : ''}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <Badge className="mb-2" variant="secondary">
+                              {fixture.stage === 'qualifier1' && 'Qualifier 1'}
+                              {fixture.stage === 'eliminator' && 'Eliminator'}
+                              {fixture.stage === 'qualifier2' && 'Qualifier 2'}
+                              {fixture.stage === 'final' && 'Final'}
+                            </Badge>
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">{fixture.team1.name}</span>
+                              <span className="text-sm text-muted-foreground px-4">vs</span>
+                              <span className="font-semibold">{fixture.team2.name}</span>
+                            </div>
+                            {fixture.played && fixture.match && (
+                              <div className="mt-2 pt-2 border-t">
+                                <p className="text-sm font-medium text-cricket-green">
+                                  {fixture.match.result}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          {!fixture.played ? (
+                            <Button
+                              size="sm"
+                              onClick={() => handleStartMatch(fixture)}
+                              className="ml-4 gap-2"
+                            >
+                              <Play className="h-4 w-4" />
+                              Start Match
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => fixture.match && setSelectedMatch(fixture.match as MatchHistory)}
+                              className="ml-4 gap-2"
+                            >
+                              View Scorecard
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
 
       <Dialog open={!!selectedMatch} onOpenChange={() => setSelectedMatch(null)}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -330,6 +430,25 @@ export default function TournamentTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      {selectedFixture && (
+        <MatchSetupDialog
+          team1={selectedFixture.team1}
+          team2={selectedFixture.team2}
+          open={matchSetupDialogOpen}
+          onOpenChange={setMatchSetupDialogOpen}
+          onMatchReady={(team1Setup, team2Setup) => {
+            const match = createMatch(
+              selectedFixture.team1.id,
+              selectedFixture.team2.id,
+              team1Setup,
+              team2Setup
+            );
+            setCurrentMatch(match);
+            setMatchSetupDialogOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

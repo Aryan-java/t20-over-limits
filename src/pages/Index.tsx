@@ -3,7 +3,6 @@ import { Toaster } from "@/components/ui/toaster";
 import CricketHeader from "@/components/CricketHeader";
 import TabNavigation from "@/components/TabNavigation";
 import TeamsTab from "@/components/TeamsTab";
-import FixturesTab from "@/components/FixturesTab";
 import LiveMatchTab from "@/components/LiveMatchTab";
 import TournamentTab from "@/components/TournamentTab";
 import StatsTab from "@/components/StatsTab";
@@ -20,10 +19,6 @@ const Index = () => {
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab}>
           <TabsContent value="teams">
             <TeamsTab />
-          </TabsContent>
-
-          <TabsContent value="fixtures">
-            <FixturesTab />
           </TabsContent>
 
           <TabsContent value="live">
