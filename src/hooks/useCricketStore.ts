@@ -417,6 +417,9 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       ...match.team2.squad.filter(p => p.isPlaying),
     ];
 
+    // Collect all player updates
+    const playerUpdates = new Map<string, any>();
+    
     allPlayers.forEach(player => {
       const currentHistory = player.performanceHistory || {
         last5MatchesRuns: 0,
@@ -440,20 +443,19 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         formRating: Math.min(100, Math.max(0, 50 + player.runs * 0.1 + player.wickets * 2)),
       };
 
-      // Update player in teams
-      set(state => ({
-        teams: state.teams.map(team => ({
-          ...team,
-          squad: team.squad.map(p =>
-            p.id === player.id
-              ? { ...p, performanceHistory: updatedHistory }
-              : p
-          ),
-        })),
-      }));
+      playerUpdates.set(player.id, updatedHistory);
     });
 
+    // Apply all updates in a single state change
     set(state => ({
+      teams: state.teams.map(team => ({
+        ...team,
+        squad: team.squad.map(p =>
+          playerUpdates.has(p.id)
+            ? { ...p, performanceHistory: playerUpdates.get(p.id) }
+            : p
+        ),
+      })),
       matchHistory: [...state.matchHistory, completedMatch],
       fixtures: state.fixtures.map(fixture =>
         (fixture.team1.id === match.team1.id && fixture.team2.id === match.team2.id) ||
