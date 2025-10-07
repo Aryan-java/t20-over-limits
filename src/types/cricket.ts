@@ -38,6 +38,11 @@ export interface Team {
   name: string;
   squad: Player[];
   subUsed: boolean;
+  lastMatchSetup?: {
+    playingXI: string[]; // player IDs
+    impactPlayers: string[]; // player IDs
+    openingPair: [string, string]; // player IDs
+  };
 }
 
 export interface BallEvent {

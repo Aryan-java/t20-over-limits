@@ -8,6 +8,7 @@ interface PlayerRowProps {
   player: Player;
   showActions?: boolean;
   showStats?: boolean;
+  showTournamentStats?: boolean;
   onEdit?: () => void;
   onRemove?: () => void;
   className?: string;
@@ -17,6 +18,7 @@ const PlayerRow = ({
   player, 
   showActions = false, 
   showStats = false, 
+  showTournamentStats = false,
   onEdit, 
   onRemove, 
   className = "" 
@@ -96,6 +98,23 @@ const PlayerRow = ({
                 <span className="text-muted-foreground">/{player.runsConceded}</span>
               </div>
             )}
+          </div>
+        )}
+
+        {showTournamentStats && player.performanceHistory && (
+          <div className="flex items-center space-x-4 text-sm bg-muted/30 px-3 py-1 rounded">
+            <div className="flex items-center space-x-1">
+              <span className="text-xs text-muted-foreground">Runs:</span>
+              <span className="font-medium text-cricket-green">{player.performanceHistory.totalRuns}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="text-xs text-muted-foreground">Wickets:</span>
+              <span className="font-medium text-cricket-purple">{player.performanceHistory.totalWickets}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="text-xs text-muted-foreground">Matches:</span>
+              <span className="font-medium">{player.performanceHistory.totalMatches}</span>
+            </div>
           </div>
         )}
       </div>

@@ -49,14 +49,26 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
 
   useEffect(() => {
     if (open && getCurrentTeam()) {
+      const team = getCurrentTeam()!;
       const setup = getCurrentSetup();
-      setSelectedXI(setup.playingXI?.map(p => p.id) || []);
-      setSelectedImpact(setup.impactPlayers?.map(p => p.id) || []);
-      setBattingOrder(setup.battingOrder || []);
-      setOpeningPair([
-        setup.openingPair?.[0]?.id || "",
-        setup.openingPair?.[1]?.id || ""
-      ]);
+      
+      // Pre-populate from lastMatchSetup if no current setup
+      if (!setup.playingXI && team.lastMatchSetup) {
+        setSelectedXI(team.lastMatchSetup.playingXI);
+        setSelectedImpact(team.lastMatchSetup.impactPlayers);
+        setOpeningPair([
+          team.lastMatchSetup.openingPair[0],
+          team.lastMatchSetup.openingPair[1]
+        ]);
+      } else {
+        setSelectedXI(setup.playingXI?.map(p => p.id) || []);
+        setSelectedImpact(setup.impactPlayers?.map(p => p.id) || []);
+        setBattingOrder(setup.battingOrder || []);
+        setOpeningPair([
+          setup.openingPair?.[0]?.id || "",
+          setup.openingPair?.[1]?.id || ""
+        ]);
+      }
     }
   }, [currentTeam, open]);
 
@@ -143,6 +155,13 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
       openingPair: openingPairPlayers
     };
 
+    // Save to team's lastMatchSetup
+    team.lastMatchSetup = {
+      playingXI: selectedXI,
+      impactPlayers: selectedImpact,
+      openingPair: [openingPair[0], openingPair[1]]
+    };
+
     setCurrentSetup(setup);
     return true;
   };
@@ -151,11 +170,20 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
     if (validateAndSaveTeamSetup()) {
       if (currentTeam === 1) {
         setCurrentTeam(2);
-        // Reset for team 2
-        setSelectedXI([]);
-        setSelectedImpact([]);
-        setBattingOrder([]);
-        setOpeningPair(["", ""]);
+        // Pre-populate team 2 from lastMatchSetup if available
+        if (team2 && team2.lastMatchSetup) {
+          setSelectedXI(team2.lastMatchSetup.playingXI);
+          setSelectedImpact(team2.lastMatchSetup.impactPlayers);
+          setOpeningPair([
+            team2.lastMatchSetup.openingPair[0],
+            team2.lastMatchSetup.openingPair[1]
+          ]);
+        } else {
+          setSelectedXI([]);
+          setSelectedImpact([]);
+          setBattingOrder([]);
+          setOpeningPair(["", ""]);
+        }
       } else {
         // Both teams setup complete
         if (team1Setup.playingXI && team2Setup.playingXI) {
@@ -228,6 +256,11 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
                     <div className="text-xs text-muted-foreground">
                       Bat: {player.batSkill} | Bowl: {player.bowlSkill}
                     </div>
+                    {player.performanceHistory && player.performanceHistory.totalMatches > 0 && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {player.performanceHistory.totalRuns} runs, {player.performanceHistory.totalWickets} wkts
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -336,6 +369,11 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
                     <div className="text-xs text-muted-foreground">
                       Bat: {player.batSkill} | Bowl: {player.bowlSkill}
                     </div>
+                    {player.performanceHistory && player.performanceHistory.totalMatches > 0 && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {player.performanceHistory.totalRuns} runs, {player.performanceHistory.totalWickets} wkts
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

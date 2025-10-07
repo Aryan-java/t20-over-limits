@@ -24,8 +24,14 @@ const SelectPlayingXIDialog = ({ team, open, onOpenChange }: SelectPlayingXIDial
 
   useEffect(() => {
     if (team) {
-      setSelectedXI([]);
-      setSelectedImpact([]);
+      // Pre-populate from last match setup if available
+      if (team.lastMatchSetup) {
+        setSelectedXI(team.lastMatchSetup.playingXI);
+        setSelectedImpact(team.lastMatchSetup.impactPlayers);
+      } else {
+        setSelectedXI([]);
+        setSelectedImpact([]);
+      }
       setStep('xi');
     }
   }, [team]);
@@ -134,7 +140,7 @@ const SelectPlayingXIDialog = ({ team, open, onOpenChange }: SelectPlayingXIDial
                       disabled={!selectedXI.includes(player.id) && selectedXI.length >= 11}
                     />
                     <div className="flex-1">
-                      <PlayerRow player={player} />
+                      <PlayerRow player={player} showTournamentStats />
                     </div>
                   </div>
                 ))}
@@ -170,7 +176,7 @@ const SelectPlayingXIDialog = ({ team, open, onOpenChange }: SelectPlayingXIDial
                       disabled={!selectedImpact.includes(player.id) && selectedImpact.length >= 4}
                     />
                     <div className="flex-1">
-                      <PlayerRow player={player} />
+                      <PlayerRow player={player} showTournamentStats />
                     </div>
                   </div>
                 ))}

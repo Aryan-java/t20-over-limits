@@ -493,35 +493,75 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
   
   setPlayingXI: (teamId: string, playerIds: string[]) => {
-    set(state => ({
-      currentMatch: state.currentMatch ? {
-        ...state.currentMatch,
-        team1Setup: state.currentMatch.team1.id === teamId && state.currentMatch.team1Setup ? {
-          ...state.currentMatch.team1Setup,
-          playingXI: state.currentMatch.team1.squad.filter(p => playerIds.includes(p.id))
-        } : state.currentMatch.team1Setup,
-        team2Setup: state.currentMatch.team2.id === teamId && state.currentMatch.team2Setup ? {
-          ...state.currentMatch.team2Setup,
-          playingXI: state.currentMatch.team2.squad.filter(p => playerIds.includes(p.id))
-        } : state.currentMatch.team2Setup,
-      } : null
-    }));
+    set(state => {
+      // Update teams with lastMatchSetup
+      const updatedTeams = state.teams.map(team => {
+        if (team.id === teamId) {
+          return {
+            ...team,
+            lastMatchSetup: {
+              ...team.lastMatchSetup,
+              playingXI: playerIds,
+              impactPlayers: team.lastMatchSetup?.impactPlayers || [],
+              openingPair: team.lastMatchSetup?.openingPair || ["", ""]
+            }
+          };
+        }
+        return team;
+      });
+
+      return {
+        teams: updatedTeams,
+        currentMatch: state.currentMatch ? {
+          ...state.currentMatch,
+          team1: updatedTeams.find(t => t.id === state.currentMatch!.team1.id) || state.currentMatch.team1,
+          team2: updatedTeams.find(t => t.id === state.currentMatch!.team2.id) || state.currentMatch.team2,
+          team1Setup: state.currentMatch.team1.id === teamId && state.currentMatch.team1Setup ? {
+            ...state.currentMatch.team1Setup,
+            playingXI: updatedTeams.find(t => t.id === teamId)!.squad.filter(p => playerIds.includes(p.id))
+          } : state.currentMatch.team1Setup,
+          team2Setup: state.currentMatch.team2.id === teamId && state.currentMatch.team2Setup ? {
+            ...state.currentMatch.team2Setup,
+            playingXI: updatedTeams.find(t => t.id === teamId)!.squad.filter(p => playerIds.includes(p.id))
+          } : state.currentMatch.team2Setup,
+        } : null
+      };
+    });
   },
   
   setImpactPlayers: (teamId: string, playerIds: string[]) => {
-    set(state => ({
-      currentMatch: state.currentMatch ? {
-        ...state.currentMatch,
-        team1Setup: state.currentMatch.team1.id === teamId && state.currentMatch.team1Setup ? {
-          ...state.currentMatch.team1Setup,
-          impactPlayers: state.currentMatch.team1.squad.filter(p => playerIds.includes(p.id))
-        } : state.currentMatch.team1Setup,
-        team2Setup: state.currentMatch.team2.id === teamId && state.currentMatch.team2Setup ? {
-          ...state.currentMatch.team2Setup,
-          impactPlayers: state.currentMatch.team2.squad.filter(p => playerIds.includes(p.id))
-        } : state.currentMatch.team2Setup,
-      } : null
-    }));
+    set(state => {
+      // Update teams with lastMatchSetup
+      const updatedTeams = state.teams.map(team => {
+        if (team.id === teamId) {
+          return {
+            ...team,
+            lastMatchSetup: {
+              ...team.lastMatchSetup!,
+              impactPlayers: playerIds,
+            }
+          };
+        }
+        return team;
+      });
+
+      return {
+        teams: updatedTeams,
+        currentMatch: state.currentMatch ? {
+          ...state.currentMatch,
+          team1: updatedTeams.find(t => t.id === state.currentMatch!.team1.id) || state.currentMatch.team1,
+          team2: updatedTeams.find(t => t.id === state.currentMatch!.team2.id) || state.currentMatch.team2,
+          team1Setup: state.currentMatch.team1.id === teamId && state.currentMatch.team1Setup ? {
+            ...state.currentMatch.team1Setup,
+            impactPlayers: updatedTeams.find(t => t.id === teamId)!.squad.filter(p => playerIds.includes(p.id))
+          } : state.currentMatch.team1Setup,
+          team2Setup: state.currentMatch.team2.id === teamId && state.currentMatch.team2Setup ? {
+            ...state.currentMatch.team2Setup,
+            impactPlayers: updatedTeams.find(t => t.id === teamId)!.squad.filter(p => playerIds.includes(p.id))
+          } : state.currentMatch.team2Setup,
+        } : null
+      };
+    });
   },
   
   generateSampleTeams: (count) => {
