@@ -23,11 +23,11 @@ interface CricketStore {
   removePlayerFromTeam: (teamId: string, playerId: string) => void;
 
   // Fixture actions
-  generateFixtures: () => void;
+  generateFixtures: (format?: 'single' | 'double') => void;
   resetFixtures: () => void;
   
   // Tournament actions
-  initializeTournament: () => void;
+  initializeTournament: (format: 'single' | 'double') => void;
   startPlayoffs: () => void;
   updateTournamentStats: () => void;
   resetTournament: () => void;
@@ -180,10 +180,11 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     }));
   },
   
-  generateFixtures: () => {
+  generateFixtures: (format: 'single' | 'double' = 'single') => {
     const { teams } = get();
     const fixtures: Fixture[] = [];
     
+    // Generate first round of fixtures
     for (let i = 0; i < teams.length; i++) {
       for (let j = i + 1; j < teams.length; j++) {
         fixtures.push({
@@ -196,6 +197,18 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       }
     }
     
+    // For double round-robin, add reverse fixtures
+    if (format === 'double') {
+      const reverseFixtures = fixtures.map(f => ({
+        id: generateId(),
+        team1: f.team2,
+        team2: f.team1,
+        played: false,
+        stage: 'league' as const,
+      }));
+      fixtures.push(...reverseFixtures);
+    }
+    
     // Shuffle fixtures
     for (let i = fixtures.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -203,7 +216,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     }
     
     set({ fixtures });
-    get().initializeTournament();
+    get().initializeTournament(format);
   },
 
   resetFixtures: () => {
@@ -215,9 +228,10 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     });
   },
 
-  initializeTournament: () => {
+  initializeTournament: (format: 'single' | 'double') => {
     const { fixtures } = get();
     const tournament: Tournament = {
+      format,
       leagueMatches: fixtures.filter(f => f.stage === 'league'),
       playoffMatches: {
         qualifier1: null,

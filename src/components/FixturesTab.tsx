@@ -80,7 +80,7 @@ const FixturesTab = () => {
           )}
           <Button 
             variant="outline" 
-            onClick={generateFixtures}
+            onClick={() => generateFixtures('single')}
             disabled={teams.length < 2}
             className="flex items-center space-x-2"
           >

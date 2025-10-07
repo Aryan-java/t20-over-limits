@@ -6,8 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useCricketStore } from "@/hooks/useCricketStore";
-import { MatchHistory, Player, Fixture } from "@/types/cricket";
+import { MatchHistory, Player, Fixture, TournamentFormat } from "@/types/cricket";
 import DetailedScorecard from "./DetailedScorecard";
 import MatchSetupDialog from "./MatchSetupDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +20,8 @@ export default function TournamentTab() {
   const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
   const [matchSetupDialogOpen, setMatchSetupDialogOpen] = useState(false);
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
+  const [showFormatDialog, setShowFormatDialog] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<TournamentFormat>('single');
   const { toast } = useToast();
 
   const handleStartMatch = (fixture: Fixture) => {
@@ -72,7 +76,7 @@ export default function TournamentTab() {
   const topRunScorers = getTopRunScorers();
   const topWicketTakers = getTopWicketTakers();
 
-  const handleGenerateFixtures = () => {
+  const handleOpenFormatDialog = () => {
     if (teams.length < 2) {
       toast({
         title: "Not enough teams",
@@ -81,11 +85,19 @@ export default function TournamentTab() {
       });
       return;
     }
-    generateFixtures();
+    setShowFormatDialog(true);
+  };
+
+  const handleGenerateFixtures = () => {
+    generateFixtures(selectedFormat);
+    const matchCount = selectedFormat === 'double' 
+      ? teams.length * (teams.length - 1)
+      : (teams.length * (teams.length - 1)) / 2;
     toast({
       title: "Fixtures Generated",
-      description: `${fixtures.length} league stage matches created!`,
+      description: `${matchCount} ${selectedFormat === 'double' ? 'double' : 'single'} round-robin league matches created!`,
     });
+    setShowFormatDialog(false);
   };
 
   const handleResetTournament = () => {
@@ -118,7 +130,7 @@ export default function TournamentTab() {
         </div>
         <div className="flex gap-2">
           {fixtures.length === 0 ? (
-            <Button onClick={handleGenerateFixtures} className="gap-2">
+            <Button onClick={handleOpenFormatDialog} className="gap-2">
               <Plus className="h-4 w-4" />
               Generate League Fixtures
             </Button>
@@ -264,7 +276,7 @@ export default function TournamentTab() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-6 w-6 text-cricket-green" />
-                  League Stage
+                  League Stage {tournament?.format === 'double' && '(Double Round-Robin)'}
                 </CardTitle>
                 <Badge variant={leagueComplete ? "default" : "secondary"}>
                   {leagueMatches.filter(f => f.played).length} / {leagueMatches.length} Matches
@@ -462,6 +474,48 @@ export default function TournamentTab() {
           }}
         />
       )}
+
+      <Dialog open={showFormatDialog} onOpenChange={setShowFormatDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Tournament Format</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <RadioGroup value={selectedFormat} onValueChange={(value) => setSelectedFormat(value as TournamentFormat)}>
+              <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="single" id="single" />
+                <Label htmlFor="single" className="flex-1 cursor-pointer">
+                  <div>
+                    <p className="font-semibold">Single Round-Robin</p>
+                    <p className="text-sm text-muted-foreground">
+                      Each team plays every other team once ({teams.length > 0 ? (teams.length * (teams.length - 1)) / 2 : 0} matches)
+                    </p>
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                <RadioGroupItem value="double" id="double" />
+                <Label htmlFor="double" className="flex-1 cursor-pointer">
+                  <div>
+                    <p className="font-semibold">Double Round-Robin (Home & Away)</p>
+                    <p className="text-sm text-muted-foreground">
+                      Each team plays every other team twice ({teams.length > 0 ? teams.length * (teams.length - 1) : 0} matches)
+                    </p>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowFormatDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleGenerateFixtures}>
+                Generate Fixtures
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

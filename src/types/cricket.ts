@@ -128,7 +128,10 @@ export interface MatchHistory extends Match {
 
 export type MatchStage = 'league' | 'qualifier1' | 'eliminator' | 'qualifier2' | 'final';
 
+export type TournamentFormat = 'single' | 'double';
+
 export interface Tournament {
+  format: TournamentFormat;
   leagueMatches: Fixture[];
   playoffMatches: {
     qualifier1: Fixture | null;

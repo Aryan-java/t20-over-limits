@@ -62,24 +62,40 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
         team2Stats.points += 2;
       }
       
-      // Calculate NRR
+      // Calculate NRR (proper formula: (Total runs scored/Total overs faced) - (Total runs conceded/Total overs bowled))
       if (match.firstInnings && match.secondInnings) {
         const team1BattedFirst = match.firstInnings.battingTeam === match.team1.name;
         
         if (team1BattedFirst) {
-          // Team1 batted first
-          const team1RunRate = match.firstInnings.totalRuns / (match.firstInnings.ballsBowled / 6);
-          const team2RunRate = match.secondInnings.totalRuns / (match.secondInnings.ballsBowled / 6);
+          // Team1 batted first, Team2 batted second
+          const team1Overs = match.firstInnings.ballsBowled / 6;
+          const team2Overs = match.secondInnings.ballsBowled / 6;
           
-          team1Stats.nrr += (team1RunRate - team2RunRate);
-          team2Stats.nrr += (team2RunRate - team1RunRate);
+          // For team1: runs scored in 1st innings, runs conceded in 2nd innings
+          const team1RunsFor = match.firstInnings.totalRuns / team1Overs;
+          const team1RunsAgainst = match.secondInnings.totalRuns / team2Overs;
+          
+          // For team2: runs scored in 2nd innings, runs conceded in 1st innings
+          const team2RunsFor = match.secondInnings.totalRuns / team2Overs;
+          const team2RunsAgainst = match.firstInnings.totalRuns / team1Overs;
+          
+          team1Stats.nrr += (team1RunsFor - team1RunsAgainst);
+          team2Stats.nrr += (team2RunsFor - team2RunsAgainst);
         } else {
-          // Team2 batted first
-          const team2RunRate = match.firstInnings.totalRuns / (match.firstInnings.ballsBowled / 6);
-          const team1RunRate = match.secondInnings.totalRuns / (match.secondInnings.ballsBowled / 6);
+          // Team2 batted first, Team1 batted second
+          const team2Overs = match.firstInnings.ballsBowled / 6;
+          const team1Overs = match.secondInnings.ballsBowled / 6;
           
-          team1Stats.nrr += (team1RunRate - team2RunRate);
-          team2Stats.nrr += (team2RunRate - team1RunRate);
+          // For team2: runs scored in 1st innings, runs conceded in 2nd innings
+          const team2RunsFor = match.firstInnings.totalRuns / team2Overs;
+          const team2RunsAgainst = match.secondInnings.totalRuns / team1Overs;
+          
+          // For team1: runs scored in 2nd innings, runs conceded in 1st innings
+          const team1RunsFor = match.secondInnings.totalRuns / team1Overs;
+          const team1RunsAgainst = match.firstInnings.totalRuns / team2Overs;
+          
+          team1Stats.nrr += (team1RunsFor - team1RunsAgainst);
+          team2Stats.nrr += (team2RunsFor - team2RunsAgainst);
         }
       }
     });
