@@ -484,6 +484,86 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         }));
       }
     }
+
+    // Handle playoff progression
+    if (tournament?.isPlayoffStarted) {
+      const state = get();
+      const currentFixtures = state.fixtures;
+      const currentTournament = state.tournament;
+      
+      // Get playoff fixtures
+      const qualifier1Fixture = currentFixtures.find(f => f.stage === 'qualifier1');
+      const eliminatorFixture = currentFixtures.find(f => f.stage === 'eliminator');
+      const qualifier2Fixture = currentFixtures.find(f => f.stage === 'qualifier2');
+      
+      // Check if both Qualifier 1 and Eliminator are complete, and Qualifier 2 doesn't exist yet
+      if (qualifier1Fixture?.played && eliminatorFixture?.played && !qualifier2Fixture) {
+        // Get winner of Eliminator and loser of Qualifier 1
+        const eliminatorWinner = eliminatorFixture.match?.result?.includes(eliminatorFixture.team1.name) 
+          ? eliminatorFixture.team1 
+          : eliminatorFixture.team2;
+        
+        const qualifier1Loser = qualifier1Fixture.match?.result?.includes(qualifier1Fixture.team1.name)
+          ? qualifier1Fixture.team2
+          : qualifier1Fixture.team1;
+        
+        // Create Qualifier 2: Loser of Q1 vs Winner of Eliminator
+        const qualifier2: Fixture = {
+          id: generateId(),
+          team1: qualifier1Loser,
+          team2: eliminatorWinner,
+          played: false,
+          stage: 'qualifier2',
+        };
+        
+        set(state => ({
+          tournament: state.tournament ? {
+            ...state.tournament,
+            playoffMatches: {
+              ...state.tournament.playoffMatches,
+              qualifier2,
+            },
+          } : null,
+          fixtures: [...state.fixtures, qualifier2],
+        }));
+      }
+      
+      // Check if both Qualifier 1 and Qualifier 2 are complete, create Final
+      const updatedState = get();
+      const updatedQ2 = updatedState.fixtures.find(f => f.stage === 'qualifier2');
+      const finalFixture = updatedState.fixtures.find(f => f.stage === 'final');
+      
+      if (qualifier1Fixture?.played && updatedQ2?.played && !finalFixture) {
+        // Get winners
+        const qualifier1Winner = qualifier1Fixture.match?.result?.includes(qualifier1Fixture.team1.name)
+          ? qualifier1Fixture.team1
+          : qualifier1Fixture.team2;
+        
+        const qualifier2Winner = updatedQ2.match?.result?.includes(updatedQ2.team1.name)
+          ? updatedQ2.team1
+          : updatedQ2.team2;
+        
+        // Create Final: Winner of Q1 vs Winner of Q2
+        const final: Fixture = {
+          id: generateId(),
+          team1: qualifier1Winner,
+          team2: qualifier2Winner,
+          played: false,
+          stage: 'final',
+        };
+        
+        set(state => ({
+          tournament: state.tournament ? {
+            ...state.tournament,
+            playoffMatches: {
+              ...state.tournament.playoffMatches,
+              final,
+            },
+          } : null,
+          fixtures: [...state.fixtures, final],
+        }));
+      }
+    }
   },
 
   getMatchHistory: () => {
