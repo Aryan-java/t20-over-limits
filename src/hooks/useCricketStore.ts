@@ -411,51 +411,80 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       completedAt: new Date(),
     };
 
-    // Update player performance history
+    // Get all players who played in the match
     const allPlayers = [
       ...match.team1.squad.filter(p => p.isPlaying),
       ...match.team2.squad.filter(p => p.isPlaying),
     ];
 
-    // Collect all player updates
-    const playerUpdates = new Map<string, any>();
-    
+    // Create a map of player stats from the completed match
+    const matchPlayerStats = new Map<string, { runs: number; wickets: number }>();
     allPlayers.forEach(player => {
-      const currentHistory = player.performanceHistory || {
-        last5MatchesRuns: 0,
-        last5MatchesWickets: 0,
-        totalMatches: 0,
-        totalRuns: 0,
-        totalWickets: 0,
-        averageRuns: 0,
-        averageWickets: 0,
-        formRating: 50,
-      };
-
-      const updatedHistory = {
-        last5MatchesRuns: currentHistory.last5MatchesRuns + player.runs,
-        last5MatchesWickets: currentHistory.last5MatchesWickets + player.wickets,
-        totalMatches: currentHistory.totalMatches + 1,
-        totalRuns: currentHistory.totalRuns + player.runs,
-        totalWickets: currentHistory.totalWickets + player.wickets,
-        averageRuns: (currentHistory.totalRuns + player.runs) / (currentHistory.totalMatches + 1),
-        averageWickets: (currentHistory.totalWickets + player.wickets) / (currentHistory.totalMatches + 1),
-        formRating: Math.min(100, Math.max(0, 50 + player.runs * 0.1 + player.wickets * 2)),
-      };
-
-      playerUpdates.set(player.id, updatedHistory);
+      matchPlayerStats.set(player.id, {
+        runs: player.runs,
+        wickets: player.wickets
+      });
     });
 
     // Apply all updates in a single state change
     set(state => ({
-      teams: state.teams.map(team => ({
-        ...team,
-        squad: team.squad.map(p =>
-          playerUpdates.has(p.id)
-            ? { ...p, performanceHistory: playerUpdates.get(p.id) }
-            : p
-        ),
-      })),
+      teams: state.teams.map(team => {
+        // Check if this team was in the match
+        const isTeam1 = team.id === match.team1.id;
+        const isTeam2 = team.id === match.team2.id;
+
+        if (!isTeam1 && !isTeam2) return team;
+
+        return {
+          ...team,
+          squad: team.squad.map(statePlayer => {
+            // Check if this player played in the match
+            const matchStats = matchPlayerStats.get(statePlayer.id);
+
+            if (!matchStats) return statePlayer;
+
+            // Update performance history with match stats
+            const currentHistory = statePlayer.performanceHistory || {
+              last5MatchesRuns: 0,
+              last5MatchesWickets: 0,
+              totalMatches: 0,
+              totalRuns: 0,
+              totalWickets: 0,
+              averageRuns: 0,
+              averageWickets: 0,
+              formRating: 50,
+            };
+
+            const updatedHistory = {
+              last5MatchesRuns: currentHistory.last5MatchesRuns + matchStats.runs,
+              last5MatchesWickets: currentHistory.last5MatchesWickets + matchStats.wickets,
+              totalMatches: currentHistory.totalMatches + 1,
+              totalRuns: currentHistory.totalRuns + matchStats.runs,
+              totalWickets: currentHistory.totalWickets + matchStats.wickets,
+              averageRuns: (currentHistory.totalRuns + matchStats.runs) / (currentHistory.totalMatches + 1),
+              averageWickets: (currentHistory.totalWickets + matchStats.wickets) / (currentHistory.totalMatches + 1),
+              formRating: Math.min(100, Math.max(0, 50 + matchStats.runs * 0.1 + matchStats.wickets * 2)),
+            };
+
+            // Reset match-specific stats for the next game
+            return {
+              ...statePlayer,
+              performanceHistory: updatedHistory,
+              runs: 0,
+              balls: 0,
+              fours: 0,
+              sixes: 0,
+              wickets: 0,
+              runsConceded: 0,
+              oversBowled: 0,
+              maidens: 0,
+              dismissed: false,
+              dismissalInfo: '',
+              isPlaying: false,
+            };
+          }),
+        };
+      }),
       matchHistory: [...state.matchHistory, completedMatch],
       fixtures: state.fixtures.map(fixture =>
         (fixture.team1.id === match.team1.id && fixture.team2.id === match.team2.id) ||
