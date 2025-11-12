@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, RotateCcw, Zap } from "lucide-react";
+import { Play, RotateCcw, Zap, Award, Trophy, Crown } from "lucide-react";
 import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface BallByBallEngineProps {
   match: Match;
 }
 
 const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
-  const { updateMatch } = useCricketStore();
+  const { updateMatch, teams } = useCricketStore();
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
   const [showBowlerDialog, setShowBowlerDialog] = useState(true);
   const [showBatsmanDialog, setShowBatsmanDialog] = useState(false);
@@ -25,6 +26,42 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [nextBatsmanIndex, setNextBatsmanIndex] = useState(2);
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
   const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
+
+  const getTopRunScorer = () => {
+    const allPlayers: Player[] = [];
+    teams.forEach(team => {
+      team.squad.forEach(player => {
+        if (player.performanceHistory && player.performanceHistory.totalRuns > 0) {
+          allPlayers.push(player);
+        }
+      });
+    });
+    if (allPlayers.length === 0) return null;
+    allPlayers.sort((a, b) => {
+      const runsA = a.performanceHistory?.totalRuns || 0;
+      const runsB = b.performanceHistory?.totalRuns || 0;
+      return runsB - runsA;
+    });
+    return allPlayers[0];
+  };
+
+  const getTopWicketTaker = () => {
+    const allPlayers: Player[] = [];
+    teams.forEach(team => {
+      team.squad.forEach(player => {
+        if (player.performanceHistory && player.performanceHistory.totalWickets > 0) {
+          allPlayers.push(player);
+        }
+      });
+    });
+    if (allPlayers.length === 0) return null;
+    allPlayers.sort((a, b) => {
+      const wicketsA = a.performanceHistory?.totalWickets || 0;
+      const wicketsB = b.performanceHistory?.totalWickets || 0;
+      return wicketsB - wicketsA;
+    });
+    return allPlayers[0];
+  };
 
   // Helper conversions between overs (e.g., 2.3) and balls
   const oversToBalls = (overs: number) => {
@@ -793,7 +830,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
       {/* Match Result Dialog */}
       <Dialog open={showMatchResultDialog} onOpenChange={setShowMatchResultDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-2xl text-center">Match Complete! 🏆</DialogTitle>
           </DialogHeader>
@@ -843,6 +880,59 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                 </div>
               ) : null;
             })()}
+
+            {/* Tournament Leaders */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Orange Cap */}
+              {(() => {
+                const topScorer = getTopRunScorer();
+                return topScorer ? (
+                  <div className="p-3 bg-orange-500/10 border border-orange-200 rounded-lg">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Award className="h-4 w-4 text-orange-600" />
+                      <p className="text-xs font-semibold text-orange-700">Orange Cap</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={topScorer.imageUrl} alt={topScorer.name} />
+                        <AvatarFallback className="text-xs">{topScorer.name.substring(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{topScorer.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {topScorer.performanceHistory?.totalRuns} runs
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Purple Cap */}
+              {(() => {
+                const topBowler = getTopWicketTaker();
+                return topBowler ? (
+                  <div className="p-3 bg-purple-500/10 border border-purple-200 rounded-lg">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Trophy className="h-4 w-4 text-purple-600" />
+                      <p className="text-xs font-semibold text-purple-700">Purple Cap</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={topBowler.imageUrl} alt={topBowler.name} />
+                        <AvatarFallback className="text-xs">{topBowler.name.substring(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{topBowler.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {topBowler.performanceHistory?.totalWickets} wickets
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+            </div>
 
             <Button 
               onClick={() => setShowMatchResultDialog(false)}
