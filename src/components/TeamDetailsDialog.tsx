@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,8 @@ interface TeamDetailsDialogProps {
 }
 
 const TeamDetailsDialog = ({ team, open, onOpenChange }: TeamDetailsDialogProps) => {
+  const navigate = useNavigate();
+  
   if (!team) return null;
 
   const overseasCount = team.squad.filter(p => p.isOverseas).length;
@@ -59,7 +62,16 @@ const TeamDetailsDialog = ({ team, open, onOpenChange }: TeamDetailsDialogProps)
               </div>
               <div className="space-y-2">
                 {team.squad.map((player) => (
-                  <PlayerRow key={player.id} player={player} />
+                  <div 
+                    key={player.id} 
+                    onClick={() => {
+                      navigate(`/player/${player.id}`);
+                      onOpenChange(false);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <PlayerRow player={player} />
+                  </div>
                 ))}
               </div>
             </TabsContent>

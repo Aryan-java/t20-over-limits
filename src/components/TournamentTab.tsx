@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import PointsTable from "./PointsTable";
 
 export default function TournamentTab() {
+  const navigate = useNavigate();
   const { matchHistory, teams, fixtures, tournament, generateFixtures, resetTournament, startPlayoffs, createMatch, setCurrentMatch } = useCricketStore();
   const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
   const [matchSetupDialogOpen, setMatchSetupDialogOpen] = useState(false);
@@ -175,7 +177,11 @@ export default function TournamentTab() {
             {topRunScorers.length > 0 ? (
               <div className="space-y-3">
                 {topRunScorers.map((player, index) => (
-                  <div key={player.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                  <div 
+                    key={player.id} 
+                    className="flex items-center justify-between p-3 rounded-lg bg-background/50 cursor-pointer hover:bg-background/80 transition-colors"
+                    onClick={() => navigate(`/player/${player.id}`)}
+                  >
                     <div className="flex items-center gap-3">
                       <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index === 0 ? 'bg-orange-500 text-white' : 'bg-muted'}`}>
                         {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
@@ -227,7 +233,11 @@ export default function TournamentTab() {
             {topWicketTakers.length > 0 ? (
               <div className="space-y-3">
                 {topWicketTakers.map((player, index) => (
-                  <div key={player.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                  <div 
+                    key={player.id} 
+                    className="flex items-center justify-between p-3 rounded-lg bg-background/50 cursor-pointer hover:bg-background/80 transition-colors"
+                    onClick={() => navigate(`/player/${player.id}`)}
+                  >
                     <div className="flex items-center gap-3">
                       <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index === 0 ? 'bg-purple-500 text-white' : 'bg-muted'}`}>
                         {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
