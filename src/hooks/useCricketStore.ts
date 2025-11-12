@@ -411,19 +411,22 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       completedAt: new Date(),
     };
 
-    // Get all players who played in the match
-    const allPlayers = [
-      ...match.team1.squad.filter(p => p.isPlaying),
-      ...match.team2.squad.filter(p => p.isPlaying),
-    ];
+    // Get all players who played in the match from both team setups
+    const team1Players = match.team1Setup?.playingXI || [];
+    const team2Players = match.team2Setup?.playingXI || [];
+    const allPlayers = [...team1Players, ...team2Players];
+
+    console.log('Completing match - players who played:', allPlayers.length);
 
     // Create a map of player stats from the completed match
-    const matchPlayerStats = new Map<string, { runs: number; wickets: number }>();
+    const matchPlayerStats = new Map<string, { runs: number; wickets: number; name: string }>();
     allPlayers.forEach(player => {
       matchPlayerStats.set(player.id, {
         runs: player.runs,
-        wickets: player.wickets
+        wickets: player.wickets,
+        name: player.name
       });
+      console.log(`Player ${player.name}: ${player.runs} runs, ${player.wickets} wickets`);
     });
 
     // Apply all updates in a single state change
@@ -442,6 +445,8 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
             const matchStats = matchPlayerStats.get(statePlayer.id);
 
             if (!matchStats) return statePlayer;
+
+            console.log(`Updating stats for ${matchStats.name}: +${matchStats.runs} runs, +${matchStats.wickets} wickets`);
 
             // Update performance history with match stats
             const currentHistory = statePlayer.performanceHistory || {
@@ -465,6 +470,8 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
               averageWickets: (currentHistory.totalWickets + matchStats.wickets) / (currentHistory.totalMatches + 1),
               formRating: Math.min(100, Math.max(0, 50 + matchStats.runs * 0.1 + matchStats.wickets * 2)),
             };
+
+            console.log(`New totals for ${matchStats.name}: ${updatedHistory.totalRuns} runs, ${updatedHistory.totalWickets} wickets`);
 
             // Reset match-specific stats for the next game
             return {
