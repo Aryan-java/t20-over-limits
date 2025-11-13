@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Team, Player, Match, Fixture, MatchHistory, Tournament } from '@/types/cricket';
+import { Team, Player, Match, Fixture, MatchHistory, Tournament, TradeProposal } from '@/types/cricket';
 import { PLAYER_DATABASE } from '@/data/playerDatabase';
 
 
@@ -10,6 +10,7 @@ interface CricketStore {
   currentMatch: Match | null;
   matchHistory: MatchHistory[];
   tournament: Tournament | null;
+  tradeProposals: TradeProposal[];
 
   // Team actions
   addTeam: (team: Omit<Team, 'id' | 'playingXI' | 'impactOptions' | 'subUsed'>) => void;
@@ -22,6 +23,12 @@ interface CricketStore {
   updatePlayer: (teamId: string, playerId: string, updates: Partial<Player>) => void;
   removePlayerFromTeam: (teamId: string, playerId: string) => void;
   tradePlayers: (team1Id: string, team1PlayerIds: string[], team2Id: string, team2PlayerIds: string[]) => void;
+
+  // Trade Proposal actions
+  createTradeProposal: (fromTeamId: string, fromTeamPlayerIds: string[], toTeamId: string, toTeamPlayerIds: string[]) => void;
+  acceptTradeProposal: (proposalId: string) => void;
+  rejectTradeProposal: (proposalId: string) => void;
+  getTeamProposals: (teamId: string) => { sent: TradeProposal[]; received: TradeProposal[] };
 
   // Fixture actions
   generateFixtures: (format?: 'single' | 'double') => void;
@@ -76,6 +83,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   currentMatch: null,
   matchHistory: [],
   tournament: null,
+  tradeProposals: [],
   
   addTeam: (teamData) => {
     const team: Team = {
@@ -220,6 +228,64 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         }),
       };
     });
+  },
+
+  createTradeProposal: (fromTeamId, fromTeamPlayerIds, toTeamId, toTeamPlayerIds) => {
+    const proposal: TradeProposal = {
+      id: generateId(),
+      fromTeamId,
+      toTeamId,
+      fromTeamPlayerIds,
+      toTeamPlayerIds,
+      status: 'pending',
+      createdAt: new Date(),
+    };
+
+    set(state => ({
+      tradeProposals: [...state.tradeProposals, proposal],
+    }));
+  },
+
+  acceptTradeProposal: (proposalId) => {
+    const state = get();
+    const proposal = state.tradeProposals.find(p => p.id === proposalId);
+
+    if (!proposal || proposal.status !== 'pending') return;
+
+    // Execute the trade
+    get().tradePlayers(
+      proposal.fromTeamId,
+      proposal.fromTeamPlayerIds,
+      proposal.toTeamId,
+      proposal.toTeamPlayerIds
+    );
+
+    // Update proposal status
+    set(state => ({
+      tradeProposals: state.tradeProposals.map(p =>
+        p.id === proposalId
+          ? { ...p, status: 'accepted' as const, respondedAt: new Date() }
+          : p
+      ),
+    }));
+  },
+
+  rejectTradeProposal: (proposalId) => {
+    set(state => ({
+      tradeProposals: state.tradeProposals.map(p =>
+        p.id === proposalId
+          ? { ...p, status: 'rejected' as const, respondedAt: new Date() }
+          : p
+      ),
+    }));
+  },
+
+  getTeamProposals: (teamId) => {
+    const state = get();
+    return {
+      sent: state.tradeProposals.filter(p => p.fromTeamId === teamId),
+      received: state.tradeProposals.filter(p => p.toTeamId === teamId && p.status === 'pending'),
+    };
   },
   
   generateFixtures: (format: 'single' | 'double' = 'single') => {

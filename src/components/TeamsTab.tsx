@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Shuffle, RotateCcw, ArrowLeftRight } from "lucide-react";
+import { Plus, Shuffle, RotateCcw, ArrowLeftRight, Bell } from "lucide-react";
 import TeamCard from "./TeamCard";
 import CreateTeamDialog from "./CreateTeamDialog";
 import EditTeamDialog from "./EditTeamDialog";
 import TeamDetailsDialog from "./TeamDetailsDialog";
 import PlayerSelectionDialog from "./PlayerSelectionDialog";
 import TradeDialog from "./TradeDialog";
+import TradeProposalsDialog from "./TradeProposalsDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Team } from "@/types/cricket";
 import {
@@ -22,14 +23,17 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const TeamsTab = () => {
-  const { teams, generateSampleTeams, resetTeams } = useCricketStore();
+  const { teams, generateSampleTeams, resetTeams, tradeProposals } = useCricketStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   const [playerSelectionTeam, setPlayerSelectionTeam] = useState<Team | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
+  const [proposalsDialogOpen, setProposalsDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  const pendingProposalsCount = tradeProposals.filter(p => p.status === 'pending').length;
 
   const handleResetTeams = () => {
     resetTeams();
@@ -51,6 +55,19 @@ const TeamsTab = () => {
         <div className="flex space-x-2">
           {teams.length > 0 && (
             <>
+              <Button 
+                variant="outline" 
+                onClick={() => setProposalsDialogOpen(true)}
+                className="relative"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                <span>Proposals</span>
+                {pendingProposalsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {pendingProposalsCount}
+                  </span>
+                )}
+              </Button>
               <Button variant="outline" onClick={() => setTradeDialogOpen(true)}>
                 <ArrowLeftRight className="h-4 w-4 mr-2" />
                 <span>Trade Players</span>
@@ -126,6 +143,11 @@ const TeamsTab = () => {
       <TradeDialog
         open={tradeDialogOpen}
         onOpenChange={setTradeDialogOpen}
+      />
+
+      <TradeProposalsDialog
+        open={proposalsDialogOpen}
+        onOpenChange={setProposalsDialogOpen}
       />
 
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>

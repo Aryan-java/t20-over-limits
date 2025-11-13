@@ -16,7 +16,7 @@ interface TradeDialogProps {
 }
 
 const TradeDialog = ({ open, onOpenChange }: TradeDialogProps) => {
-  const { teams, tradePlayers } = useCricketStore();
+  const { teams, createTradeProposal } = useCricketStore();
   const { toast } = useToast();
   
   const [team1Id, setTeam1Id] = useState<string>("");
@@ -127,14 +127,11 @@ const TradeDialog = ({ open, onOpenChange }: TradeDialogProps) => {
       return;
     }
 
-    tradePlayers(team1Id, team1SelectedPlayers, team2Id, team2SelectedPlayers);
-    
-    const team1PlayerNames = team1PlayersToRemove.map(p => p.name).join(", ");
-    const team2PlayerNames = team2PlayersToRemove.map(p => p.name).join(", ");
+    createTradeProposal(team1Id, team1SelectedPlayers, team2Id, team2SelectedPlayers);
     
     toast({
-      title: "Trade Completed",
-      description: `${team1.name} traded ${team1PlayerNames || "no players"} for ${team2PlayerNames || "no players"} from ${team2.name}`,
+      title: "Trade Proposal Sent",
+      description: `Trade proposal sent to ${team2.name}`,
     });
 
     onOpenChange(false);
@@ -272,7 +269,7 @@ const TradeDialog = ({ open, onOpenChange }: TradeDialogProps) => {
             </Button>
             <Button onClick={handleTrade} disabled={!team1 || !team2}>
               <ArrowLeftRight className="h-4 w-4 mr-2" />
-              Complete Trade
+              Send Proposal
             </Button>
           </div>
         </div>

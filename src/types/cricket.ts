@@ -135,6 +135,17 @@ export type MatchStage = 'league' | 'qualifier1' | 'eliminator' | 'qualifier2' |
 
 export type TournamentFormat = 'single' | 'double';
 
+export interface TradeProposal {
+  id: string;
+  fromTeamId: string;
+  toTeamId: string;
+  fromTeamPlayerIds: string[];
+  toTeamPlayerIds: string[];
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+  respondedAt?: Date;
+}
+
 export interface Tournament {
   format: TournamentFormat;
   leagueMatches: Fixture[];
