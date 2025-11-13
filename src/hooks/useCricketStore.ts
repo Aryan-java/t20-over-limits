@@ -21,6 +21,7 @@ interface CricketStore {
   addPlayerToTeam: (teamId: string, player: Omit<Player, 'id' | 'position'>) => void;
   updatePlayer: (teamId: string, playerId: string, updates: Partial<Player>) => void;
   removePlayerFromTeam: (teamId: string, playerId: string) => void;
+  tradePlayers: (team1Id: string, team1PlayerIds: string[], team2Id: string, team2PlayerIds: string[]) => void;
 
   // Fixture actions
   generateFixtures: (format?: 'single' | 'double') => void;
@@ -178,6 +179,47 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           : team
       )
     }));
+  },
+
+  tradePlayers: (team1Id, team1PlayerIds, team2Id, team2PlayerIds) => {
+    set(state => {
+      const team1 = state.teams.find(t => t.id === team1Id);
+      const team2 = state.teams.find(t => t.id === team2Id);
+
+      if (!team1 || !team2) return state;
+
+      // Get players to trade
+      const team1PlayersToTrade = team1.squad.filter(p => team1PlayerIds.includes(p.id));
+      const team2PlayersToTrade = team2.squad.filter(p => team2PlayerIds.includes(p.id));
+
+      // Update team IDs for traded players
+      const team1PlayersWithNewTeam = team2PlayersToTrade.map(p => ({ ...p, currentTeamId: team1Id }));
+      const team2PlayersWithNewTeam = team1PlayersToTrade.map(p => ({ ...p, currentTeamId: team2Id }));
+
+      return {
+        teams: state.teams.map(team => {
+          if (team.id === team1Id) {
+            return {
+              ...team,
+              squad: [
+                ...team.squad.filter(p => !team1PlayerIds.includes(p.id)),
+                ...team1PlayersWithNewTeam,
+              ],
+            };
+          }
+          if (team.id === team2Id) {
+            return {
+              ...team,
+              squad: [
+                ...team.squad.filter(p => !team2PlayerIds.includes(p.id)),
+                ...team2PlayersWithNewTeam,
+              ],
+            };
+          }
+          return team;
+        }),
+      };
+    });
   },
   
   generateFixtures: (format: 'single' | 'double' = 'single') => {

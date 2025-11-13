@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Shuffle, RotateCcw } from "lucide-react";
+import { Plus, Shuffle, RotateCcw, ArrowLeftRight } from "lucide-react";
 import TeamCard from "./TeamCard";
 import CreateTeamDialog from "./CreateTeamDialog";
 import EditTeamDialog from "./EditTeamDialog";
 import TeamDetailsDialog from "./TeamDetailsDialog";
 import PlayerSelectionDialog from "./PlayerSelectionDialog";
+import TradeDialog from "./TradeDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Team } from "@/types/cricket";
 import {
@@ -27,6 +28,7 @@ const TeamsTab = () => {
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   const [playerSelectionTeam, setPlayerSelectionTeam] = useState<Team | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const handleResetTeams = () => {
@@ -48,12 +50,18 @@ const TeamsTab = () => {
         
         <div className="flex space-x-2">
           {teams.length > 0 && (
-            <Button variant="outline" onClick={() => setShowResetDialog(true)}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              <span>Reset Teams</span>
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setTradeDialogOpen(true)}>
+                <ArrowLeftRight className="h-4 w-4 mr-2" />
+                <span>Trade Players</span>
+              </Button>
+              <Button variant="outline" onClick={() => setShowResetDialog(true)}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                <span>Reset Teams</span>
+              </Button>
+            </>
           )}
-          <Button 
+          <Button
             variant="outline" 
             onClick={() => generateSampleTeams(4)}
             disabled={teams.length > 0}
@@ -113,6 +121,11 @@ const TeamsTab = () => {
         team={playerSelectionTeam} 
         open={!!playerSelectionTeam} 
         onOpenChange={(open) => !open && setPlayerSelectionTeam(null)} 
+      />
+
+      <TradeDialog
+        open={tradeDialogOpen}
+        onOpenChange={setTradeDialogOpen}
       />
 
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
