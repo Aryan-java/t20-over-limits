@@ -1,11 +1,16 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import PlayerAvatar from "./PlayerAvatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import PlayerComparisonDialog from "./PlayerComparisonDialog";
+import { ArrowLeftRight } from "lucide-react";
 
 const StatsTab = () => {
   const { teams } = useCricketStore();
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -14,6 +19,10 @@ const StatsTab = () => {
           <h2 className="text-2xl font-bold">Tournament Statistics</h2>
           <p className="text-muted-foreground">All team squads and player performance</p>
         </div>
+        <Button onClick={() => setIsComparisonOpen(true)}>
+          <ArrowLeftRight className="mr-2 h-4 w-4" />
+          Compare Players
+        </Button>
       </div>
 
       {/* Team Squads */}
@@ -88,6 +97,11 @@ const StatsTab = () => {
           </CardContent>
         </Card>
       ))}
+
+      <PlayerComparisonDialog 
+        open={isComparisonOpen} 
+        onOpenChange={setIsComparisonOpen} 
+      />
     </div>
   );
 };
