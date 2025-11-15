@@ -6,13 +6,11 @@ import { useCricketStore } from "@/hooks/useCricketStore";
 import PlayerAvatar from "./PlayerAvatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerComparisonDialog from "./PlayerComparisonDialog";
-import BestXIDialog from "./BestXIDialog";
-import { ArrowLeftRight, Sparkles } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 
 const StatsTab = () => {
   const { teams } = useCricketStore();
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
-  const [isBestXIOpen, setIsBestXIOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -21,16 +19,10 @@ const StatsTab = () => {
           <h2 className="text-2xl font-bold">Tournament Statistics</h2>
           <p className="text-muted-foreground">All team squads and player performance</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsComparisonOpen(true)} variant="outline">
-            <ArrowLeftRight className="mr-2 h-4 w-4" />
-            Compare Players
-          </Button>
-          <Button onClick={() => setIsBestXIOpen(true)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Best XI
-          </Button>
-        </div>
+        <Button onClick={() => setIsComparisonOpen(true)} variant="outline">
+          <ArrowLeftRight className="mr-2 h-4 w-4" />
+          Compare Players
+        </Button>
       </div>
 
       {/* Team Squads */}
@@ -109,11 +101,6 @@ const StatsTab = () => {
       <PlayerComparisonDialog 
         open={isComparisonOpen} 
         onOpenChange={setIsComparisonOpen} 
-      />
-      
-      <BestXIDialog 
-        open={isBestXIOpen} 
-        onOpenChange={setIsBestXIOpen} 
       />
     </div>
   );
