@@ -19,7 +19,7 @@ const StatsTab = () => {
           <h2 className="text-2xl font-bold">Tournament Statistics</h2>
           <p className="text-muted-foreground">All team squads and player performance</p>
         </div>
-        <Button onClick={() => setIsComparisonOpen(true)} variant="outline">
+        <Button onClick={() => setIsComparisonOpen(true)}>
           <ArrowLeftRight className="mr-2 h-4 w-4" />
           Compare Players
         </Button>
