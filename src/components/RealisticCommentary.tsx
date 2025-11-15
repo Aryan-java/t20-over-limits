@@ -17,12 +17,31 @@ export const generateRealisticCommentary = (
   
   if (isWicket) {
     const wicketCommentaries = [
-      `OUT! ${batsman.name} ${dismissalType}! ${bowler.name} strikes! What a delivery!`,
-      `WICKET! ${batsman.name} departs for ${batsman.runs}! ${bowler.name} gets the breakthrough!`,
-      `Gone! ${batsman.name} ${dismissalType}! ${bowler.name} punches the air in delight!`,
-      `Bowled him! What a beauty from ${bowler.name}! ${batsman.name} had no answer to that one!`,
-      `Caught! ${batsman.name} ${dismissalType}! The fielder takes a sharp catch!`,
-      `LBW! Up goes the finger! ${batsman.name} ${dismissalType}! ${bowler.name} is ecstatic!`
+      `OUTTTT! ${bowler.name} ne tod diya defence!`,
+      `Chaaron taraf stump bikhar gaye! ${batsman.name} OUT!`,
+      `Edged aur pakad liya! ${batsman.name} ${dismissalType}!`,
+      `Yeh bada wicket hai match ka! ${batsman.name} departs!`,
+      `Big appeal! Finger goes up! LBW OUT! ${batsman.name}!`,
+      `Mistimed shot... aur easy catch — ${batsman.name} ko wapas jaana padega!`,
+      `Ye run out ho sakta hai! Direct hit! ${batsman.name} OUT!`,
+      `${bowler.name} strikes! ${batsman.name} ${dismissalType}!`,
+      `OUT! ${batsman.name} ne risk liya aur wicket gawa diya!`,
+      `${bowler.name} ne yorker daala aur ${batsman.name} clean bowled!`,
+      `Caught behind! ${batsman.name} edge de diya!`,
+      `Stumped! ${batsman.name} bahar aa gaya aur wicket-keeper ne khatam kar diya!`,
+      `${batsman.name} holes out! ${dismissalType}!`,
+      `What a catch! ${batsman.name} ${dismissalType}!`,
+      `${bowler.name} gets the breakthrough! ${batsman.name} walks back!`,
+      `Plumb LBW! ${batsman.name} had no answer!`,
+      `Bowled him! ${bowler.name} shatters the stumps!`,
+      `Gone! ${batsman.name} ${dismissalType}! Game-changing wicket!`,
+      `OUT! ${batsman.name} tries to hit big, loses wicket!`,
+      `${bowler.name} strikes gold! ${batsman.name} dismissed!`,
+      `Brilliant catch! ${batsman.name} can't believe it!`,
+      `Hit wicket! ${batsman.name} disturbs his own stumps!`,
+      `Caught and bowled! ${bowler.name} takes a blinder!`,
+      `Leg before! ${batsman.name} trapped in front!`,
+      `Spectacular catch in the deep! ${batsman.name} OUT!`
     ];
     return `${overBall} - ${wicketCommentaries[Math.floor(Math.random() * wicketCommentaries.length)]}`;
   }
@@ -32,39 +51,76 @@ export const generateRealisticCommentary = (
   switch (runs) {
     case 0:
       const dotCommentaries = [
+        `${bowler.name} ne bada tight ball daala!`,
+        `${batsman.name} dikha hi nahi kya kare—dot ball!`,
+        `Bouncer tha yeh, ache se sway kiya.`,
+        `Aur bilkul run nahi diya boss.`,
+        `Oh beaten! ${batsman.name} ko bilkul idea hi nahi laga yaar.`,
+        `${bowler.name} aaj line-length lekar aya hai.`,
+        `Ek aur dot, pressure cooker ban gaya yeh over.`,
+        `Slow ball, nicely disguised.`,
+        `Aur ${batsman.name} hawa mein hi swing kar gaya.`,
         `Dot ball! ${bowler.name} keeps it tight`,
         `Good length delivery, ${batsman.name} defends`,
         `${batsman.name} gets behind the line, no run`,
         `Played back to the bowler, no run there`,
-        `Good bowling from ${bowler.name}, dot ball`,
+        `${bowler.name} ne defense tod ne ki koshish ki, par nahi hua`,
         `${batsman.name} watchfully leaves that one alone`,
-        `Defended into the off-side, no run`
+        `Defended into the off-side, no run`,
+        `Yorker attempt, ${batsman.name} digs it out`,
+        `${bowler.name} bowling on point today`,
+        `No run there, building pressure`,
+        `${batsman.name} respectfully defends`
       ];
       commentary = dotCommentaries[Math.floor(Math.random() * dotCommentaries.length)];
       break;
       
     case 1:
       const singleCommentaries = [
+        `${batsman.name} ne bas angle change kiya. Ek aasaan single mil gaya.`,
+        `Better running between the wickets! Single complete ho gaya.`,
+        `Soft hands, third man ki taraf. Yehi toh smart cricket hai.`,
+        `Quick call and quick run! Safe ho gaya.`,
         `${batsman.name} nudges it for a single`,
         `Quick single taken! Good running between the wickets`,
         `${batsman.name} works it away for one`,
         `Single taken to rotate the strike`,
         `${batsman.name} taps and runs, easy single`,
         `Good placement, single taken`,
-        `${batsman.name} milks a single off ${bowler.name}`
+        `${batsman.name} milks a single off ${bowler.name}`,
+        `Ek run liya aur strike rotate kar di`,
+        `Smart batting by ${batsman.name}`,
+        `Gap mein daal ke single le liya`,
+        `Easy run there for ${batsman.name}`,
+        `Wrist work se single nikaal liya`,
+        `${batsman.name} keeps the scoreboard ticking`,
+        `Angled to third man, single taken`,
+        `Tucked away for a single`
       ];
       commentary = singleCommentaries[Math.floor(Math.random() * singleCommentaries.length)];
       break;
       
     case 2:
       const doubleCommentaries = [
+        `${batsman.name} ne gap mein daala, comes back for two!`,
+        `Excellent running! Do runs mil gaye`,
+        `Straight drive, fielder rok deta. Phir bhi 2 runs mil gaye.`,
         `${batsman.name} places it in the gap, comes back for two!`,
         `Excellent running! Two runs taken`,
         `${batsman.name} finds the gap, comfortable two`,
         `Good shot! ${batsman.name} picks up a couple`,
         `In the gap! Two runs added to the total`,
         `${batsman.name} times it well, gets two for his effort`,
-        `Nicely placed by ${batsman.name}, two runs taken`
+        `Nicely placed by ${batsman.name}, two runs taken`,
+        `Gap mein perfect placement, do run aye`,
+        `${batsman.name} pushes it wide of fielder, two taken`,
+        `Bisecting the field beautifully for two`,
+        `Good running, converted one into two`,
+        `Couple of runs there for ${batsman.name}`,
+        `Two more added to the score`,
+        `${batsman.name} finding gaps nicely`,
+        `Excellent placement, two runs`,
+        `Good cricket, two runs taken`
       ];
       commentary = doubleCommentaries[Math.floor(Math.random() * doubleCommentaries.length)];
       break;
@@ -84,6 +140,11 @@ export const generateRealisticCommentary = (
       
     case 4:
       const boundaryCommentaries = [
+        `Aye haaye! Kya cover drive maara! Bilkul tasveer jaisa shot — FOUR!`,
+        `Paddle sweep... Fine leg ko beat kiya — 4 runs!`,
+        `Width mili, aur ${batsman.name} ne kaat diya. Shot of the day!`,
+        `Edged aur ball bhaagti hui boundary tak. Lucky but runs toh milenge hi.`,
+        `Off-stump pe ball, aur ${batsman.name} ne punch kiya. Boundary, bada khoobsurat.`,
         `FOUR! ${batsman.name} finds the boundary! What a shot!`,
         `BOUNDARY! ${batsman.name} threads the needle perfectly!`,
         `FOUR! Excellent timing from ${batsman.name}!`,
@@ -93,13 +154,28 @@ export const generateRealisticCommentary = (
         `FOUR! ${batsman.name} shows his class with that shot!`,
         `CRACKING SHOT! ${batsman.name} finds the gap for four!`,
         `FOUR! ${batsman.name} cuts it away beautifully!`,
-        `BOUNDARY! ${batsman.name} drives it majestically for four!`
+        `BOUNDARY! ${batsman.name} drives it majestically for four!`,
+        `Kya timing! FOUR runs!`,
+        `${batsman.name} unleashes a cracking boundary!`,
+        `Square cut, races to the fence!`,
+        `Beautiful stroke play! FOUR!`,
+        `${batsman.name} in full flow, BOUNDARY!`,
+        `Edged but safe, runs away for four!`,
+        `Clinical shot, four runs added!`,
+        `${batsman.name} finds the gap, FOUR!`,
+        `Power and placement, boundary!`,
+        `Textbook shot for four runs!`
       ];
       commentary = boundaryCommentaries[Math.floor(Math.random() * boundaryCommentaries.length)];
       break;
       
     case 6:
       const sixCommentaries = [
+        `Uffff! Yeh chala gaya bahut door! SIX! Planet se bahar jaake aayi hai ball.`,
+        `${batsman.name} goes downtown! Long-on ke upar se seedha crowd mein.`,
+        `Pickup shot – effortless timing! Ball toh hawa mein gaayab ho gayi.`,
+        `${bowler.name} short dalta hai... Aur yeh gaya helicopter shot! Dhuaan nikal diya.`,
+        `Flighted delivery... Maximum! ${batsman.name} ne pura confidence dikhaya.`,
         `SIX! ${batsman.name} launches it into the stands! MASSIVE!`,
         `MAXIMUM! ${batsman.name} goes big! What a shot!`,
         `SIX! ${batsman.name} sends it sailing over the boundary!`,
@@ -109,7 +185,17 @@ export const generateRealisticCommentary = (
         `SIX! ${batsman.name} goes downtown! What power!`,
         `OUT OF THE PARK! ${batsman.name} smashes it for six!`,
         `SIX! ${batsman.name} gets underneath it and sends it miles!`,
-        `MAXIMUM! ${batsman.name} clears the boundary with ease!`
+        `MAXIMUM! ${batsman.name} clears the boundary with ease!`,
+        `Boom! That's outta here! SIX!`,
+        `${batsman.name} into orbit! MAXIMUM!`,
+        `Clean strike! Ball disappeared into the stands!`,
+        `Monstrous hit! SIX runs!`,
+        `${batsman.name} absolutely clobbers it! SIX!`,
+        `High and handsome! MAXIMUM!`,
+        `Chakka! ${batsman.name} on fire!`,
+        `Out of the ground! Massive SIX!`,
+        `${batsman.name} murders that one! SIX!`,
+        `Into the top tier! Incredible hitting!`
       ];
       commentary = sixCommentaries[Math.floor(Math.random() * sixCommentaries.length)];
       break;
