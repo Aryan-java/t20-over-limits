@@ -8,6 +8,7 @@ import { Play, RotateCcw, Zap, Award, Trophy, Crown } from "lucide-react";
 import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { generateRealisticCommentary } from "./RealisticCommentary";
 
 interface BallByBallEngineProps {
   match: Match;
@@ -165,7 +166,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     return playerScores[0]?.player || null;
   };
 
-  const simulateBallOutcome = (batsman: Player, bowler: Player) => {
+  const simulateBallOutcome = (batsman: Player, bowler: Player): { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } } => {
     const batSkill = batsman.batSkill;
     const bowlSkill = bowler.bowlSkill;
 
@@ -185,6 +186,44 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const wicketProb = Math.max(3, 8 - totalDiff * 0.1);
     const boundaryProb = Math.max(8, 15 + totalDiff * 0.2);
     const sixProb = Math.max(2, 6 + totalDiff * 0.15);
+
+    // Check for extras first (8% chance)
+    const extrasRoll = Math.random() * 100;
+    if (extrasRoll < 8) {
+      const extrasType = Math.random();
+      if (extrasType < 0.4) {
+        // Wide (40% of extras)
+        return { 
+          runs: 1, 
+          isWicket: false, 
+          extras: { type: 'wide', runs: 1 } 
+        };
+      } else if (extrasType < 0.7) {
+        // No ball (30% of extras)
+        const noBallRuns = Math.random() < 0.7 ? 1 : Math.random() < 0.5 ? 4 : 6;
+        return { 
+          runs: noBallRuns, 
+          isWicket: false, 
+          extras: { type: 'no-ball', runs: noBallRuns } 
+        };
+      } else if (extrasType < 0.85) {
+        // Bye (15% of extras)
+        const byeRuns = Math.random() < 0.8 ? 1 : 4;
+        return { 
+          runs: byeRuns, 
+          isWicket: false, 
+          extras: { type: 'bye', runs: byeRuns } 
+        };
+      } else {
+        // Leg bye (15% of extras)
+        const legByeRuns = Math.random() < 0.8 ? 1 : Math.random() < 0.6 ? 2 : 4;
+        return { 
+          runs: legByeRuns, 
+          isWicket: false, 
+          extras: { type: 'leg-bye', runs: legByeRuns } 
+        };
+      }
+    }
 
     const outcomes = [
       { runs: 0, isWicket: false, weight: dotProb },
@@ -270,14 +309,24 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     const runs = outcome.runs;
     const isWicket = outcome.isWicket;
+    const isExtra = outcome.extras !== undefined;
+    const isWideOrNoBall = isExtra && (outcome.extras?.type === 'wide' || outcome.extras?.type === 'no-ball');
     
     // Update striker's stats
     const striker = { ...innings.currentBatsmen.striker };
-    striker.runs += runs;
-    striker.balls += 1;
     
-    if (runs === 4) striker.fours += 1;
-    if (runs === 6) striker.sixes += 1;
+    // Only add runs and balls to batsman if not byes/leg-byes
+    if (!isExtra || outcome.extras?.type === 'no-ball') {
+      striker.runs += runs;
+    }
+    
+    // Don't count ball if it's a wide or no-ball
+    if (!isWideOrNoBall) {
+      striker.balls += 1;
+    }
+    
+    if (runs === 4 && !isExtra) striker.fours += 1;
+    if (runs === 6 && !isExtra) striker.sixes += 1;
     
     if (isWicket) {
       striker.dismissed = true;
@@ -290,8 +339,9 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     if (isWicket) bowler.wickets += 1;
     
     // Update overs bowled (per bowler, includes partial overs)
-    const newBallsBowled = innings.ballsBowled + 1;
-    const bowlerBalls = oversToBalls(bowler.oversBowled) + 1;
+    // Wides and no balls don't count as legal deliveries
+    const newBallsBowled = isWideOrNoBall ? innings.ballsBowled : innings.ballsBowled + 1;
+    const bowlerBalls = oversToBalls(bowler.oversBowled) + (isWideOrNoBall ? 0 : 1);
     bowler.oversBowled = ballsToOvers(bowlerBalls);
 
     // Update batting order to include all batters who have faced balls
@@ -353,8 +403,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       newNonStriker = striker;
     }
     
-    // Check if over complete
-    const isOverComplete = newBallsBowled % 6 === 0;
+    // Check if over complete (wides and no balls don't count towards the over)
+    const isOverComplete = !isWideOrNoBall && newBallsBowled % 6 === 0;
     
     // Track last bowler when over is complete
     if (isOverComplete) {
@@ -401,30 +451,30 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       const over = Math.floor(newBallsBowled / 6);
       const ball = (newBallsBowled % 6) || 6;
       
-      if (isWicket) {
-        const wicketTexts = [
-          `OUT! ${innings.currentBatsmen.striker.name} b ${innings.currentBowler.name}! What a delivery!`,
-          `WICKET! ${innings.currentBowler.name} strikes! ${innings.currentBatsmen.striker.name} departs for ${striker.runs}`,
-          `Bowled him! ${innings.currentBowler.name} gets the breakthrough!`,
-          `Gone! Clean bowled! ${innings.currentBatsmen.striker.name} has to walk back`
-        ];
-        return wicketTexts[Math.floor(Math.random() * wicketTexts.length)];
-      }
+      // Use the realistic commentary generator
+      const ballEventForCommentary: BallEvent = {
+        ballNumber: newBallsBowled,
+        bowler: innings.currentBowler.name,
+        batsman: innings.currentBatsmen.striker.name,
+        runs,
+        isWicket,
+        extras: outcome.extras,
+        commentary: ''
+      };
       
-      if (runs === 0) {
-        return `Dot ball! ${innings.currentBowler.name} keeps it tight`;
-      } else if (runs === 1) {
-        return `${innings.currentBatsmen.striker.name} takes a quick single`;
-      } else if (runs === 2) {
-        return `Good running between the wickets, they pick up two`;
-      } else if (runs === 3) {
-        return `Excellent running! Three runs taken`;
-      } else if (runs === 4) {
-        return `FOUR! Beautiful shot from ${innings.currentBatsmen.striker.name}! That raced away to the boundary`;
-      } else if (runs === 6) {
-        return `SIX! Massive hit from ${innings.currentBatsmen.striker.name}! That's gone all the way!`;
-      }
-      return `${runs} runs scored`;
+      return generateRealisticCommentary(
+        ballEventForCommentary,
+        innings.currentBowler,
+        innings.currentBatsmen.striker,
+        over,
+        ball,
+        runs,
+        isWicket,
+        isWicket ? striker.dismissalInfo : undefined,
+        match.currentInnings === 2 && match.firstInnings ? match.firstInnings.totalRuns + 1 : undefined,
+        match.currentInnings === 2 && match.firstInnings ? (match.firstInnings.totalRuns + 1 - newTotalRuns) : undefined,
+        match.currentInnings === 2 ? (match.overs * 6 - newBallsBowled) : undefined
+      );
     };
     
     const ballEvent: BallEvent = {
@@ -433,6 +483,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       batsman: innings.currentBatsmen.striker.name,
       runs,
       isWicket,
+      extras: outcome.extras,
       commentary: generateCommentary(),
     };
     

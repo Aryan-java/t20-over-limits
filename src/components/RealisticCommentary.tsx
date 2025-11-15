@@ -15,6 +15,53 @@ export const generateRealisticCommentary = (
 ): string => {
   const overBall = `${over}.${ball}`;
   
+  // Check for extras first
+  if (event.extras) {
+    const extrasCommentaries = {
+      'wide': [
+        `Wide ball! ${bowler.name} sprays it down the leg side`,
+        `WIDE! ${bowler.name} loses his line completely`,
+        `Wide called! Pressure pe ${bowler.name} thoda loose ho gaya`,
+        `Extra run! Wide ball down the leg side`,
+        `${bowler.name} strays too wide, umpire signals wide`,
+        `Wide delivery! ${bowler.name} needs to find his line`,
+        `Wayward delivery, wide called by the umpire`,
+        `${bowler.name} bowls it wide, extra run gifted`
+      ],
+      'no-ball': [
+        `NO BALL! ${bowler.name} oversteps! Free hit coming up!`,
+        `NO BALL called! ${bowler.name} ne overstepping ki galti kar di`,
+        `Front foot no ball! ${runs > 1 ? `Aur ${batsman.name} ne ${runs === 4 ? 'FOUR' : 'SIX'} bhi maar diya!` : 'Free hit next!'}`,
+        `Overstepped! No ball, ${bowler.name} under pressure`,
+        `${bowler.name} oversteps the crease, no ball called`,
+        `NO BALL! ${bowler.name} crosses the line${runs > 1 ? ` and ${batsman.name} cashes in with ${runs} runs!` : ''}`,
+        `Umpire signals no ball! ${bowler.name} ne line cross kar li`
+      ],
+      'bye': [
+        `Bye! Wicket-keeper couldn't collect it`,
+        `Byes! Ball gaya wicket-keeper se door`,
+        `${runs} bye${runs > 1 ? 's' : ''}! Keeper missed it completely`,
+        `Misses everyone! ${runs} bye${runs > 1 ? 's' : ''} taken`,
+        `${batsman.name} leaves it, byes called`,
+        `Keeper couldn't gather, byes given`,
+        `Ball beats everyone, ${runs} bye${runs > 1 ? 's' : ''} added`
+      ],
+      'leg-bye': [
+        `Leg bye! Ball thuds into the pads`,
+        `${runs} leg bye${runs > 1 ? 's' : ''}! Off the pads and away`,
+        `Leg byes! Hit the pad aur daud gaye`,
+        `Appeal for LBW but missing, leg bye taken`,
+        `Off the pads! ${runs} leg bye${runs > 1 ? 's' : ''}`,
+        `Leg bye called! Deflected off the thigh pad`,
+        `${batsman.name} misses, but leg byes taken`
+      ]
+    };
+    
+    const commentaryArray = extrasCommentaries[event.extras.type];
+    const commentary = commentaryArray[Math.floor(Math.random() * commentaryArray.length)];
+    return `${overBall} - ${commentary}`;
+  }
+  
   if (isWicket) {
     const wicketCommentaries = [
       `OUTTTT! ${bowler.name} ne tod diya defence!`,
