@@ -1,4 +1,1 @@
 project_id = "ykjwukkfqdocehxtfjcw"
-
-[functions.recommend-best-xi]
-verify_jwt = false
