@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useGameSession, GamePlayer } from '@/hooks/useGameSession';
 import { useCricketStore } from '@/hooks/useCricketStore';
-import { Copy, Users, Crown, UserCheck, Play, LogOut } from 'lucide-react';
+import { Copy, Users, Crown, UserCheck, Play, LogOut, AlertCircle } from 'lucide-react';
+import { isSupabaseConfigured } from '@/lib/supabaseClient';
 
 interface GameLobbyProps {
   onGameStart: () => void;
@@ -24,6 +25,7 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
     currentPlayer,
     loading,
     error,
+    isConfigured,
     createSession,
     joinSession,
     selectTeam,
@@ -105,6 +107,32 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
   const getTeamManager = (teamId: string): GamePlayer | undefined => {
     return players.find(p => p.team_id === teamId);
   };
+
+  // Show error if multiplayer not configured
+  if (!isConfigured) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
+            <CardTitle className="text-xl">Multiplayer Unavailable</CardTitle>
+            <CardDescription>
+              Database connection not configured. Please try again later or play in single-player mode.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              className="w-full"
+            >
+              Retry Connection
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (mode === 'menu') {
     return (

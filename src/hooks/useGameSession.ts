@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
 export interface GamePlayer {
   id: string;
@@ -35,10 +35,14 @@ export const useGameSession = () => {
   const [currentPlayer, setCurrentPlayer] = useState<GamePlayer | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConfigured] = useState(isSupabaseConfigured());
 
   // Subscribe to realtime updates
   useEffect(() => {
-    if (!session) return;
+    if (!session || !isConfigured) return;
+    
+    const supabase = getSupabase();
+    if (!supabase) return;
 
     const playersChannel = supabase
       .channel(`players-${session.id}`)
@@ -76,9 +80,12 @@ export const useGameSession = () => {
       supabase.removeChannel(playersChannel);
       supabase.removeChannel(sessionChannel);
     };
-  }, [session?.id]);
+  }, [session?.id, isConfigured]);
 
   const fetchPlayers = async (sessionId: string) => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    
     const { data, error } = await supabase
       .from('game_players')
       .select('*')
@@ -91,6 +98,12 @@ export const useGameSession = () => {
   };
 
   const createSession = async (nickname: string) => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setError('Multiplayer not available - database not configured');
+      return null;
+    }
+    
     setLoading(true);
     setError(null);
 
@@ -143,6 +156,12 @@ export const useGameSession = () => {
   };
 
   const joinSession = async (code: string, nickname: string) => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setError('Multiplayer not available - database not configured');
+      return null;
+    }
+    
     setLoading(true);
     setError(null);
 
@@ -152,9 +171,10 @@ export const useGameSession = () => {
         .from('game_sessions')
         .select('*')
         .eq('code', code.toUpperCase())
-        .single();
+        .maybeSingle();
 
-      if (sessionError || !sessionData) {
+      if (sessionError) throw sessionError;
+      if (!sessionData) {
         throw new Error('Invalid game code');
       }
 
@@ -195,7 +215,8 @@ export const useGameSession = () => {
   };
 
   const selectTeam = async (teamId: string) => {
-    if (!currentPlayer || !session) return;
+    const supabase = getSupabase();
+    if (!currentPlayer || !session || !supabase) return false;
 
     // Check if team is already taken
     const teamTaken = players.some(p => p.team_id === teamId && p.id !== currentPlayer.id);
@@ -217,7 +238,8 @@ export const useGameSession = () => {
   };
 
   const updateGameState = async (gameState: any) => {
-    if (!session || !currentPlayer?.is_admin) return;
+    const supabase = getSupabase();
+    if (!session || !currentPlayer?.is_admin || !supabase) return;
 
     await supabase
       .from('game_sessions')
@@ -226,7 +248,8 @@ export const useGameSession = () => {
   };
 
   const startGame = async () => {
-    if (!session || !currentPlayer?.is_admin) return;
+    const supabase = getSupabase();
+    if (!session || !currentPlayer?.is_admin || !supabase) return;
 
     await supabase
       .from('game_sessions')
@@ -235,7 +258,8 @@ export const useGameSession = () => {
   };
 
   const leaveSession = async () => {
-    if (!currentPlayer) return;
+    const supabase = getSupabase();
+    if (!currentPlayer || !supabase) return;
 
     await supabase
       .from('game_players')
@@ -250,6 +274,9 @@ export const useGameSession = () => {
   };
 
   const rejoinSession = useCallback(async () => {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+    
     const playerId = localStorage.getItem('game_player_id');
     const sessionId = localStorage.getItem('game_session_id');
 
@@ -260,7 +287,7 @@ export const useGameSession = () => {
         .from('game_players')
         .select('*')
         .eq('id', playerId)
-        .single();
+        .maybeSingle();
 
       if (!playerData) {
         localStorage.removeItem('game_player_id');
@@ -272,7 +299,7 @@ export const useGameSession = () => {
         .from('game_sessions')
         .select('*')
         .eq('id', sessionId)
-        .single();
+        .maybeSingle();
 
       if (!sessionData) {
         localStorage.removeItem('game_player_id');
@@ -295,6 +322,7 @@ export const useGameSession = () => {
     currentPlayer,
     loading,
     error,
+    isConfigured,
     createSession,
     joinSession,
     selectTeam,
