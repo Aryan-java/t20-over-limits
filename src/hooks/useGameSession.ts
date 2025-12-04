@@ -97,7 +97,7 @@ export const useGameSession = () => {
     }
   };
 
-  const createSession = async (nickname: string) => {
+  const createSession = async (nickname: string, teams?: any[]) => {
     const supabase = getSupabase();
     if (!supabase) {
       setError('Multiplayer not available - database not configured');
@@ -111,13 +111,14 @@ export const useGameSession = () => {
       const code = generateCode();
       const playerId = crypto.randomUUID();
 
-      // Create session
+      // Create session with teams in game_state
       const { data: sessionData, error: sessionError } = await supabase
         .from('game_sessions')
         .insert({
           code,
           admin_id: playerId,
-          status: 'lobby'
+          status: 'lobby',
+          game_state: { teams: teams || [] }
         })
         .select()
         .single();

@@ -35,7 +35,12 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
     setError
   } = useGameSession();
 
-  const { teams } = useCricketStore();
+  const { teams: localTeams } = useCricketStore();
+  
+  // Use teams from session game_state (synced), fallback to local teams for admin
+  const teams = session?.game_state?.teams?.length > 0 
+    ? session.game_state.teams 
+    : localTeams;
 
   // Try to rejoin existing session on mount
   useEffect(() => {
@@ -62,7 +67,11 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
       toast({ title: 'Enter your nickname', variant: 'destructive' });
       return;
     }
-    const result = await createSession(nickname.trim());
+    if (localTeams.length === 0) {
+      toast({ title: 'Create teams first before starting multiplayer', variant: 'destructive' });
+      return;
+    }
+    const result = await createSession(nickname.trim(), localTeams);
     if (result) setMode('lobby');
   };
 
