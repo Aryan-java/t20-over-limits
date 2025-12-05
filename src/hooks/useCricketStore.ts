@@ -17,6 +17,7 @@ interface CricketStore {
   updateTeam: (id: string, updates: Partial<Team>) => void;
   removeTeam: (id: string) => void;
   resetTeams: () => void;
+  setTeams: (teams: Team[]) => void;
 
   // Player actions
   addPlayerToTeam: (teamId: string, player: Omit<Player, 'id' | 'position'>) => void;
@@ -118,6 +119,10 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       matchHistory: [],
       currentMatch: null,
     });
+  },
+
+  setTeams: (teams) => {
+    set({ teams });
   },
   
   addPlayerToTeam: (teamId, playerData) => {

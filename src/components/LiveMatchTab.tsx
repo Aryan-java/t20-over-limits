@@ -9,7 +9,12 @@ import TossDialog from "./TossDialog";
 import BallByBallEngine from "./BallByBallEngine";
 import LiveMatchControls from "./LiveMatchControls";
 
-const LiveMatchTab = () => {
+interface LiveMatchTabProps {
+  isMultiplayer?: boolean;
+  controlledTeamId?: string | null;
+}
+
+const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMatchTabProps) => {
   const { currentMatch, setCurrentMatch, updateMatch } = useCricketStore();
   const [showToss, setShowToss] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
@@ -138,6 +143,8 @@ const LiveMatchTab = () => {
               onNextBatsman={handleNextBatsman}
               onSimulateBall={handleSimulateBall}
               onUseImpactPlayer={handleUseImpactPlayer}
+              isMultiplayer={isMultiplayer}
+              controlledTeamId={controlledTeamId}
             />
           )}
         </div>
