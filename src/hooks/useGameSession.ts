@@ -248,6 +248,22 @@ export const useGameSession = () => {
       .eq('id', session.id);
   };
 
+  const updateTeams = async (teams: any[]) => {
+    const supabase = getSupabase();
+    if (!session || !currentPlayer?.is_admin || !supabase) return;
+
+    const newGameState = { ...session.game_state, teams };
+    await supabase
+      .from('game_sessions')
+      .update({ game_state: newGameState, updated_at: new Date().toISOString() })
+      .eq('id', session.id);
+  };
+
+  // Check if current player controls a specific team
+  const playerControlsTeam = (teamId: string) => {
+    return currentPlayer?.team_id === teamId;
+  };
+
   const startGame = async () => {
     const supabase = getSupabase();
     if (!session || !currentPlayer?.is_admin || !supabase) return;
@@ -328,6 +344,8 @@ export const useGameSession = () => {
     joinSession,
     selectTeam,
     updateGameState,
+    updateTeams,
+    playerControlsTeam,
     startGame,
     leaveSession,
     rejoinSession,

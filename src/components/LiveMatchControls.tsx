@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Match, Player } from "@/types/cricket";
-import { RotateCcw, Users, Target } from "lucide-react";
+import { RotateCcw, Users, Target, Lock } from "lucide-react";
 
 interface LiveMatchControlsProps {
   match: Match;
@@ -13,6 +14,9 @@ interface LiveMatchControlsProps {
   onNextBatsman: (batsmanId: string) => void;
   onSimulateBall: () => void;
   onUseImpactPlayer: (playerId: string, replacePlayerId: string) => void;
+  // Multiplayer turn control
+  controlledTeamId?: string | null;
+  isMultiplayer?: boolean;
 }
 
 const LiveMatchControls = ({ 
@@ -20,7 +24,9 @@ const LiveMatchControls = ({
   onBowlerChange, 
   onNextBatsman, 
   onSimulateBall,
-  onUseImpactPlayer 
+  onUseImpactPlayer,
+  controlledTeamId,
+  isMultiplayer = false
 }: LiveMatchControlsProps) => {
   const [showBowlerSelection, setShowBowlerSelection] = useState(false);
   const [showBatsmanSelection, setShowBatsmanSelection] = useState(false);
@@ -123,8 +129,37 @@ const LiveMatchControls = ({
   const isOverComplete = innings.ballsBowled % 6 === 0 && innings.ballsBowled > 0;
   const isWicketFallen = innings.currentBatsmen.striker?.dismissed || innings.currentBatsmen.nonStriker?.dismissed;
 
+  // Determine which team controls what in multiplayer
+  const battingTeamId = innings.battingTeam === match.team1.name ? match.team1.id : match.team2.id;
+  const bowlingTeamId = innings.bowlingTeam === match.team1.name ? match.team1.id : match.team2.id;
+  
+  // Check if current player can control batting/bowling
+  const canControlBatting = !isMultiplayer || controlledTeamId === battingTeamId;
+  const canControlBowling = !isMultiplayer || controlledTeamId === bowlingTeamId;
+  const canSimulate = !isMultiplayer || canControlBatting || canControlBowling;
+
+  // Get current turn info for display
+  const getBattingTeamName = () => innings.battingTeam;
+  const getBowlingTeamName = () => innings.bowlingTeam;
+
   return (
     <div className="space-y-4">
+      {/* Turn indicator for multiplayer */}
+      {isMultiplayer && (
+        <Alert className={canSimulate ? "border-green-500 bg-green-500/10" : "border-yellow-500 bg-yellow-500/10"}>
+          <AlertDescription className="flex items-center gap-2">
+            {canSimulate ? (
+              <>Your turn! You control <strong>{controlledTeamId === battingTeamId ? getBattingTeamName() : getBowlingTeamName()}</strong></>
+            ) : (
+              <>
+                <Lock className="h-4 w-4" />
+                Waiting for opponent's action...
+              </>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -140,9 +175,16 @@ const LiveMatchControls = ({
             <Button 
               onClick={onSimulateBall}
               className="flex-1 bg-cricket-green hover:bg-cricket-green/90"
-              disabled={innings.isCompleted}
+              disabled={innings.isCompleted || (isMultiplayer && !canSimulate)}
             >
-              Simulate Next Ball
+              {isMultiplayer && !canSimulate ? (
+                <>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Waiting for opponent
+                </>
+              ) : (
+                "Simulate Next Ball"
+              )}
             </Button>
           </div>
 
@@ -153,9 +195,11 @@ const LiveMatchControls = ({
                 variant="outline" 
                 onClick={() => setShowBowlerSelection(true)}
                 className="flex items-center space-x-2"
+                disabled={isMultiplayer && !canControlBowling}
               >
                 <RotateCcw className="h-4 w-4" />
                 <span>Change Bowler</span>
+                {isMultiplayer && !canControlBowling && <Lock className="h-3 w-3 ml-1" />}
               </Button>
             )}
             
@@ -164,20 +208,23 @@ const LiveMatchControls = ({
                 variant="outline" 
                 onClick={() => setShowBatsmanSelection(true)}
                 className="flex items-center space-x-2"
+                disabled={isMultiplayer && !canControlBatting}
               >
                 <Users className="h-4 w-4" />
                 <span>Next Batsman</span>
+                {isMultiplayer && !canControlBatting && <Lock className="h-3 w-3 ml-1" />}
               </Button>
             )}
             
             <Button 
               variant="outline" 
               onClick={() => setShowImpactSelection(true)}
-              disabled={impactPlayerUsed}
+              disabled={impactPlayerUsed || (isMultiplayer && !canControlBatting)}
               className="flex items-center space-x-2"
             >
               <Target className="h-4 w-4" />
               <span>{impactPlayerUsed ? "Impact Used" : "Impact Player"}</span>
+              {isMultiplayer && !canControlBatting && <Lock className="h-3 w-3 ml-1" />}
             </Button>
           </div>
 

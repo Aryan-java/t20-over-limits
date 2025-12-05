@@ -8,6 +8,8 @@ import { useGameSession, GamePlayer } from '@/hooks/useGameSession';
 import { useCricketStore } from '@/hooks/useCricketStore';
 import { Copy, Users, Crown, UserCheck, Play, LogOut, AlertCircle } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
+import LobbyTeamCreator from './LobbyTeamCreator';
+import { Team } from '@/types/cricket';
 
 interface GameLobbyProps {
   onGameStart: () => void;
@@ -30,18 +32,23 @@ const GameLobby = ({ onGameStart, onBack }: GameLobbyProps) => {
     createSession,
     joinSession,
     selectTeam,
+    updateTeams,
     startGame,
     leaveSession,
     rejoinSession,
     setError
   } = useGameSession();
 
-  const { teams: localTeams } = useCricketStore();
+  const { teams: localTeams, setTeams: setLocalTeams } = useCricketStore();
   
-  // Use teams from session game_state (synced), fallback to local teams for admin
-  const teams = session?.game_state?.teams?.length > 0 
-    ? session.game_state.teams 
-    : localTeams;
+  // Use teams from session game_state (synced)
+  const teams: Team[] = session?.game_state?.teams || [];
+
+  const handleTeamsChange = async (newTeams: Team[]) => {
+    await updateTeams(newTeams);
+    // Also update local store so it's available after game starts
+    setLocalTeams(newTeams);
+  };
 
   // Try to rejoin existing session on mount
   useEffect(() => {
@@ -306,6 +313,13 @@ const GameLobby = ({ onGameStart, onBack }: GameLobbyProps) => {
           </CardContent>
         </Card>
 
+        {/* Team Management for Admin */}
+        <LobbyTeamCreator 
+          teams={teams}
+          onTeamsChange={handleTeamsChange}
+          isAdmin={currentPlayer?.is_admin || false}
+        />
+
         {/* Team selection */}
         <Card>
           <CardHeader>
@@ -360,7 +374,7 @@ const GameLobby = ({ onGameStart, onBack }: GameLobbyProps) => {
 
             {teams.length === 0 && (
               <p className="text-center text-muted-foreground py-8">
-                No teams created yet. Admin needs to set up teams first.
+                Admin needs to create teams first.
               </p>
             )}
           </CardContent>
@@ -380,14 +394,16 @@ const GameLobby = ({ onGameStart, onBack }: GameLobbyProps) => {
                 onClick={handleStart}
                 size="lg"
                 className="w-full"
-                disabled={players.filter(p => p.team_id).length < 2}
+                disabled={players.filter(p => p.team_id).length < 2 || teams.length < 2}
               >
                 <Play className="mr-2 h-5 w-5" />
                 Start Game
               </Button>
-              {players.filter(p => p.team_id).length < 2 && (
+              {(teams.length < 2 || players.filter(p => p.team_id).length < 2) && (
                 <p className="text-sm text-muted-foreground text-center mt-2">
-                  Need at least 2 players with teams selected
+                  {teams.length < 2 
+                    ? 'Create at least 2 teams first' 
+                    : 'Need at least 2 players with teams selected'}
                 </p>
               )}
             </CardContent>

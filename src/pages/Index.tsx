@@ -9,6 +9,7 @@ import StatsTab from "@/components/StatsTab";
 import GameLobby from "@/components/GameLobby";
 import GameModeSelector from "@/components/GameModeSelector";
 import { TabsContent } from "@/components/ui/tabs";
+import { useGameSession } from "@/hooks/useGameSession";
 
 type GameMode = 'selecting' | 'single' | 'multiplayer';
 
@@ -16,6 +17,8 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("teams");
   const [gameMode, setGameMode] = useState<GameMode>('selecting');
   const [multiplayerStarted, setMultiplayerStarted] = useState(false);
+  
+  const { currentPlayer } = useGameSession();
 
   // Check if there's an existing multiplayer session
   useEffect(() => {
@@ -71,10 +74,13 @@ const Index = () => {
     );
   }
 
+  const isMultiplayer = gameMode === 'multiplayer';
+  const controlledTeamId = currentPlayer?.team_id || null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30">
       <CricketHeader 
-        isMultiplayer={gameMode === 'multiplayer'} 
+        isMultiplayer={isMultiplayer} 
         onExitMultiplayer={handleExitMultiplayer}
       />
       
@@ -85,7 +91,10 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="live">
-            <LiveMatchTab />
+            <LiveMatchTab 
+              isMultiplayer={isMultiplayer}
+              controlledTeamId={controlledTeamId}
+            />
           </TabsContent>
 
           <TabsContent value="tournament">
