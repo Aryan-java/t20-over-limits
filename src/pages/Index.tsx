@@ -7,42 +7,74 @@ import LiveMatchTab from "@/components/LiveMatchTab";
 import TournamentTab from "@/components/TournamentTab";
 import StatsTab from "@/components/StatsTab";
 import GameLobby from "@/components/GameLobby";
+import GameModeSelector from "@/components/GameModeSelector";
 import { TabsContent } from "@/components/ui/tabs";
+
+type GameMode = 'selecting' | 'single' | 'multiplayer';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("teams");
-  const [gameStarted, setGameStarted] = useState(false);
-  const [isMultiplayer, setIsMultiplayer] = useState(false);
+  const [gameMode, setGameMode] = useState<GameMode>('selecting');
+  const [multiplayerStarted, setMultiplayerStarted] = useState(false);
 
-  // Check if there's an existing session
+  // Check if there's an existing multiplayer session
   useEffect(() => {
     const sessionId = localStorage.getItem('game_session_id');
     if (sessionId) {
-      setIsMultiplayer(true);
+      setGameMode('multiplayer');
     }
   }, []);
 
-  const handleGameStart = () => {
-    setGameStarted(true);
+  const handleSelectSingle = () => {
+    setGameMode('single');
+  };
+
+  const handleSelectMultiplayer = () => {
+    setGameMode('multiplayer');
+  };
+
+  const handleMultiplayerGameStart = () => {
+    setMultiplayerStarted(true);
   };
 
   const handleExitMultiplayer = () => {
     localStorage.removeItem('game_player_id');
     localStorage.removeItem('game_session_id');
-    setIsMultiplayer(false);
-    setGameStarted(false);
+    setGameMode('selecting');
+    setMultiplayerStarted(false);
   };
 
-  // Show lobby if multiplayer mode and game hasn't started
-  if (isMultiplayer && !gameStarted) {
-    return <GameLobby onGameStart={handleGameStart} />;
+  const handleBackToModeSelect = () => {
+    setGameMode('selecting');
+  };
+
+  // Show mode selection at start
+  if (gameMode === 'selecting') {
+    return (
+      <>
+        <GameModeSelector 
+          onSelectSingle={handleSelectSingle}
+          onSelectMultiplayer={handleSelectMultiplayer}
+        />
+        <Toaster />
+      </>
+    );
+  }
+
+  // Show multiplayer lobby if multiplayer mode and game hasn't started
+  if (gameMode === 'multiplayer' && !multiplayerStarted) {
+    return (
+      <GameLobby 
+        onGameStart={handleMultiplayerGameStart} 
+        onBack={handleBackToModeSelect}
+      />
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30">
       <CricketHeader 
-        isMultiplayer={isMultiplayer} 
-        onMultiplayerClick={() => setIsMultiplayer(true)}
+        isMultiplayer={gameMode === 'multiplayer'} 
         onExitMultiplayer={handleExitMultiplayer}
       />
       

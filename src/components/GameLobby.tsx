@@ -11,9 +11,10 @@ import { isSupabaseConfigured } from '@/lib/supabaseClient';
 
 interface GameLobbyProps {
   onGameStart: () => void;
+  onBack: () => void;
 }
 
-const GameLobby = ({ onGameStart }: GameLobbyProps) => {
+const GameLobby = ({ onGameStart, onBack }: GameLobbyProps) => {
   const [mode, setMode] = useState<'menu' | 'create' | 'join' | 'lobby'>('menu');
   const [nickname, setNickname] = useState('');
   const [gameCode, setGameCode] = useState('');
@@ -67,11 +68,8 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
       toast({ title: 'Enter your nickname', variant: 'destructive' });
       return;
     }
-    if (localTeams.length === 0) {
-      toast({ title: 'Create teams first before starting multiplayer', variant: 'destructive' });
-      return;
-    }
-    const result = await createSession(nickname.trim(), localTeams);
+    // Pass local teams if available, otherwise empty array
+    const result = await createSession(nickname.trim(), localTeams.length > 0 ? localTeams : []);
     if (result) setMode('lobby');
   };
 
@@ -129,13 +127,20 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
               Database connection not configured. Please try again later or play in single-player mode.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <Button 
               onClick={() => window.location.reload()} 
               variant="outline"
               className="w-full"
             >
               Retry Connection
+            </Button>
+            <Button 
+              onClick={onBack} 
+              variant="ghost"
+              className="w-full"
+            >
+              Back to Mode Selection
             </Button>
           </CardContent>
         </Card>
@@ -148,8 +153,8 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-primary">🏏 Cricket Manager</CardTitle>
-            <CardDescription>Multiplayer Cricket Simulation</CardDescription>
+            <CardTitle className="text-3xl font-bold text-primary">🏏 Multiplayer</CardTitle>
+            <CardDescription>Play against your friends</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button 
@@ -158,7 +163,7 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
               size="lg"
             >
               <Crown className="mr-2 h-5 w-5" />
-              Create Game (Admin)
+              Create Game
             </Button>
             <Button 
               onClick={() => setMode('join')} 
@@ -168,6 +173,13 @@ const GameLobby = ({ onGameStart }: GameLobbyProps) => {
             >
               <Users className="mr-2 h-5 w-5" />
               Join Game
+            </Button>
+            <Button 
+              onClick={onBack} 
+              variant="ghost" 
+              className="w-full"
+            >
+              Back
             </Button>
           </CardContent>
         </Card>
