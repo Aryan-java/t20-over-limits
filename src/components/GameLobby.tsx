@@ -9,6 +9,7 @@ import { useCricketStore } from '@/hooks/useCricketStore';
 import { Copy, Users, Crown, UserCheck, Play, LogOut, AlertCircle } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import LobbyTeamCreator from './LobbyTeamCreator';
+import LobbyChat from './LobbyChat';
 import { Team } from '@/types/cricket';
 
 interface GameLobbyProps {
@@ -379,6 +380,14 @@ const GameLobby = ({ onGameStart, onBack }: GameLobbyProps) => {
             )}
           </CardContent>
         </Card>
+
+        {/* Lobby Chat */}
+        {session && currentPlayer && (
+          <LobbyChat 
+            sessionId={session.id} 
+            playerNickname={currentPlayer.nickname} 
+          />
+        )}
 
         {/* Admin controls */}
         {currentPlayer?.is_admin && (

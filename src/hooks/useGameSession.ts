@@ -240,11 +240,28 @@ export const useGameSession = () => {
 
   const updateGameState = async (gameState: any) => {
     const supabase = getSupabase();
-    if (!session || !currentPlayer?.is_admin || !supabase) return;
+    if (!session || !supabase) return;
 
+    // Allow any player to update game state (for match state sync)
     await supabase
       .from('game_sessions')
       .update({ game_state: gameState, updated_at: new Date().toISOString() })
+      .eq('id', session.id);
+  };
+
+  // Sync match state - merges match state into game_state
+  const syncMatchState = async (matchState: any) => {
+    const supabase = getSupabase();
+    if (!session || !supabase) return;
+
+    const newGameState = { 
+      ...session.game_state, 
+      matchState 
+    };
+
+    await supabase
+      .from('game_sessions')
+      .update({ game_state: newGameState, updated_at: new Date().toISOString() })
       .eq('id', session.id);
   };
 
@@ -345,6 +362,7 @@ export const useGameSession = () => {
     selectTeam,
     updateGameState,
     updateTeams,
+    syncMatchState,
     playerControlsTeam,
     startGame,
     leaveSession,

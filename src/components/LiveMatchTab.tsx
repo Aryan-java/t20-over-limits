@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import LiveScoreboard from "./LiveScoreboard";
 import TossDialog from "./TossDialog";
 import BallByBallEngine from "./BallByBallEngine";
 import LiveMatchControls from "./LiveMatchControls";
+import { useGameSession, GameSession } from "@/hooks/useGameSession";
+import { getSupabase } from "@/lib/supabaseClient";
 
 interface LiveMatchTabProps {
   isMultiplayer?: boolean;
@@ -16,8 +18,57 @@ interface LiveMatchTabProps {
 
 const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMatchTabProps) => {
   const { currentMatch, setCurrentMatch, updateMatch } = useCricketStore();
+  const { session, syncMatchState } = useGameSession();
   const [showToss, setShowToss] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
+
+  // Sync match state to all players in multiplayer mode
+  useEffect(() => {
+    if (!isMultiplayer || !currentMatch || !session) return;
+    
+    // Only sync if this player made a change (debounced in the store)
+    const timeoutId = setTimeout(() => {
+      syncMatchState(currentMatch);
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentMatch, isMultiplayer, session, syncMatchState]);
+
+  // Listen for match state updates from other players
+  useEffect(() => {
+    if (!isMultiplayer || !session) return;
+
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel(`match-sync-${session.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'game_sessions',
+          filter: `id=eq.${session.id}`
+        },
+        (payload) => {
+          const newSession = payload.new as GameSession;
+          const matchState = newSession.game_state?.matchState;
+          
+          if (matchState && JSON.stringify(matchState) !== JSON.stringify(currentMatch)) {
+            setCurrentMatch(matchState);
+            if (matchState.isLive) {
+              setMatchStarted(true);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isMultiplayer, session?.id]);
 
   const handleBowlerChange = (bowlerId: string) => {
     // Update current bowler in match state
