@@ -118,7 +118,13 @@ export const useGameSession = () => {
           code,
           admin_id: playerId,
           status: 'lobby',
-          game_state: { teams: teams || [] }
+          game_state: { 
+            teams: teams || [],
+            fixtures: [],
+            tournament: null,
+            currentMatch: null,
+            matchReadyTeams: [], // Teams that have pressed "Ready"
+          }
         })
         .select()
         .single();
@@ -249,6 +255,28 @@ export const useGameSession = () => {
       .eq('id', session.id);
   };
 
+  // Sync entire game state (teams, fixtures, tournament, currentMatch)
+  const syncFullGameState = async (stateUpdates: Partial<{
+    teams: any[];
+    fixtures: any[];
+    tournament: any;
+    currentMatch: any;
+    matchReadyTeams: string[];
+  }>) => {
+    const supabase = getSupabase();
+    if (!session || !supabase) return;
+
+    const newGameState = { 
+      ...session.game_state, 
+      ...stateUpdates 
+    };
+
+    await supabase
+      .from('game_sessions')
+      .update({ game_state: newGameState, updated_at: new Date().toISOString() })
+      .eq('id', session.id);
+  };
+
   // Sync match state - merges match state into game_state
   const syncMatchState = async (matchState: any) => {
     const supabase = getSupabase();
@@ -256,13 +284,31 @@ export const useGameSession = () => {
 
     const newGameState = { 
       ...session.game_state, 
-      matchState 
+      currentMatch: matchState,
+      matchState // Keep for backwards compatibility
     };
 
     await supabase
       .from('game_sessions')
       .update({ game_state: newGameState, updated_at: new Date().toISOString() })
       .eq('id', session.id);
+  };
+
+  // Mark team as ready for match
+  const setTeamReady = async (teamId: string) => {
+    const supabase = getSupabase();
+    if (!session || !supabase) return;
+
+    const currentReadyTeams = session.game_state?.matchReadyTeams || [];
+    if (currentReadyTeams.includes(teamId)) return;
+
+    const newReadyTeams = [...currentReadyTeams, teamId];
+    await syncFullGameState({ matchReadyTeams: newReadyTeams });
+  };
+
+  // Clear ready status
+  const clearMatchReady = async () => {
+    await syncFullGameState({ matchReadyTeams: [] });
   };
 
   const updateTeams = async (teams: any[]) => {
@@ -276,9 +322,24 @@ export const useGameSession = () => {
       .eq('id', session.id);
   };
 
+  // Sync fixtures to all players
+  const syncFixtures = async (fixtures: any[]) => {
+    await syncFullGameState({ fixtures });
+  };
+
+  // Sync tournament to all players
+  const syncTournament = async (tournament: any) => {
+    await syncFullGameState({ tournament });
+  };
+
   // Check if current player controls a specific team
   const playerControlsTeam = (teamId: string) => {
     return currentPlayer?.team_id === teamId;
+  };
+
+  // Get which team the current player is controlling
+  const getControlledTeamId = () => {
+    return currentPlayer?.team_id || null;
   };
 
   const startGame = async () => {
@@ -363,7 +424,13 @@ export const useGameSession = () => {
     updateGameState,
     updateTeams,
     syncMatchState,
+    syncFullGameState,
+    syncFixtures,
+    syncTournament,
+    setTeamReady,
+    clearMatchReady,
     playerControlsTeam,
+    getControlledTeamId,
     startGame,
     leaveSession,
     rejoinSession,

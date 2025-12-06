@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, RotateCcw, Trophy } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Play, RotateCcw, Trophy, Eye, Users } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import LiveScoreboard from "./LiveScoreboard";
 import TossDialog from "./TossDialog";
@@ -22,11 +23,17 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
   const [showToss, setShowToss] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
 
+  // Check if current player is part of this match
+  const isParticipant = currentMatch && controlledTeamId && 
+    (currentMatch.team1.id === controlledTeamId || currentMatch.team2.id === controlledTeamId);
+  
+  const isSpectator = isMultiplayer && currentMatch && !isParticipant;
+
   // Sync match state to all players in multiplayer mode
   useEffect(() => {
     if (!isMultiplayer || !currentMatch || !session) return;
     
-    // Only sync if this player made a change (debounced in the store)
+    // Only sync if this player made a change (debounced)
     const timeoutId = setTimeout(() => {
       syncMatchState(currentMatch);
     }, 100);
@@ -53,7 +60,7 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
         },
         (payload) => {
           const newSession = payload.new as GameSession;
-          const matchState = newSession.game_state?.matchState;
+          const matchState = newSession.game_state?.currentMatch || newSession.game_state?.matchState;
           
           if (matchState && JSON.stringify(matchState) !== JSON.stringify(currentMatch)) {
             setCurrentMatch(matchState);
@@ -70,23 +77,26 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
     };
   }, [isMultiplayer, session?.id]);
 
+  // Auto-start match view when match is live
+  useEffect(() => {
+    if (currentMatch?.isLive && !matchStarted) {
+      setMatchStarted(true);
+    }
+  }, [currentMatch?.isLive]);
+
   const handleBowlerChange = (bowlerId: string) => {
-    // Update current bowler in match state
     console.log("Changing bowler to:", bowlerId);
   };
 
   const handleNextBatsman = (batsmanId: string) => {
-    // Update batting lineup
     console.log("Next batsman:", batsmanId);
   };
 
   const handleSimulateBall = () => {
-    // Simulate next ball
     console.log("Simulating ball");
   };
 
   const handleUseImpactPlayer = (playerId: string, replacePlayerId: string) => {
-    // Use impact player substitution
     console.log("Using impact player:", playerId, "to replace:", replacePlayerId);
   };
 
@@ -97,7 +107,10 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
           <div className="text-4xl">🏏</div>
           <h3 className="text-lg font-medium">No active match</h3>
           <p className="text-muted-foreground">
-            Start a match from the Fixtures tab to begin live simulation
+            {isMultiplayer 
+              ? "Both team managers must be ready in Fixtures tab to start a match"
+              : "Start a match from the Fixtures tab to begin live simulation"
+            }
           </p>
         </div>
       </div>
@@ -112,8 +125,7 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
     }
   };
 
-  const handleTossComplete = () => {
-    // Use fresh state to avoid any stale data after toss update
+  const handleTossComplete = async () => {
     const m = useCricketStore.getState().currentMatch;
     if (!m || !m.tossWinner || !m.tossChoice) {
       setShowToss(false);
@@ -122,7 +134,6 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
 
     setShowToss(false);
 
-    // Determine batting and bowling teams based on toss result and choice
     const otherTeamName = m.tossWinner.name === m.team1.name ? m.team2.name : m.team1.name;
     const battingTeam = m.tossChoice === 'bat' ? m.tossWinner.name : otherTeamName;
     const bowlingTeam = m.tossChoice === 'bowl' ? m.tossWinner.name : otherTeamName;
@@ -154,8 +165,22 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
 
     setMatchStarted(true);
   };
+
+  // Determine if current player can control toss/start
+  const canControlMatch = !isMultiplayer || isParticipant;
+
   return (
     <div className="space-y-6">
+      {/* Spectator banner */}
+      {isSpectator && (
+        <Alert className="border-blue-500 bg-blue-500/10">
+          <AlertDescription className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            <span>You're spectating this match. Only team managers can control the game.</span>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Live Match</h2>
@@ -165,17 +190,26 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
         </div>
         
         <div className="flex space-x-2">
-          {!matchStarted && (
+          {!matchStarted && canControlMatch && (
             <Button onClick={handleStartMatch} className="bg-cricket-green hover:bg-cricket-green/90">
               <Play className="h-4 w-4 mr-2" />
               {currentMatch.tossWinner ? 'Start Match' : 'Start Toss'}
             </Button>
           )}
           
-          <Button variant="outline" onClick={() => setCurrentMatch(null)}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            End Match
-          </Button>
+          {!matchStarted && !canControlMatch && (
+            <Button disabled variant="outline">
+              <Users className="h-4 w-4 mr-2" />
+              Waiting for teams...
+            </Button>
+          )}
+          
+          {canControlMatch && (
+            <Button variant="outline" onClick={() => setCurrentMatch(null)}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              End Match
+            </Button>
+          )}
         </div>
       </div>
 
@@ -211,6 +245,19 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
                 <Badge>T{currentMatch.overs}</Badge>
               </div>
               
+              {isMultiplayer && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Your Role</span>
+                  <Badge variant={isSpectator ? "secondary" : "default"}>
+                    {isSpectator ? "Spectator" : (
+                      controlledTeamId === currentMatch.team1.id 
+                        ? currentMatch.team1.name 
+                        : currentMatch.team2.name
+                    )}
+                  </Badge>
+                </div>
+              )}
+              
               {currentMatch.tossWinner && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -243,22 +290,26 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <div className="font-medium">{currentMatch.team1.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  Playing XI: {currentMatch.team1Setup?.playingXI?.length || 0}/11
+                <div className="font-medium flex items-center gap-2">
+                  {currentMatch.team1.name}
+                  {controlledTeamId === currentMatch.team1.id && (
+                    <Badge variant="outline" className="text-xs">You</Badge>
+                  )}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Impact: {currentMatch.team1Setup?.impactPlayers?.length || 0}/4
+                  Playing XI: {currentMatch.team1Setup?.playingXI?.length || 0}/11
                 </div>
               </div>
               
               <div className="border-t pt-4 space-y-2">
-                <div className="font-medium">{currentMatch.team2.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  Playing XI: {currentMatch.team2Setup?.playingXI?.length || 0}/11
+                <div className="font-medium flex items-center gap-2">
+                  {currentMatch.team2.name}
+                  {controlledTeamId === currentMatch.team2.id && (
+                    <Badge variant="outline" className="text-xs">You</Badge>
+                  )}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Impact: {currentMatch.team2Setup?.impactPlayers?.length || 0}/4
+                  Playing XI: {currentMatch.team2Setup?.playingXI?.length || 0}/11
                 </div>
               </div>
             </CardContent>
