@@ -34,6 +34,7 @@ interface CricketStore {
   // Fixture actions
   generateFixtures: (format?: 'single' | 'double') => void;
   resetFixtures: () => void;
+  setFixtures: (fixtures: Fixture[]) => void;
   
   // Tournament actions
   initializeTournament: (format: 'single' | 'double') => void;
@@ -339,6 +340,10 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       matchHistory: [],
       currentMatch: null,
     });
+  },
+
+  setFixtures: (fixtures) => {
+    set({ fixtures });
   },
 
   initializeTournament: (format: 'single' | 'double') => {

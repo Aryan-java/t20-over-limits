@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Match, Player } from "@/types/cricket";
-import { RotateCcw, Users, Target, Lock } from "lucide-react";
+import { RotateCcw, Users, Target, Lock, Eye } from "lucide-react";
 
 interface LiveMatchControlsProps {
   match: Match;
@@ -136,7 +136,12 @@ const LiveMatchControls = ({
   // Check if current player can control batting/bowling
   const canControlBatting = !isMultiplayer || controlledTeamId === battingTeamId;
   const canControlBowling = !isMultiplayer || controlledTeamId === bowlingTeamId;
-  const canSimulate = !isMultiplayer || canControlBatting || canControlBowling;
+  
+  // In multiplayer: ONLY bowling team can simulate balls
+  const canSimulate = !isMultiplayer || canControlBowling;
+  
+  // Is this player a spectator (not controlling either team in this match)?
+  const isSpectator = isMultiplayer && !canControlBatting && !canControlBowling;
 
   // Get current turn info for display
   const getBattingTeamName = () => innings.battingTeam;
@@ -146,14 +151,28 @@ const LiveMatchControls = ({
     <div className="space-y-4">
       {/* Turn indicator for multiplayer */}
       {isMultiplayer && (
-        <Alert className={canSimulate ? "border-green-500 bg-green-500/10" : "border-yellow-500 bg-yellow-500/10"}>
+        <Alert className={
+          isSpectator 
+            ? "border-blue-500 bg-blue-500/10" 
+            : canSimulate 
+              ? "border-green-500 bg-green-500/10" 
+              : "border-yellow-500 bg-yellow-500/10"
+        }>
           <AlertDescription className="flex items-center gap-2">
-            {canSimulate ? (
-              <>Your turn! You control <strong>{controlledTeamId === battingTeamId ? getBattingTeamName() : getBowlingTeamName()}</strong></>
-            ) : (
+            {isSpectator ? (
               <>
                 <Lock className="h-4 w-4" />
-                Waiting for opponent's action...
+                Spectating - You are not controlling either team in this match
+              </>
+            ) : canSimulate ? (
+              <>
+                <Target className="h-4 w-4" />
+                You're bowling! Select bowler and simulate balls
+              </>
+            ) : (
+              <>
+                <Users className="h-4 w-4" />
+                You're batting! Select batsmen when wickets fall
               </>
             )}
           </AlertDescription>

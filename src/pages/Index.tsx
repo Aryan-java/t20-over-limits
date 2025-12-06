@@ -6,10 +6,13 @@ import TeamsTab from "@/components/TeamsTab";
 import LiveMatchTab from "@/components/LiveMatchTab";
 import TournamentTab from "@/components/TournamentTab";
 import StatsTab from "@/components/StatsTab";
+import FixturesTab from "@/components/FixturesTab";
+import MultiplayerFixturesTab from "@/components/MultiplayerFixturesTab";
 import GameLobby from "@/components/GameLobby";
 import GameModeSelector from "@/components/GameModeSelector";
 import { TabsContent } from "@/components/ui/tabs";
 import { useGameSession } from "@/hooks/useGameSession";
+import { useCricketStore } from "@/hooks/useCricketStore";
 
 type GameMode = 'selecting' | 'single' | 'multiplayer';
 
@@ -18,7 +21,8 @@ const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('selecting');
   const [multiplayerStarted, setMultiplayerStarted] = useState(false);
   
-  const { currentPlayer } = useGameSession();
+  const { session, currentPlayer, players } = useGameSession();
+  const { setTeams, setCurrentMatch, currentMatch } = useCricketStore();
 
   // Check if there's an existing multiplayer session
   useEffect(() => {
@@ -27,6 +31,27 @@ const Index = () => {
       setGameMode('multiplayer');
     }
   }, []);
+
+  // Sync game state from session for multiplayer
+  useEffect(() => {
+    if (gameMode === 'multiplayer' && session?.game_state) {
+      // Sync teams
+      if (session.game_state.teams && session.game_state.teams.length > 0) {
+        setTeams(session.game_state.teams);
+      }
+      // Sync current match
+      if (session.game_state.currentMatch) {
+        setCurrentMatch(session.game_state.currentMatch);
+      }
+    }
+  }, [session?.game_state, gameMode]);
+
+  // Auto-switch to Live tab when match starts in multiplayer
+  useEffect(() => {
+    if (gameMode === 'multiplayer' && currentMatch?.isLive) {
+      setActiveTab('live');
+    }
+  }, [currentMatch?.isLive, gameMode]);
 
   const handleSelectSingle = () => {
     setGameMode('single');
@@ -76,6 +101,7 @@ const Index = () => {
 
   const isMultiplayer = gameMode === 'multiplayer';
   const controlledTeamId = currentPlayer?.team_id || null;
+  const isAdmin = currentPlayer?.is_admin || false;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30">
@@ -88,6 +114,17 @@ const Index = () => {
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab}>
           <TabsContent value="teams">
             <TeamsTab />
+          </TabsContent>
+
+          <TabsContent value="fixtures">
+            {isMultiplayer ? (
+              <MultiplayerFixturesTab 
+                controlledTeamId={controlledTeamId}
+                isAdmin={isAdmin}
+              />
+            ) : (
+              <FixturesTab />
+            )}
           </TabsContent>
 
           <TabsContent value="live">
