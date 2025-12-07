@@ -124,6 +124,7 @@ export const useGameSession = () => {
             tournament: null,
             currentMatch: null,
             matchReadyTeams: [], // Teams that have pressed "Ready"
+            matchHistory: [], // All completed matches
           }
         })
         .select()
@@ -255,13 +256,14 @@ export const useGameSession = () => {
       .eq('id', session.id);
   };
 
-  // Sync entire game state (teams, fixtures, tournament, currentMatch)
+  // Sync entire game state (teams, fixtures, tournament, currentMatch, matchHistory)
   const syncFullGameState = async (stateUpdates: Partial<{
     teams: any[];
     fixtures: any[];
     tournament: any;
     currentMatch: any;
     matchReadyTeams: string[];
+    matchHistory: any[];
   }>) => {
     const supabase = getSupabase();
     if (!session || !supabase) return;
@@ -275,6 +277,11 @@ export const useGameSession = () => {
       .from('game_sessions')
       .update({ game_state: newGameState, updated_at: new Date().toISOString() })
       .eq('id', session.id);
+  };
+
+  // Sync match history to all players
+  const syncMatchHistory = async (matchHistory: any[]) => {
+    await syncFullGameState({ matchHistory });
   };
 
   // Sync match state - merges match state into game_state
@@ -427,6 +434,7 @@ export const useGameSession = () => {
     syncFullGameState,
     syncFixtures,
     syncTournament,
+    syncMatchHistory,
     setTeamReady,
     clearMatchReady,
     playerControlsTeam,

@@ -22,7 +22,7 @@ const Index = () => {
   const [multiplayerStarted, setMultiplayerStarted] = useState(false);
   
   const { session, currentPlayer, players } = useGameSession();
-  const { setTeams, setCurrentMatch, currentMatch } = useCricketStore();
+  const { setTeams, setCurrentMatch, setFixtures, setTournament, setMatchHistory, currentMatch } = useCricketStore();
 
   // Check if there's an existing multiplayer session
   useEffect(() => {
@@ -32,19 +32,31 @@ const Index = () => {
     }
   }, []);
 
-  // Sync game state from session for multiplayer
+  // Sync ALL game state from session for multiplayer - this ensures all players see the same state
   useEffect(() => {
     if (gameMode === 'multiplayer' && session?.game_state) {
       // Sync teams
-      if (session.game_state.teams && session.game_state.teams.length > 0) {
+      if (session.game_state.teams) {
         setTeams(session.game_state.teams);
+      }
+      // Sync fixtures
+      if (session.game_state.fixtures) {
+        setFixtures(session.game_state.fixtures);
       }
       // Sync current match
       if (session.game_state.currentMatch) {
         setCurrentMatch(session.game_state.currentMatch);
       }
+      // Sync tournament state
+      if (session.game_state.tournament !== undefined) {
+        setTournament(session.game_state.tournament);
+      }
+      // Sync match history
+      if (session.game_state.matchHistory) {
+        setMatchHistory(session.game_state.matchHistory);
+      }
     }
-  }, [session?.game_state, gameMode]);
+  }, [session?.game_state, gameMode, setTeams, setFixtures, setCurrentMatch, setTournament, setMatchHistory]);
 
   // Auto-switch to Live tab when match starts in multiplayer
   useEffect(() => {
@@ -135,7 +147,10 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="tournament">
-            <TournamentTab />
+            <TournamentTab 
+              isMultiplayer={isMultiplayer}
+              isAdmin={isAdmin}
+            />
           </TabsContent>
 
           <TabsContent value="stats">

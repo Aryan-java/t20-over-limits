@@ -218,7 +218,10 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
           <LiveScoreboard match={currentMatch} />
           
           {matchStarted && (
-            <BallByBallEngine match={currentMatch} />
+            <BallByBallEngine 
+              match={currentMatch} 
+              isMultiplayer={isMultiplayer}
+            />
           )}
           
           {matchStarted && (
