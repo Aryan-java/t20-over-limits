@@ -41,6 +41,8 @@ interface CricketStore {
   startPlayoffs: () => void;
   updateTournamentStats: () => void;
   resetTournament: () => void;
+  setTournament: (tournament: Tournament | null) => void;
+  setMatchHistory: (history: MatchHistory[]) => void;
 
   // Match actions
   createMatch: (team1Id: string, team2Id: string, team1Setup?: Match['team1Setup'], team2Setup?: Match['team2Setup']) => Match;
@@ -481,6 +483,14 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       matchHistory: [],
       currentMatch: null,
     });
+  },
+
+  setTournament: (tournament) => {
+    set({ tournament });
+  },
+
+  setMatchHistory: (history) => {
+    set({ matchHistory: history });
   },
   
   createMatch: (team1Id, team2Id, team1Setup, team2Setup) => {

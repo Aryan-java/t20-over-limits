@@ -24,33 +24,38 @@ interface MultiplayerFixturesTabProps {
 }
 
 const MultiplayerFixturesTab = ({ controlledTeamId, isAdmin }: MultiplayerFixturesTabProps) => {
-  const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch, setTeams, setFixtures } = useCricketStore();
-  const { session, syncFullGameState, syncFixtures, setTeamReady, clearMatchReady } = useGameSession();
+  const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch, setTeams, setFixtures, tournament, initializeTournament } = useCricketStore();
+  const { session, syncFullGameState, syncFixtures, setTeamReady, clearMatchReady, syncTournament } = useGameSession();
   const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team} | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const { toast } = useToast();
 
   // Sync fixtures from session game_state
   useEffect(() => {
-    if (session?.game_state?.fixtures && session.game_state.fixtures.length > 0) {
+    if (session?.game_state?.fixtures) {
       setFixtures(session.game_state.fixtures);
     }
-  }, [session?.game_state?.fixtures]);
+  }, [session?.game_state?.fixtures, setFixtures]);
 
   // Sync teams from session game_state
   useEffect(() => {
-    if (session?.game_state?.teams && session.game_state.teams.length > 0) {
+    if (session?.game_state?.teams) {
       setTeams(session.game_state.teams);
     }
-  }, [session?.game_state?.teams]);
+  }, [session?.game_state?.teams, setTeams]);
 
   const readyTeams: string[] = session?.game_state?.matchReadyTeams || [];
 
   const handleGenerateFixtures = async () => {
     generateFixtures('single');
-    // Sync to all players
+    initializeTournament('single');
+    // Get the updated state after generating
     const updatedState = useCricketStore.getState();
-    await syncFixtures(updatedState.fixtures);
+    // Sync fixtures and tournament to all players
+    await syncFullGameState({ 
+      fixtures: updatedState.fixtures,
+      tournament: updatedState.tournament 
+    });
     toast({
       title: "Fixtures Generated",
       description: "All players can now see the fixtures",
@@ -101,7 +106,11 @@ const MultiplayerFixturesTab = ({ controlledTeamId, isAdmin }: MultiplayerFixtur
 
   const handleResetFixtures = async () => {
     resetFixtures();
-    await syncFixtures([]);
+    await syncFullGameState({ 
+      fixtures: [], 
+      tournament: null,
+      matchHistory: [] 
+    });
     setShowResetDialog(false);
     toast({
       title: "Fixtures Reset",

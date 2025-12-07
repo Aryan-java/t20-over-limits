@@ -9,13 +9,16 @@ import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
+import { useGameSession } from "@/hooks/useGameSession";
 
 interface BallByBallEngineProps {
   match: Match;
+  isMultiplayer?: boolean;
 }
 
-const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
-  const { updateMatch, teams } = useCricketStore();
+const BallByBallEngine = ({ match, isMultiplayer = false }: BallByBallEngineProps) => {
+  const { updateMatch, teams, fixtures } = useCricketStore();
+  const { syncFullGameState, session } = useGameSession();
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
   const [showBowlerDialog, setShowBowlerDialog] = useState(true);
   const [showBatsmanDialog, setShowBatsmanDialog] = useState(false);
@@ -554,8 +557,19 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         updateMatch(completedMatch);
 
         // Save to history using store
-        const { completeMatch } = useCricketStore.getState();
+        const { completeMatch, fixtures: currentFixtures, matchHistory, tournament } = useCricketStore.getState();
         completeMatch(completedMatch);
+
+        // Sync to multiplayer session
+        if (isMultiplayer && session) {
+          const updatedState = useCricketStore.getState();
+          syncFullGameState({
+            fixtures: updatedState.fixtures,
+            matchHistory: updatedState.matchHistory,
+            tournament: updatedState.tournament,
+            currentMatch: null, // Clear current match
+          });
+        }
 
         setShowMatchResultDialog(true);
         return;
