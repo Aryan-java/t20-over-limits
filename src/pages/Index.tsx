@@ -22,7 +22,7 @@ const Index = () => {
   const [multiplayerStarted, setMultiplayerStarted] = useState(false);
   
   const { session, currentPlayer, players } = useGameSession();
-  const { setTeams, setCurrentMatch, setFixtures, setTournament, setMatchHistory, currentMatch } = useCricketStore();
+  const { setTeams, setCurrentMatch, setFixtures, setTournament, setMatchHistory, resetTeams, teams, fixtures, tournament, matchHistory, currentMatch } = useCricketStore();
 
   // Check if there's an existing multiplayer session
   useEffect(() => {
@@ -32,29 +32,35 @@ const Index = () => {
     }
   }, []);
 
+  // Clear local state when entering multiplayer to prevent stale data
+  useEffect(() => {
+    if (gameMode === 'multiplayer' && !session) {
+      // Clear local store when entering multiplayer but session not yet loaded
+      resetTeams();
+    }
+  }, [gameMode]);
+
   // Sync ALL game state from session for multiplayer - this ensures all players see the same state
+  // This runs on every session update to keep all players in sync
   useEffect(() => {
     if (gameMode === 'multiplayer' && session?.game_state) {
-      // Sync teams
-      if (session.game_state.teams) {
-        setTeams(session.game_state.teams);
-      }
+      // Always sync from session - session is the source of truth in multiplayer
+      const gs = session.game_state;
+      
+      // Sync teams (always override local with session data)
+      setTeams(gs.teams || []);
+      
       // Sync fixtures
-      if (session.game_state.fixtures) {
-        setFixtures(session.game_state.fixtures);
-      }
+      setFixtures(gs.fixtures || []);
+      
       // Sync current match
-      if (session.game_state.currentMatch) {
-        setCurrentMatch(session.game_state.currentMatch);
-      }
+      setCurrentMatch(gs.currentMatch || null);
+      
       // Sync tournament state
-      if (session.game_state.tournament !== undefined) {
-        setTournament(session.game_state.tournament);
-      }
+      setTournament(gs.tournament || null);
+      
       // Sync match history
-      if (session.game_state.matchHistory) {
-        setMatchHistory(session.game_state.matchHistory);
-      }
+      setMatchHistory(gs.matchHistory || []);
     }
   }, [session?.game_state, gameMode, setTeams, setFixtures, setCurrentMatch, setTournament, setMatchHistory]);
 
