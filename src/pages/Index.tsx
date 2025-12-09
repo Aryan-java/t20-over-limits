@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import CricketHeader from "@/components/CricketHeader";
 import TabNavigation from "@/components/TabNavigation";
 import TeamsTab from "@/components/TeamsTab";
+import MultiplayerTeamsTab from "@/components/MultiplayerTeamsTab";
 import LiveMatchTab from "@/components/LiveMatchTab";
 import TournamentTab from "@/components/TournamentTab";
 import StatsTab from "@/components/StatsTab";
@@ -31,6 +32,13 @@ const Index = () => {
       setGameMode('multiplayer');
     }
   }, []);
+
+  // Auto-set multiplayerStarted when session status is 'playing'
+  useEffect(() => {
+    if (gameMode === 'multiplayer' && session?.status === 'playing' && !multiplayerStarted) {
+      setMultiplayerStarted(true);
+    }
+  }, [session?.status, gameMode, multiplayerStarted]);
 
   // Clear local state when entering multiplayer to prevent stale data
   useEffect(() => {
@@ -141,7 +149,14 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab}>
           <TabsContent value="teams">
-            <TeamsTab />
+            {isMultiplayer ? (
+              <MultiplayerTeamsTab 
+                controlledTeamId={controlledTeamId}
+                isAdmin={isAdmin}
+              />
+            ) : (
+              <TeamsTab />
+            )}
           </TabsContent>
 
           <TabsContent value="fixtures">
