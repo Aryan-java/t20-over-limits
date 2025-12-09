@@ -25,10 +25,13 @@ interface MultiplayerFixturesTabProps {
 
 const MultiplayerFixturesTab = ({ controlledTeamId, isAdmin }: MultiplayerFixturesTabProps) => {
   const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch, setTeams, setFixtures, tournament, initializeTournament } = useCricketStore();
-  const { session, syncFullGameState, syncFixtures, setTeamReady, clearMatchReady, syncTournament } = useGameSession();
+  const { session, syncFullGameState, syncFixtures, setTeamReady, clearMatchReady, syncTournament, currentPlayer } = useGameSession();
   const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team} | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const { toast } = useToast();
+
+  // Use isAdmin prop OR check directly from currentPlayer
+  const isAdminPlayer = isAdmin || currentPlayer?.is_admin || false;
 
   // State is now synced from Index.tsx via useGameSession realtime listener
   // No need for duplicate sync here
@@ -119,7 +122,7 @@ const MultiplayerFixturesTab = ({ controlledTeamId, isAdmin }: MultiplayerFixtur
         </div>
         
         {/* Only admin can generate/reset fixtures */}
-        {isAdmin && (
+        {isAdminPlayer && (
           <div className="flex space-x-2">
             {fixtures.length > 0 && (
               <Button variant="outline" onClick={() => setShowResetDialog(true)}>
@@ -146,7 +149,7 @@ const MultiplayerFixturesTab = ({ controlledTeamId, isAdmin }: MultiplayerFixtur
             <div className="text-4xl">📅</div>
             <h3 className="text-lg font-medium">No fixtures yet</h3>
             <p className="text-muted-foreground">
-              {isAdmin 
+              {isAdminPlayer 
                 ? (teams.length < 2 
                     ? "Create at least 2 teams to generate fixtures"
                     : "Generate round-robin fixtures to get started")
