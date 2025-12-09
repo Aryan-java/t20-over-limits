@@ -518,6 +518,12 @@ const BallByBallEngine = ({ match, isMultiplayer = false }: BallByBallEngineProp
     };
     
     updateMatch(matchUpdate);
+
+    // Sync match state to all players in multiplayer after every ball
+    if (isMultiplayer && session) {
+      const fullUpdatedMatch = { ...match, ...matchUpdate };
+      syncFullGameState({ currentMatch: fullUpdatedMatch });
+    }
     
     // Check if innings just ended
     if (updatedInnings.isCompleted) {

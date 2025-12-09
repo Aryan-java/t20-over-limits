@@ -48,21 +48,31 @@ const Index = () => {
       const gs = session.game_state;
       
       // Sync teams (always override local with session data)
-      setTeams(gs.teams || []);
+      if (JSON.stringify(gs.teams) !== JSON.stringify(teams)) {
+        setTeams(gs.teams || []);
+      }
       
       // Sync fixtures
-      setFixtures(gs.fixtures || []);
+      if (JSON.stringify(gs.fixtures) !== JSON.stringify(fixtures)) {
+        setFixtures(gs.fixtures || []);
+      }
       
-      // Sync current match
-      setCurrentMatch(gs.currentMatch || null);
+      // Sync current match - only update if different to avoid loops
+      if (JSON.stringify(gs.currentMatch) !== JSON.stringify(currentMatch)) {
+        setCurrentMatch(gs.currentMatch || null);
+      }
       
       // Sync tournament state
-      setTournament(gs.tournament || null);
+      if (JSON.stringify(gs.tournament) !== JSON.stringify(tournament)) {
+        setTournament(gs.tournament || null);
+      }
       
       // Sync match history
-      setMatchHistory(gs.matchHistory || []);
+      if (JSON.stringify(gs.matchHistory) !== JSON.stringify(matchHistory)) {
+        setMatchHistory(gs.matchHistory || []);
+      }
     }
-  }, [session?.game_state, gameMode, setTeams, setFixtures, setCurrentMatch, setTournament, setMatchHistory]);
+  }, [session?.game_state, gameMode]);
 
   // Auto-switch to Live tab when match starts in multiplayer
   useEffect(() => {

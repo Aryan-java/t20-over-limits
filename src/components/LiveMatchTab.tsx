@@ -19,7 +19,7 @@ interface LiveMatchTabProps {
 
 const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMatchTabProps) => {
   const { currentMatch, setCurrentMatch, updateMatch } = useCricketStore();
-  const { session, syncMatchState } = useGameSession();
+  const { session } = useGameSession();
   const [showToss, setShowToss] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
 
@@ -29,17 +29,8 @@ const LiveMatchTab = ({ isMultiplayer = false, controlledTeamId = null }: LiveMa
   
   const isSpectator = isMultiplayer && currentMatch && !isParticipant;
 
-  // Sync match state to all players in multiplayer mode
-  useEffect(() => {
-    if (!isMultiplayer || !currentMatch || !session) return;
-    
-    // Only sync if this player made a change (debounced)
-    const timeoutId = setTimeout(() => {
-      syncMatchState(currentMatch);
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [currentMatch, isMultiplayer, session, syncMatchState]);
+  // Remove duplicate sync - BallByBallEngine handles sync after each ball
+  // This was causing conflicts with realtime updates
 
   // Listen for match state updates from other players
   useEffect(() => {

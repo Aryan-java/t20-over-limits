@@ -30,19 +30,8 @@ const MultiplayerFixturesTab = ({ controlledTeamId, isAdmin }: MultiplayerFixtur
   const [showResetDialog, setShowResetDialog] = useState(false);
   const { toast } = useToast();
 
-  // Sync fixtures from session game_state
-  useEffect(() => {
-    if (session?.game_state?.fixtures) {
-      setFixtures(session.game_state.fixtures);
-    }
-  }, [session?.game_state?.fixtures, setFixtures]);
-
-  // Sync teams from session game_state
-  useEffect(() => {
-    if (session?.game_state?.teams) {
-      setTeams(session.game_state.teams);
-    }
-  }, [session?.game_state?.teams, setTeams]);
+  // State is now synced from Index.tsx via useGameSession realtime listener
+  // No need for duplicate sync here
 
   const readyTeams: string[] = session?.game_state?.matchReadyTeams || [];
 
