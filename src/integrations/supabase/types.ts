@@ -14,7 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      game_players: {
+        Row: {
+          id: string
+          is_admin: boolean
+          joined_at: string
+          nickname: string
+          session_id: string
+          team_id: string | null
+        }
+        Insert: {
+          id?: string
+          is_admin?: boolean
+          joined_at?: string
+          nickname: string
+          session_id: string
+          team_id?: string | null
+        }
+        Update: {
+          id?: string
+          is_admin?: boolean
+          joined_at?: string
+          nickname?: string
+          session_id?: string
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_players_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_sessions: {
+        Row: {
+          admin_id: string
+          code: string
+          created_at: string
+          game_state: Json | null
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          code: string
+          created_at?: string
+          game_state?: Json | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          code?: string
+          created_at?: string
+          game_state?: Json | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

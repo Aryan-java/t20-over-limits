@@ -31,6 +31,10 @@ export interface Player {
   runsConceded: number;
   isPlaying: boolean;
   position?: number;
+  // Bowling analysis stats
+  widesConceded: number;
+  noBallsConceded: number;
+  dotBalls: number;
 }
 
 export interface Team {
@@ -82,6 +86,13 @@ export interface Innings {
   currentBowler: Player | null;
   battingOrder: Player[];
   isCompleted: boolean;
+  isFreeHit: boolean;
+  extras: {
+    wides: number;
+    noBalls: number;
+    byes: number;
+    legByes: number;
+  };
 }
 
 export interface Match {

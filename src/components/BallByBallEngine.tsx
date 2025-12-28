@@ -305,18 +305,30 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     if (!innings || innings.isCompleted || !innings.currentBowler) return;
     if (!innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker) return;
 
+    const isFreeHit = innings.isFreeHit || false;
     const outcome = simulateBallOutcome(innings.currentBatsmen.striker, innings.currentBowler);
     
-    const runs = outcome.runs;
-    const isWicket = outcome.isWicket;
+    let runs = outcome.runs;
+    let isWicket = outcome.isWicket;
     const isExtra = outcome.extras !== undefined;
-    const isWideOrNoBall = isExtra && (outcome.extras?.type === 'wide' || outcome.extras?.type === 'no-ball');
+    const isWide = isExtra && outcome.extras?.type === 'wide';
+    const isNoBall = isExtra && outcome.extras?.type === 'no-ball';
+    const isWideOrNoBall = isWide || isNoBall;
+    const isBye = isExtra && outcome.extras?.type === 'bye';
+    const isLegBye = isExtra && outcome.extras?.type === 'leg-bye';
+    
+    // FREE HIT: Wickets not allowed (except run out) on free hit balls
+    if (isFreeHit && isWicket) {
+      // Convert wicket to a dot ball on free hit (run out would need special handling)
+      isWicket = false;
+      runs = 0;
+    }
     
     // Update striker's stats
     const striker = { ...innings.currentBatsmen.striker };
     
-    // Only add runs and balls to batsman if not byes/leg-byes
-    if (!isExtra || outcome.extras?.type === 'no-ball') {
+    // Only add runs to batsman if not byes/leg-byes and not wides
+    if (!isBye && !isLegBye && !isWide) {
       striker.runs += runs;
     }
     
@@ -338,11 +350,30 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     bowler.runsConceded += runs;
     if (isWicket) bowler.wickets += 1;
     
+    // Track bowling analysis stats
+    if (isWide) {
+      bowler.widesConceded = (bowler.widesConceded || 0) + 1;
+    }
+    if (isNoBall) {
+      bowler.noBallsConceded = (bowler.noBallsConceded || 0) + 1;
+    }
+    if (runs === 0 && !isWicket && !isExtra) {
+      bowler.dotBalls = (bowler.dotBalls || 0) + 1;
+    }
+    
     // Update overs bowled (per bowler, includes partial overs)
     // Wides and no balls don't count as legal deliveries
     const newBallsBowled = isWideOrNoBall ? innings.ballsBowled : innings.ballsBowled + 1;
     const bowlerBalls = oversToBalls(bowler.oversBowled) + (isWideOrNoBall ? 0 : 1);
     bowler.oversBowled = ballsToOvers(bowlerBalls);
+
+    // Update innings extras tracking
+    const updatedExtras = {
+      wides: (innings.extras?.wides || 0) + (isWide ? outcome.extras!.runs : 0),
+      noBalls: (innings.extras?.noBalls || 0) + (isNoBall ? 1 : 0),
+      byes: (innings.extras?.byes || 0) + (isBye ? outcome.extras!.runs : 0),
+      legByes: (innings.extras?.legByes || 0) + (isLegBye ? outcome.extras!.runs : 0),
+    };
 
     // Update batting order to include all batters who have faced balls
     const updatedBattingOrder = [...innings.battingOrder];
@@ -431,7 +462,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       }
     }
     
-    // Update innings
+    // Update innings - set isFreeHit for NEXT ball if this was a no-ball
     const updatedInnings = {
       ...innings,
       totalRuns: newTotalRuns,
@@ -443,7 +474,9 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       },
       currentBowler: isOverComplete ? null : bowler,
       battingOrder: updatedBattingOrder,
-      isCompleted: isInningsComplete
+      isCompleted: isInningsComplete,
+      isFreeHit: isNoBall, // Next ball is free hit if this was a no-ball
+      extras: updatedExtras,
     };
     
     // Generate commentary
@@ -604,7 +637,14 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       },
       currentBowler: null,
       battingOrder: [batsman1, batsman2],
-      isCompleted: false
+      isCompleted: false,
+      isFreeHit: false,
+      extras: {
+        wides: 0,
+        noBalls: 0,
+        byes: 0,
+        legByes: 0,
+      },
     };
 
     updateMatch({
@@ -638,7 +678,14 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Ball-by-Ball Simulation</span>
+            <div className="flex items-center gap-3">
+              <span>Ball-by-Ball Simulation</span>
+              {innings?.isFreeHit && (
+                <Badge className="bg-yellow-500 text-black animate-pulse font-bold">
+                  🎯 FREE HIT
+                </Badge>
+              )}
+            </div>
             <div className="flex space-x-2">
               <Button
                 onClick={handleSimulateBall}
