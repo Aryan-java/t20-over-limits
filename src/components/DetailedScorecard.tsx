@@ -132,7 +132,7 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
 
         {/* Bowling Figures */}
         <div>
-          <h3 className="text-lg font-semibold mb-3 text-cricket-primary">Bowling</h3>
+          <h3 className="text-lg font-semibold mb-3 text-cricket-primary">Bowling Analysis</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -143,11 +143,16 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
                   <th className="text-right py-2 font-medium">R</th>
                   <th className="text-right py-2 font-medium">W</th>
                   <th className="text-right py-2 font-medium">Econ</th>
+                  <th className="text-right py-2 font-medium">Wd</th>
+                  <th className="text-right py-2 font-medium">NB</th>
+                  <th className="text-right py-2 font-medium">Dots</th>
+                  <th className="text-right py-2 font-medium">Dot%</th>
                 </tr>
               </thead>
               <tbody>
                 {bowlers && bowlers.filter(b => oversToBalls(b.oversBowled) > 0).map((bowler) => {
                   const balls = oversToBalls(bowler.oversBowled);
+                  const dotBallPercent = balls > 0 ? (((bowler.dotBalls || 0) / balls) * 100).toFixed(1) : '0.0';
                   return (
                     <tr key={bowler.id} className="border-b hover:bg-muted/50">
                       <td className="py-2">
@@ -164,8 +169,12 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
                       <td className="text-right py-2">{formatOversValue(bowler.oversBowled)}</td>
                       <td className="text-right py-2">{bowler.maidens || 0}</td>
                       <td className="text-right py-2">{bowler.runsConceded}</td>
-                      <td className="text-right py-2">{bowler.wickets}</td>
+                      <td className="text-right py-2 font-medium">{bowler.wickets}</td>
                       <td className="text-right py-2">{calculateEconomy(bowler.runsConceded, balls)}</td>
+                      <td className="text-right py-2 text-orange-500">{bowler.widesConceded || 0}</td>
+                      <td className="text-right py-2 text-red-500">{bowler.noBallsConceded || 0}</td>
+                      <td className="text-right py-2 text-green-600">{bowler.dotBalls || 0}</td>
+                      <td className="text-right py-2 text-muted-foreground">{dotBallPercent}%</td>
                     </tr>
                   );
                 })}
@@ -173,6 +182,20 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
             </table>
           </div>
         </div>
+
+        {/* Extras Breakdown */}
+        {innings.extras && (
+          <div className="bg-muted/30 rounded-lg p-4">
+            <h4 className="text-sm font-semibold mb-2">Extras Breakdown</h4>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <span>Wides: <strong className="text-orange-500">{innings.extras.wides || 0}</strong></span>
+              <span>No Balls: <strong className="text-red-500">{innings.extras.noBalls || 0}</strong></span>
+              <span>Byes: <strong>{innings.extras.byes || 0}</strong></span>
+              <span>Leg Byes: <strong>{innings.extras.legByes || 0}</strong></span>
+              <span className="font-semibold">Total Extras: {(innings.extras.wides || 0) + (innings.extras.noBalls || 0) + (innings.extras.byes || 0) + (innings.extras.legByes || 0)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Match Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

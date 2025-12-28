@@ -88,6 +88,13 @@ const LiveMatchTab = () => {
         currentBowler: null,
         battingOrder: [battingSetup.openingPair[0], battingSetup.openingPair[1]],
         isCompleted: false,
+        isFreeHit: false,
+        extras: {
+          wides: 0,
+          noBalls: 0,
+          byes: 0,
+          legByes: 0,
+        },
       };
 
       updateMatch({

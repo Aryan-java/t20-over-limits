@@ -114,7 +114,10 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
         maidens: 0,
         wickets: 0,
         runsConceded: 0,
-        isPlaying: false
+        isPlaying: false,
+        widesConceded: 0,
+        noBallsConceded: 0,
+        dotBalls: 0,
       });
     }
 

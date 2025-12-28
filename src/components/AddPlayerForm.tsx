@@ -67,6 +67,9 @@ const AddPlayerForm = ({ teamId, onSuccess, onCancel, overseasCount, squadSize }
       wickets: 0,
       runsConceded: 0,
       isPlaying: false,
+      widesConceded: 0,
+      noBallsConceded: 0,
+      dotBalls: 0,
     });
 
     toast({

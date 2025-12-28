@@ -75,6 +75,9 @@ const createSamplePlayer = (name: string, isOverseas: boolean = false): Omit<Pla
   wickets: 0,
   runsConceded: 0,
   isPlaying: false,
+  widesConceded: 0,
+  noBallsConceded: 0,
+  dotBalls: 0,
 });
 
 export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
@@ -856,6 +859,9 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           wickets: 0,
           runsConceded: 0,
           isPlaying: false,
+          widesConceded: 0,
+          noBallsConceded: 0,
+          dotBalls: 0,
         };
         
         team.squad.push(player);
