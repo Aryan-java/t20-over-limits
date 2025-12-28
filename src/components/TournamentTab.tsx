@@ -16,12 +16,7 @@ import MatchSetupDialog from "./MatchSetupDialog";
 import { useToast } from "@/hooks/use-toast";
 import PointsTable from "./PointsTable";
 
-interface TournamentTabProps {
-  isMultiplayer?: boolean;
-  isAdmin?: boolean;
-}
-
-export default function TournamentTab({ isMultiplayer = false, isAdmin = false }: TournamentTabProps) {
+export default function TournamentTab() {
   const navigate = useNavigate();
   const { matchHistory, teams, fixtures, tournament, generateFixtures, resetTournament, startPlayoffs, createMatch, setCurrentMatch } = useCricketStore();
   const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
@@ -133,44 +128,39 @@ export default function TournamentTab({ isMultiplayer = false, isAdmin = false }
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Tournament Dashboard</h2>
-          <p className="text-muted-foreground">
-            {isMultiplayer ? "Synced tournament state for all players" : "League stage, playoffs, and tournament leaders"}
-          </p>
+          <p className="text-muted-foreground">League stage, playoffs, and tournament leaders</p>
         </div>
-        {/* In multiplayer mode, only admin can manage fixtures. In multiplayer, use the Fixtures tab instead */}
-        {!isMultiplayer && (
-          <div className="flex gap-2">
-            {fixtures.length === 0 ? (
-              <Button onClick={handleOpenFormatDialog} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Generate League Fixtures
-              </Button>
-            ) : (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="gap-2">
-                    <RotateCcw className="h-4 w-4" />
-                    Reset Tournament
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset Tournament?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will delete all fixtures and match history. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleResetTournament}>
-                      Reset
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
-        )}
+        <div className="flex gap-2">
+          {fixtures.length === 0 ? (
+            <Button onClick={handleOpenFormatDialog} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Generate League Fixtures
+            </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  Reset Tournament
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset Tournament?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will delete all fixtures and match history. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetTournament}>
+                    Reset
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -9,16 +9,13 @@ import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
-import { useGameSession } from "@/hooks/useGameSession";
 
 interface BallByBallEngineProps {
   match: Match;
-  isMultiplayer?: boolean;
 }
 
-const BallByBallEngine = ({ match, isMultiplayer = false }: BallByBallEngineProps) => {
-  const { updateMatch, teams, fixtures } = useCricketStore();
-  const { syncFullGameState, session } = useGameSession();
+const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
+  const { updateMatch, teams } = useCricketStore();
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
   const [showBowlerDialog, setShowBowlerDialog] = useState(true);
   const [showBatsmanDialog, setShowBatsmanDialog] = useState(false);
@@ -518,12 +515,6 @@ const BallByBallEngine = ({ match, isMultiplayer = false }: BallByBallEngineProp
     };
     
     updateMatch(matchUpdate);
-
-    // Sync match state to all players in multiplayer after every ball
-    if (isMultiplayer && session) {
-      const fullUpdatedMatch = { ...match, ...matchUpdate };
-      syncFullGameState({ currentMatch: fullUpdatedMatch });
-    }
     
     // Check if innings just ended
     if (updatedInnings.isCompleted) {
@@ -563,19 +554,8 @@ const BallByBallEngine = ({ match, isMultiplayer = false }: BallByBallEngineProp
         updateMatch(completedMatch);
 
         // Save to history using store
-        const { completeMatch, fixtures: currentFixtures, matchHistory, tournament } = useCricketStore.getState();
+        const { completeMatch } = useCricketStore.getState();
         completeMatch(completedMatch);
-
-        // Sync to multiplayer session
-        if (isMultiplayer && session) {
-          const updatedState = useCricketStore.getState();
-          syncFullGameState({
-            fixtures: updatedState.fixtures,
-            matchHistory: updatedState.matchHistory,
-            tournament: updatedState.tournament,
-            currentMatch: null, // Clear current match
-          });
-        }
 
         setShowMatchResultDialog(true);
         return;

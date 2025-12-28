@@ -17,7 +17,6 @@ interface CricketStore {
   updateTeam: (id: string, updates: Partial<Team>) => void;
   removeTeam: (id: string) => void;
   resetTeams: () => void;
-  setTeams: (teams: Team[]) => void;
 
   // Player actions
   addPlayerToTeam: (teamId: string, player: Omit<Player, 'id' | 'position'>) => void;
@@ -34,15 +33,12 @@ interface CricketStore {
   // Fixture actions
   generateFixtures: (format?: 'single' | 'double') => void;
   resetFixtures: () => void;
-  setFixtures: (fixtures: Fixture[]) => void;
   
   // Tournament actions
   initializeTournament: (format: 'single' | 'double') => void;
   startPlayoffs: () => void;
   updateTournamentStats: () => void;
   resetTournament: () => void;
-  setTournament: (tournament: Tournament | null) => void;
-  setMatchHistory: (history: MatchHistory[]) => void;
 
   // Match actions
   createMatch: (team1Id: string, team2Id: string, team1Setup?: Match['team1Setup'], team2Setup?: Match['team2Setup']) => Match;
@@ -122,10 +118,6 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       matchHistory: [],
       currentMatch: null,
     });
-  },
-
-  setTeams: (teams) => {
-    set({ teams });
   },
   
   addPlayerToTeam: (teamId, playerData) => {
@@ -344,10 +336,6 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     });
   },
 
-  setFixtures: (fixtures) => {
-    set({ fixtures });
-  },
-
   initializeTournament: (format: 'single' | 'double') => {
     const { fixtures } = get();
     const tournament: Tournament = {
@@ -483,14 +471,6 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       matchHistory: [],
       currentMatch: null,
     });
-  },
-
-  setTournament: (tournament) => {
-    set({ tournament });
-  },
-
-  setMatchHistory: (history) => {
-    set({ matchHistory: history });
   },
   
   createMatch: (team1Id, team2Id, team1Setup, team2Setup) => {
