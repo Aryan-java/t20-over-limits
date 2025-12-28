@@ -9,6 +9,7 @@ import TossDialog from "./TossDialog";
 import BallByBallEngine from "./BallByBallEngine";
 import LiveMatchControls from "./LiveMatchControls";
 import RunRateGraph from "./RunRateGraph";
+import PartnershipAnalysis from "./PartnershipAnalysis";
 
 const LiveMatchTab = () => {
   const { currentMatch, setCurrentMatch, updateMatch } = useCricketStore();
@@ -141,6 +142,10 @@ const LiveMatchTab = () => {
           
           {matchStarted && (
             <RunRateGraph match={currentMatch} />
+          )}
+          
+          {matchStarted && (
+            <PartnershipAnalysis match={currentMatch} />
           )}
           
           {matchStarted && (
