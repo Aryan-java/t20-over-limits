@@ -40,15 +40,26 @@ const LiveScoreboard = ({ match }: LiveScoreboardProps) => {
 
   const currentInnings = getCurrentInnings();
   const targetInfo = getTargetInfo();
+  const currentOver = currentInnings ? Math.floor(currentInnings.ballsBowled / 6) : 0;
+  const inPowerplay = currentOver < 6;
+  const inDeathOvers = currentOver >= match.overs - 4;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Live Score</span>
-          {match.isLive && (
-            <Badge className="bg-cricket-ball text-white animate-pulse">🔴 Live</Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {currentInnings && !currentInnings.isCompleted && inPowerplay && (
+              <Badge className="bg-blue-600 text-white text-xs">⚡ PP</Badge>
+            )}
+            {currentInnings && !currentInnings.isCompleted && inDeathOvers && (
+              <Badge className="bg-red-600 text-white text-xs">🔥 Death</Badge>
+            )}
+            {match.isLive && (
+              <Badge className="bg-cricket-ball text-white animate-pulse">🔴 Live</Badge>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
