@@ -166,6 +166,22 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     return playerScores[0]?.player || null;
   };
 
+  // Check if currently in powerplay (first 6 overs)
+  const isPowerplay = () => {
+    const innings = getCurrentInnings();
+    if (!innings) return false;
+    const currentOver = Math.floor(innings.ballsBowled / 6);
+    return currentOver < 6;
+  };
+
+  // Check if in death overs (last 4 overs)
+  const isDeathOvers = () => {
+    const innings = getCurrentInnings();
+    if (!innings) return false;
+    const currentOver = Math.floor(innings.ballsBowled / 6);
+    return currentOver >= match.overs - 4;
+  };
+
   const simulateBallOutcome = (batsman: Player, bowler: Player): { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } } => {
     const batSkill = batsman.batSkill;
     const bowlSkill = bowler.bowlSkill;
@@ -182,14 +198,44 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const skillDiff = batSkill - bowlSkill;
     const totalDiff = skillDiff + formBonus + recentFormBonus;
 
-    const dotProb = Math.max(20, 45 - totalDiff * 0.3);
-    const wicketProb = Math.max(3, 8 - totalDiff * 0.1);
-    const boundaryProb = Math.max(8, 15 + totalDiff * 0.2);
-    const sixProb = Math.max(2, 6 + totalDiff * 0.15);
+    // Base probabilities
+    let dotProb = Math.max(20, 45 - totalDiff * 0.3);
+    let wicketProb = Math.max(3, 8 - totalDiff * 0.1);
+    let boundaryProb = Math.max(8, 15 + totalDiff * 0.2);
+    let sixProb = Math.max(2, 6 + totalDiff * 0.15);
+    let singleProb = 35;
+    let doubleProb = 15;
 
-    // Check for extras first (8% chance)
+    // POWERPLAY ADJUSTMENTS (Field restrictions: Only 2 fielders outside 30-yard circle)
+    if (isPowerplay()) {
+      // More boundaries due to fewer fielders on boundary
+      boundaryProb *= 1.5;
+      sixProb *= 1.3;
+      // More singles as gaps are easier to find
+      singleProb *= 1.2;
+      // Slightly fewer dot balls
+      dotProb *= 0.8;
+      // Slightly higher wicket chance (aggressive batting)
+      wicketProb *= 1.1;
+    }
+
+    // DEATH OVERS ADJUSTMENTS (Overs 17-20)
+    if (isDeathOvers()) {
+      // High risk, high reward phase
+      boundaryProb *= 1.3;
+      sixProb *= 1.6;
+      // More wickets as batsmen go for big shots
+      wicketProb *= 1.4;
+      // Fewer singles (batsmen looking for boundaries)
+      singleProb *= 0.8;
+      // More dot balls (yorkers, slower balls)
+      dotProb *= 1.1;
+    }
+
+    // Check for extras first (8% chance, slightly higher in death overs)
+    const extrasChance = isDeathOvers() ? 10 : 8;
     const extrasRoll = Math.random() * 100;
-    if (extrasRoll < 8) {
+    if (extrasRoll < extrasChance) {
       const extrasType = Math.random();
       if (extrasType < 0.4) {
         // Wide (40% of extras)
@@ -227,8 +273,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
     const outcomes = [
       { runs: 0, isWicket: false, weight: dotProb },
-      { runs: 1, isWicket: false, weight: 35 },
-      { runs: 2, isWicket: false, weight: 15 },
+      { runs: 1, isWicket: false, weight: singleProb },
+      { runs: 2, isWicket: false, weight: doubleProb },
       { runs: 3, isWicket: false, weight: 3 },
       { runs: 4, isWicket: false, weight: boundaryProb },
       { runs: 6, isWicket: false, weight: sixProb },
@@ -667,6 +713,9 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   };
 
   const innings = getCurrentInnings();
+  const currentOver = innings ? Math.floor(innings.ballsBowled / 6) : 0;
+  const inPowerplay = currentOver < 6;
+  const inDeathOvers = currentOver >= match.overs - 4;
   const canSimulate = innings && 
     !innings.isCompleted && 
     innings.currentBowler && 
@@ -678,8 +727,18 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span>Ball-by-Ball Simulation</span>
+              {inPowerplay && innings && !innings.isCompleted && (
+                <Badge className="bg-blue-600 text-white font-bold">
+                  ⚡ POWERPLAY
+                </Badge>
+              )}
+              {inDeathOvers && innings && !innings.isCompleted && (
+                <Badge className="bg-red-600 text-white font-bold animate-pulse">
+                  🔥 DEATH OVERS
+                </Badge>
+              )}
               {innings?.isFreeHit && (
                 <Badge className="bg-yellow-500 text-black animate-pulse font-bold">
                   🎯 FREE HIT
