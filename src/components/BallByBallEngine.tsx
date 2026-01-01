@@ -327,13 +327,46 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const batsman = getBattingTeam().find(p => p.id === selectedBatsman);
     if (!batsman) return;
     
+    // Determine current phase
+    const currentOver = Math.floor(innings.ballsBowled / 6);
+    const getCurrentPhase = (): 'powerplay' | 'middle' | 'death' => {
+      if (currentOver < 6) return 'powerplay';
+      if (currentOver >= match.overs - 4) return 'death';
+      return 'middle';
+    };
+    
+    // Create new partnership with incoming batsman and non-striker
+    const newPartnership = innings.currentBatsmen.nonStriker ? {
+      batsman1Id: batsman.id,
+      batsman1Name: batsman.name,
+      batsman2Id: innings.currentBatsmen.nonStriker.id,
+      batsman2Name: innings.currentBatsmen.nonStriker.name,
+      runs: 0,
+      balls: 0,
+      batsman1Runs: 0,
+      batsman1Balls: 0,
+      batsman2Runs: 0,
+      batsman2Balls: 0,
+      fours: 0,
+      sixes: 0,
+      startOver: currentOver,
+      phase: getCurrentPhase(),
+      isActive: true,
+    } : null;
+    
+    const updatedPartnerships = [
+      ...(innings.partnerships || []),
+      ...(newPartnership ? [newPartnership] : []),
+    ];
+    
     // Replace striker with new batsman
     const updatedInnings = {
       ...innings,
       currentBatsmen: {
         ...innings.currentBatsmen,
         striker: batsman
-      }
+      },
+      partnerships: updatedPartnerships,
     };
     
     const matchUpdate = match.currentInnings === 1 
@@ -507,6 +540,70 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         isInningsComplete = true;
       }
     }
+
+    // Determine current phase
+    const currentOver = Math.floor(newBallsBowled / 6);
+    const getCurrentPhase = (): 'powerplay' | 'middle' | 'death' => {
+      if (currentOver < 6) return 'powerplay';
+      if (currentOver >= match.overs - 4) return 'death';
+      return 'middle';
+    };
+    const currentPhase = getCurrentPhase();
+
+    // Update partnerships
+    let updatedPartnerships = [...(innings.partnerships || [])];
+    const activePartnership = updatedPartnerships.find(p => p.isActive);
+    
+    if (activePartnership && innings.currentBatsmen.striker) {
+      // Update active partnership stats
+      const isStriker1 = activePartnership.batsman1Id === innings.currentBatsmen.striker.id;
+      
+      activePartnership.runs += runs;
+      activePartnership.balls += isWideOrNoBall ? 0 : 1;
+      
+      if (!isBye && !isLegBye && !isWide) {
+        if (isStriker1) {
+          activePartnership.batsman1Runs += runs;
+          activePartnership.batsman1Balls += isWideOrNoBall ? 0 : 1;
+        } else {
+          activePartnership.batsman2Runs += runs;
+          activePartnership.batsman2Balls += isWideOrNoBall ? 0 : 1;
+        }
+      }
+      
+      if (runs === 4 && !isExtra) activePartnership.fours += 1;
+      if (runs === 6 && !isExtra) activePartnership.sixes += 1;
+      
+      // Update phase if changed during partnership
+      activePartnership.phase = currentPhase;
+    }
+
+    // Track fall of wickets
+    let updatedFallOfWickets = [...(innings.fallOfWickets || [])];
+    
+    if (isWicket && innings.currentBatsmen.striker && innings.currentBowler) {
+      // End current partnership
+      if (activePartnership) {
+        activePartnership.isActive = false;
+        activePartnership.endOver = currentOver;
+      }
+      
+      // Record fall of wicket
+      const formatOversString = (balls: number) => {
+        const overs = Math.floor(balls / 6);
+        const remainingBalls = balls % 6;
+        return `${overs}.${remainingBalls}`;
+      };
+      
+      updatedFallOfWickets.push({
+        wicketNumber: newWickets,
+        score: newTotalRuns,
+        overs: formatOversString(newBallsBowled),
+        batsmanName: innings.currentBatsmen.striker.name,
+        bowlerName: innings.currentBowler.name,
+        phase: currentPhase,
+      });
+    }
     
     // Update innings - set isFreeHit for NEXT ball if this was a no-ball
     const updatedInnings = {
@@ -523,6 +620,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       isCompleted: isInningsComplete,
       isFreeHit: isNoBall, // Next ball is free hit if this was a no-ball
       extras: updatedExtras,
+      fallOfWickets: updatedFallOfWickets,
+      partnerships: updatedPartnerships,
     };
     
     // Generate commentary
@@ -691,6 +790,24 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         byes: 0,
         legByes: 0,
       },
+      fallOfWickets: [],
+      partnerships: [{
+        batsman1Id: batsman1.id,
+        batsman1Name: batsman1.name,
+        batsman2Id: batsman2.id,
+        batsman2Name: batsman2.name,
+        runs: 0,
+        balls: 0,
+        batsman1Runs: 0,
+        batsman1Balls: 0,
+        batsman2Runs: 0,
+        batsman2Balls: 0,
+        fours: 0,
+        sixes: 0,
+        startOver: 0,
+        phase: 'powerplay' as const,
+        isActive: true,
+      }],
     };
 
     updateMatch({

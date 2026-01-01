@@ -97,6 +97,24 @@ const LiveMatchTab = () => {
           byes: 0,
           legByes: 0,
         },
+        fallOfWickets: [],
+        partnerships: [{
+          batsman1Id: battingSetup.openingPair[0].id,
+          batsman1Name: battingSetup.openingPair[0].name,
+          batsman2Id: battingSetup.openingPair[1].id,
+          batsman2Name: battingSetup.openingPair[1].name,
+          runs: 0,
+          balls: 0,
+          batsman1Runs: 0,
+          batsman1Balls: 0,
+          batsman2Runs: 0,
+          batsman2Balls: 0,
+          fours: 0,
+          sixes: 0,
+          startOver: 0,
+          phase: 'powerplay' as const,
+          isActive: true,
+        }],
       };
 
       updateMatch({
