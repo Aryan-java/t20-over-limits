@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User } from "lucide-react";
-import { Innings, Player } from "@/types/cricket";
+import { User, Zap, Flame, Target } from "lucide-react";
+import { Innings, Player, Partnership, FallOfWicket } from "@/types/cricket";
 
 interface DetailedScorecardProps {
   innings: Innings;
@@ -53,6 +53,31 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
     }
     return "not out";
   };
+
+  const getPhaseIcon = (phase: 'powerplay' | 'middle' | 'death') => {
+    switch (phase) {
+      case 'powerplay':
+        return <Zap className="h-3 w-3" />;
+      case 'death':
+        return <Flame className="h-3 w-3" />;
+      default:
+        return <Target className="h-3 w-3" />;
+    }
+  };
+
+  const getPhaseColor = (phase: 'powerplay' | 'middle' | 'death') => {
+    switch (phase) {
+      case 'powerplay':
+        return 'bg-yellow-500/20 text-yellow-600 border-yellow-500/50';
+      case 'death':
+        return 'bg-red-500/20 text-red-600 border-red-500/50';
+      default:
+        return 'bg-blue-500/20 text-blue-600 border-blue-500/50';
+    }
+  };
+
+  const partnerships = innings.partnerships || [];
+  const fallOfWickets = innings.fallOfWickets || [];
 
   return (
     <Card className="w-full">
@@ -129,6 +154,101 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
             </table>
           </div>
         </div>
+
+        {/* Fall of Wickets */}
+        {fallOfWickets.length > 0 && (
+          <div className="bg-red-500/10 rounded-lg p-4 border border-red-500/30">
+            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-red-600">
+              <span>Fall of Wickets</span>
+              <Badge variant="outline" className="text-xs">{fallOfWickets.length} wickets</Badge>
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {fallOfWickets.map((fow, index) => (
+                <div 
+                  key={index} 
+                  className="inline-flex items-center gap-2 bg-background/50 rounded-lg px-3 py-2 text-sm border"
+                >
+                  <Badge variant="secondary" className="text-xs">{fow.wicketNumber}</Badge>
+                  <span className="font-medium">{fow.score}/{fow.wicketNumber}</span>
+                  <span className="text-muted-foreground">({fow.overs} ov)</span>
+                  <span className="text-xs text-muted-foreground">- {fow.batsmanName}</span>
+                  <Badge variant="outline" className={`text-xs ${getPhaseColor(fow.phase)}`}>
+                    {getPhaseIcon(fow.phase)}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Partnerships */}
+        {partnerships.length > 0 && (
+          <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/30">
+            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-green-600">
+              <span>Partnerships</span>
+              <Badge variant="outline" className="text-xs">{partnerships.length} partnerships</Badge>
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-green-500/30">
+                    <th className="text-left py-2 font-medium">#</th>
+                    <th className="text-left py-2 font-medium">Partnership</th>
+                    <th className="text-right py-2 font-medium">Runs</th>
+                    <th className="text-right py-2 font-medium">Balls</th>
+                    <th className="text-right py-2 font-medium">RR</th>
+                    <th className="text-center py-2 font-medium">Phase</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partnerships.map((partnership, index) => {
+                    const runRate = partnership.balls > 0 
+                      ? ((partnership.runs / partnership.balls) * 6).toFixed(2) 
+                      : '0.00';
+                    const highestPartnership = Math.max(...partnerships.map(p => p.runs));
+                    
+                    return (
+                      <tr key={index} className={`border-b border-green-500/20 ${partnership.isActive ? 'bg-green-500/10' : ''}`}>
+                        <td className="py-2">
+                          <Badge variant={partnership.isActive ? "default" : "secondary"} className="text-xs">
+                            {index + 1}
+                          </Badge>
+                        </td>
+                        <td className="py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{partnership.batsman1Name}</span>
+                            <span className="text-muted-foreground text-xs">
+                              ({partnership.batsman1Runs})
+                            </span>
+                            <span className="text-muted-foreground">&</span>
+                            <span className="font-medium">{partnership.batsman2Name}</span>
+                            <span className="text-muted-foreground text-xs">
+                              ({partnership.batsman2Runs})
+                            </span>
+                            {partnership.runs === highestPartnership && partnership.runs > 0 && (
+                              <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-600">
+                                Best
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-right py-2 font-bold">{partnership.runs}</td>
+                        <td className="text-right py-2 text-muted-foreground">{partnership.balls}</td>
+                        <td className="text-right py-2">{runRate}</td>
+                        <td className="text-center py-2">
+                          <Badge variant="outline" className={`text-xs ${getPhaseColor(partnership.phase)}`}>
+                            {getPhaseIcon(partnership.phase)}
+                            <span className="ml-1 capitalize">{partnership.phase}</span>
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Bowling Figures */}
         <div>

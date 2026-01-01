@@ -72,6 +72,34 @@ export interface Over {
   wickets: number;
 }
 
+export interface FallOfWicket {
+  wicketNumber: number;
+  score: number;
+  overs: string;
+  batsmanName: string;
+  bowlerName: string;
+  phase: 'powerplay' | 'middle' | 'death';
+}
+
+export interface Partnership {
+  batsman1Id: string;
+  batsman1Name: string;
+  batsman2Id: string;
+  batsman2Name: string;
+  runs: number;
+  balls: number;
+  batsman1Runs: number;
+  batsman1Balls: number;
+  batsman2Runs: number;
+  batsman2Balls: number;
+  fours: number;
+  sixes: number;
+  startOver: number;
+  endOver?: number;
+  phase: 'powerplay' | 'middle' | 'death';
+  isActive: boolean;
+}
+
 export interface Innings {
   battingTeam: string;
   bowlingTeam: string;
@@ -93,6 +121,8 @@ export interface Innings {
     byes: number;
     legByes: number;
   };
+  fallOfWickets: FallOfWicket[];
+  partnerships: Partnership[];
 }
 
 export interface Match {

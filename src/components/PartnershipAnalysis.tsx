@@ -2,131 +2,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Match, Innings, Player } from "@/types/cricket";
-import { User, ArrowLeftRight, Target, Zap } from "lucide-react";
+import { Match, Partnership as PartnershipType } from "@/types/cricket";
+import { User, ArrowLeftRight, Zap, Flame, Target } from "lucide-react";
 
 interface PartnershipAnalysisProps {
   match: Match;
 }
 
-interface Partnership {
-  batsman1: Player;
-  batsman2: Player;
-  runs: number;
-  balls: number;
-  batsman1Runs: number;
-  batsman1Balls: number;
-  batsman2Runs: number;
-  batsman2Balls: number;
-  boundaries: number;
-  sixes: number;
-  strikeRotations: number; // Singles/threes taken
-  dotBalls: number;
-  isActive: boolean;
-}
-
 const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
-  const getCurrentInnings = (): Innings | null => {
+  const getCurrentInnings = () => {
     return match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
   };
 
-  const calculatePartnerships = (innings: Innings | null): Partnership[] => {
-    if (!innings) return [];
-
-    const partnerships: Partnership[] = [];
-    const battingOrder = innings.battingOrder;
-
-    // Calculate partnerships based on batting order
-    // Each partnership is between consecutive batsmen
-    for (let i = 0; i < battingOrder.length - 1; i++) {
-      const batsman1 = battingOrder[i];
-      const batsman2 = battingOrder[i + 1];
-
-      // Check if this is the current partnership
-      const isActive = 
-        (innings.currentBatsmen.striker?.id === batsman1.id || 
-         innings.currentBatsmen.striker?.id === batsman2.id) &&
-        (innings.currentBatsmen.nonStriker?.id === batsman1.id || 
-         innings.currentBatsmen.nonStriker?.id === batsman2.id);
-
-      // Estimate partnership stats based on individual performances
-      // In a real app, this would track ball-by-ball data
-      const batsman1Runs = batsman1.runs;
-      const batsman1Balls = batsman1.balls;
-      const batsman2Runs = batsman2.runs;
-      const batsman2Balls = batsman2.balls;
-
-      // Calculate estimated partnership contribution
-      const partnershipRuns = Math.round((batsman1Runs + batsman2Runs) * 0.6); // Estimate
-      const partnershipBalls = Math.round((batsman1Balls + batsman2Balls) * 0.6);
-
-      const boundaries = batsman1.fours + batsman2.fours;
-      const sixes = batsman1.sixes + batsman2.sixes;
-      
-      // Estimate strike rotations (singles + threes)
-      const totalScoringShots = partnershipRuns - (boundaries * 4) - (sixes * 6);
-      const strikeRotations = Math.max(0, Math.round(totalScoringShots * 0.7)); // ~70% are singles
-      
-      // Estimate dot balls
-      const dotBalls = Math.max(0, partnershipBalls - Math.round(partnershipRuns * 0.8));
-
-      if (partnershipRuns > 0 || isActive) {
-        partnerships.push({
-          batsman1,
-          batsman2,
-          runs: partnershipRuns,
-          balls: partnershipBalls,
-          batsman1Runs: Math.round(batsman1Runs * 0.6),
-          batsman1Balls: Math.round(batsman1Balls * 0.6),
-          batsman2Runs: Math.round(batsman2Runs * 0.6),
-          batsman2Balls: Math.round(batsman2Balls * 0.6),
-          boundaries,
-          sixes,
-          strikeRotations,
-          dotBalls,
-          isActive,
-        });
-      }
-    }
-
-    // If we have current batsmen but no partnership yet, show the active partnership
-    if (innings.currentBatsmen.striker && innings.currentBatsmen.nonStriker) {
-      const existingActive = partnerships.find(p => p.isActive);
-      if (!existingActive) {
-        const striker = innings.currentBatsmen.striker;
-        const nonStriker = innings.currentBatsmen.nonStriker;
-        
-        const partnershipRuns = striker.runs + nonStriker.runs;
-        const partnershipBalls = striker.balls + nonStriker.balls;
-        const boundaries = striker.fours + nonStriker.fours;
-        const sixes = striker.sixes + nonStriker.sixes;
-        const totalScoringShots = partnershipRuns - (boundaries * 4) - (sixes * 6);
-        const strikeRotations = Math.max(0, Math.round(totalScoringShots * 0.7));
-        const dotBalls = Math.max(0, partnershipBalls - Math.round(partnershipRuns * 0.8));
-
-        partnerships.push({
-          batsman1: striker,
-          batsman2: nonStriker,
-          runs: partnershipRuns,
-          balls: partnershipBalls,
-          batsman1Runs: striker.runs,
-          batsman1Balls: striker.balls,
-          batsman2Runs: nonStriker.runs,
-          batsman2Balls: nonStriker.balls,
-          boundaries,
-          sixes,
-          strikeRotations,
-          dotBalls,
-          isActive: true,
-        });
-      }
-    }
-
-    return partnerships;
-  };
-
   const innings = getCurrentInnings();
-  const partnerships = calculatePartnerships(innings);
+  const partnerships = innings?.partnerships || [];
 
   if (!innings || partnerships.length === 0) {
     return (
@@ -149,6 +38,52 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
   const totalRuns = innings.totalRuns;
   const highestPartnership = Math.max(...partnerships.map(p => p.runs));
 
+  // Calculate phase-wise stats
+  const phaseStats = {
+    powerplay: { runs: 0, balls: 0, partnerships: 0 },
+    middle: { runs: 0, balls: 0, partnerships: 0 },
+    death: { runs: 0, balls: 0, partnerships: 0 },
+  };
+
+  partnerships.forEach(p => {
+    phaseStats[p.phase].runs += p.runs;
+    phaseStats[p.phase].balls += p.balls;
+    phaseStats[p.phase].partnerships += 1;
+  });
+
+  const getPhaseIcon = (phase: 'powerplay' | 'middle' | 'death') => {
+    switch (phase) {
+      case 'powerplay':
+        return <Zap className="h-3 w-3" />;
+      case 'death':
+        return <Flame className="h-3 w-3" />;
+      default:
+        return <Target className="h-3 w-3" />;
+    }
+  };
+
+  const getPhaseColor = (phase: 'powerplay' | 'middle' | 'death') => {
+    switch (phase) {
+      case 'powerplay':
+        return 'bg-yellow-500/20 text-yellow-600 border-yellow-500/50';
+      case 'death':
+        return 'bg-red-500/20 text-red-600 border-red-500/50';
+      default:
+        return 'bg-blue-500/20 text-blue-600 border-blue-500/50';
+    }
+  };
+
+  const getPhaseBgColor = (phase: 'powerplay' | 'middle' | 'death') => {
+    switch (phase) {
+      case 'powerplay':
+        return 'border-l-4 border-l-yellow-500';
+      case 'death':
+        return 'border-l-4 border-l-red-500';
+      default:
+        return 'border-l-4 border-l-blue-500';
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -163,6 +98,46 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Phase Summary */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="p-3 bg-yellow-500/10 rounded-lg text-center border border-yellow-500/30">
+            <div className="flex items-center justify-center gap-1 text-yellow-600 mb-1">
+              <Zap className="h-4 w-4" />
+              <span className="text-xs font-medium">Powerplay</span>
+            </div>
+            <div className="text-lg font-bold">{phaseStats.powerplay.runs}</div>
+            <div className="text-xs text-muted-foreground">
+              {phaseStats.powerplay.balls > 0 
+                ? ((phaseStats.powerplay.runs / phaseStats.powerplay.balls) * 6).toFixed(2) 
+                : '0.00'} RR
+            </div>
+          </div>
+          <div className="p-3 bg-blue-500/10 rounded-lg text-center border border-blue-500/30">
+            <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
+              <Target className="h-4 w-4" />
+              <span className="text-xs font-medium">Middle</span>
+            </div>
+            <div className="text-lg font-bold">{phaseStats.middle.runs}</div>
+            <div className="text-xs text-muted-foreground">
+              {phaseStats.middle.balls > 0 
+                ? ((phaseStats.middle.runs / phaseStats.middle.balls) * 6).toFixed(2) 
+                : '0.00'} RR
+            </div>
+          </div>
+          <div className="p-3 bg-red-500/10 rounded-lg text-center border border-red-500/30">
+            <div className="flex items-center justify-center gap-1 text-red-600 mb-1">
+              <Flame className="h-4 w-4" />
+              <span className="text-xs font-medium">Death</span>
+            </div>
+            <div className="text-lg font-bold">{phaseStats.death.runs}</div>
+            <div className="text-xs text-muted-foreground">
+              {phaseStats.death.balls > 0 
+                ? ((phaseStats.death.runs / phaseStats.death.balls) * 6).toFixed(2) 
+                : '0.00'} RR
+            </div>
+          </div>
+        </div>
+
         {partnerships.map((partnership, index) => {
           const runRate = partnership.balls > 0 
             ? ((partnership.runs / partnership.balls) * 6).toFixed(2) 
@@ -173,14 +148,15 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
           const batsman1Contribution = partnership.runs > 0 
             ? ((partnership.batsman1Runs / partnership.runs) * 100) 
             : 50;
+          const strikeRotations = Math.max(0, partnership.runs - (partnership.fours * 4) - (partnership.sixes * 6));
           const rotationRate = partnership.balls > 0 
-            ? ((partnership.strikeRotations / partnership.balls) * 100).toFixed(1) 
+            ? ((strikeRotations / partnership.balls) * 100).toFixed(1) 
             : '0.0';
 
           return (
             <div 
               key={index} 
-              className={`p-4 rounded-lg border ${
+              className={`p-4 rounded-lg border ${getPhaseBgColor(partnership.phase)} ${
                 partnership.isActive 
                   ? 'bg-cricket-green/10 border-cricket-green/30' 
                   : 'bg-muted/30'
@@ -188,9 +164,13 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
             >
               {/* Partnership Header */}
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant={partnership.isActive ? "default" : "secondary"}>
                     {index + 1}{index === 0 ? 'st' : index === 1 ? 'nd' : index === 2 ? 'rd' : 'th'}
+                  </Badge>
+                  <Badge variant="outline" className={getPhaseColor(partnership.phase)}>
+                    {getPhaseIcon(partnership.phase)}
+                    <span className="ml-1 capitalize">{partnership.phase}</span>
                   </Badge>
                   {partnership.isActive && (
                     <Badge className="bg-cricket-green text-white animate-pulse">
@@ -216,10 +196,9 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={partnership.batsman1.imageUrl} />
                       <AvatarFallback><User className="h-3 w-3" /></AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{partnership.batsman1.name}</span>
+                    <span className="font-medium">{partnership.batsman1Name}</span>
                   </div>
                   <span className="text-muted-foreground">
                     {partnership.batsman1Runs} ({partnership.batsman1Balls})
@@ -241,10 +220,9 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={partnership.batsman2.imageUrl} />
                       <AvatarFallback><User className="h-3 w-3" /></AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{partnership.batsman2.name}</span>
+                    <span className="font-medium">{partnership.batsman2Name}</span>
                   </div>
                   <span className="text-muted-foreground">
                     {partnership.batsman2Runs} ({partnership.batsman2Balls})
@@ -256,7 +234,7 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="p-2 bg-background/50 rounded">
                   <div className="text-lg font-bold text-blue-500">
-                    {partnership.boundaries}
+                    {partnership.fours}
                   </div>
                   <div className="text-xs text-muted-foreground">4s</div>
                 </div>
@@ -268,7 +246,7 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
                 </div>
                 <div className="p-2 bg-background/50 rounded">
                   <div className="text-lg font-bold text-green-500">
-                    {partnership.strikeRotations}
+                    {strikeRotations}
                   </div>
                   <div className="text-xs text-muted-foreground">Rotations</div>
                 </div>
@@ -327,7 +305,10 @@ const PartnershipAnalysis = ({ match }: PartnershipAnalysisProps) => {
             </div>
             <div className="p-3 bg-muted/30 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                {Math.round(partnerships.reduce((sum, p) => sum + p.strikeRotations, 0) / 
+                {Math.round(partnerships.reduce((sum, p) => {
+                  const rotations = Math.max(0, p.runs - (p.fours * 4) - (p.sixes * 6));
+                  return sum + rotations;
+                }, 0) / 
                   Math.max(1, partnerships.reduce((sum, p) => sum + p.balls, 0)) * 100)}%
               </div>
               <div className="text-xs text-muted-foreground">Avg Rotation</div>
