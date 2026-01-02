@@ -212,9 +212,16 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
   const team = getCurrentTeam();
   if (!team) return null;
 
-  const availableForImpact = team.squad.filter(p => !selectedXI.includes(p.id));
   const selectedXIPlayers = team.squad.filter(p => selectedXI.includes(p.id));
   const overseasInXI = selectedXIPlayers.filter(p => p.isOverseas).length;
+  
+  // Impact players can only include overseas if XI has 3 or fewer overseas
+  const canSelectOverseasImpact = overseasInXI <= 3;
+  const availableForImpact = team.squad.filter(p => {
+    if (selectedXI.includes(p.id)) return false;
+    if (p.isOverseas && !canSelectOverseasImpact) return false;
+    return true;
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -344,7 +351,17 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
             <h3 className="text-lg font-semibold">Impact Players ({selectedImpact.length}/4)</h3>
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-800">
-                <strong>Note:</strong> You can only use ONE impact player per match. Choose wisely!
+                <strong>Note:</strong> You can only use ONE impact player per match.
+                {overseasInXI >= 4 && (
+                  <span className="block mt-1 text-amber-700">
+                    ⚠️ Playing XI has 4 overseas players. Only Indian players can be selected as impact.
+                  </span>
+                )}
+                {overseasInXI === 3 && (
+                  <span className="block mt-1 text-amber-700">
+                    ℹ️ You can select 1 overseas impact player (XI has 3 overseas).
+                  </span>
+                )}
               </p>
             </div>
             
