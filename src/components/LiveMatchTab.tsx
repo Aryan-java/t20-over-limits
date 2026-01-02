@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, RotateCcw, Trophy } from "lucide-react";
+import { Play, Pause, RotateCcw, Trophy, MapPin } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import LiveScoreboard from "./LiveScoreboard";
 import TossDialog from "./TossDialog";
@@ -10,11 +10,20 @@ import BallByBallEngine from "./BallByBallEngine";
 import LiveMatchControls from "./LiveMatchControls";
 import RunRateGraph from "./RunRateGraph";
 import PartnershipAnalysis from "./PartnershipAnalysis";
+import VenueInfoDialog from "./VenueInfoDialog";
+import { getRandomVenue } from "@/data/venues";
 
 const LiveMatchTab = () => {
-  const { currentMatch, setCurrentMatch, updateMatch } = useCricketStore();
+  const { currentMatch, setCurrentMatch, updateMatch, fixtures } = useCricketStore();
   const [showToss, setShowToss] = useState(false);
+  const [showVenueInfo, setShowVenueInfo] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
+
+  // Find the venue for this match from fixtures
+  const matchFixture = fixtures.find(
+    f => f.team1.id === currentMatch?.team1.id && f.team2.id === currentMatch?.team2.id
+  );
+  const venue = matchFixture?.venue || getRandomVenue();
 
   const handleBowlerChange = (bowlerId: string) => {
     // Update current bowler in match state
@@ -52,10 +61,16 @@ const LiveMatchTab = () => {
 
   const handleStartMatch = () => {
     if (!currentMatch.tossWinner) {
-      setShowToss(true);
+      // Show venue info first, then toss
+      setShowVenueInfo(true);
     } else {
       setMatchStarted(true);
     }
+  };
+
+  const handleProceedToToss = () => {
+    setShowVenueInfo(false);
+    setShowToss(true);
   };
 
   const handleTossComplete = () => {
@@ -184,8 +199,21 @@ const LiveMatchTab = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Venue</span>
+                <div className="flex items-center gap-1 text-sm font-medium">
+                  <MapPin className="h-3 w-3" />
+                  {venue.name}
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Format</span>
                 <Badge>T{currentMatch.overs}</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Pitch</span>
+                <Badge variant="outline" className="capitalize">{venue.pitchType}</Badge>
               </div>
               
               {currentMatch.tossWinner && (
@@ -242,6 +270,17 @@ const LiveMatchTab = () => {
           </Card>
         </div>
       </div>
+
+      <VenueInfoDialog
+        venue={venue}
+        team1={currentMatch.team1}
+        team2={currentMatch.team2}
+        team1PlayingXI={currentMatch.team1Setup?.playingXI}
+        team2PlayingXI={currentMatch.team2Setup?.playingXI}
+        open={showVenueInfo}
+        onOpenChange={setShowVenueInfo}
+        onProceedToToss={handleProceedToToss}
+      />
 
       <TossDialog 
         match={currentMatch}

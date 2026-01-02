@@ -118,6 +118,7 @@ const FixturesTab = () => {
                   <MatchCard
                     key={fixture.id}
                     match={createMatch(fixture.team1.id, fixture.team2.id)}
+                    venue={fixture.venue}
                     onStartMatch={() => handleStartMatch(fixture.team1.id, fixture.team2.id)}
                     isFixture
                   />

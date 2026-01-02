@@ -1,3 +1,5 @@
+import { Venue } from "@/data/venues";
+
 export interface PlayerPerformanceHistory {
   last5MatchesRuns: number;
   last5MatchesWickets: number;
@@ -166,6 +168,7 @@ export interface Fixture {
   played: boolean;
   match?: Match;
   stage: MatchStage;
+  venue: Venue;
 }
 
 export interface MatchHistory extends Match {
