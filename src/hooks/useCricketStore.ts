@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Team, Player, Match, Fixture, MatchHistory, Tournament, TradeProposal } from '@/types/cricket';
 import { PLAYER_DATABASE } from '@/data/playerDatabase';
+import { getRandomVenue, IPL_VENUES } from '@/data/venues';
 
 
 interface CricketStore {
@@ -296,6 +297,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     const fixtures: Fixture[] = [];
     
     // Generate first round of fixtures
+    let venueIndex = 0;
     for (let i = 0; i < teams.length; i++) {
       for (let j = i + 1; j < teams.length; j++) {
         fixtures.push({
@@ -304,7 +306,9 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           team2: teams[j],
           played: false,
           stage: 'league',
+          venue: IPL_VENUES[venueIndex % IPL_VENUES.length],
         });
+        venueIndex++;
       }
     }
     
@@ -316,6 +320,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         team2: f.team1,
         played: false,
         stage: 'league' as const,
+        venue: IPL_VENUES[venueIndex++ % IPL_VENUES.length],
       }));
       fixtures.push(...reverseFixtures);
     }
@@ -408,6 +413,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       team2: top4[1].team,
       played: false,
       stage: 'qualifier1',
+      venue: IPL_VENUES.find(v => v.id === 'narendra-modi') || getRandomVenue(),
     };
     
     const eliminator: Fixture = {
@@ -416,6 +422,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       team2: top4[3].team,
       played: false,
       stage: 'eliminator',
+      venue: IPL_VENUES.find(v => v.id === 'chepauk') || getRandomVenue(),
     };
     
     set(state => ({
@@ -661,6 +668,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           team2: eliminatorWinner,
           played: false,
           stage: 'qualifier2',
+          venue: IPL_VENUES.find(v => v.id === 'eden') || getRandomVenue(),
         };
         
         set(state => ({
@@ -697,6 +705,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           team2: qualifier2Winner,
           played: false,
           stage: 'final',
+          venue: IPL_VENUES.find(v => v.id === 'narendra-modi') || getRandomVenue(),
         };
         
         set(state => ({

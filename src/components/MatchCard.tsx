@@ -2,16 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/types/cricket";
-import { Play, Eye, Clock, Trophy } from "lucide-react";
+import { Venue } from "@/data/venues";
+import { Play, Eye, Clock, Trophy, MapPin } from "lucide-react";
 
 interface MatchCardProps {
   match: Match;
+  venue?: Venue;
   onStartMatch?: () => void;
   onViewMatch?: () => void;
   isFixture?: boolean;
 }
 
-const MatchCard = ({ match, onStartMatch, onViewMatch, isFixture = false }: MatchCardProps) => {
+const MatchCard = ({ match, venue, onStartMatch, onViewMatch, isFixture = false }: MatchCardProps) => {
   const canStart = true; // Always allow starting match, setup will be done in match setup dialog
   
   const getMatchStatus = () => {
@@ -69,6 +71,13 @@ const MatchCard = ({ match, onStartMatch, onViewMatch, isFixture = false }: Matc
           <p className="text-sm text-muted-foreground">
             Toss: {match.tossWinner.name} won, chose to {match.tossChoice} first
           </p>
+        )}
+        {venue && (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPin className="h-3 w-3" />
+            <span>{venue.name}, {venue.city}</span>
+            <Badge variant="outline" className="ml-2 text-xs capitalize">{venue.pitchType}</Badge>
+          </div>
         )}
       </CardHeader>
       
