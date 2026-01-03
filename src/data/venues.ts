@@ -1,3 +1,10 @@
+export interface Weather {
+  matchTime: 'day' | 'day-night' | 'night';
+  avgTemperature: number; // in Celsius
+  humidity: number; // 0-100
+  windSpeed: 'calm' | 'moderate' | 'windy';
+}
+
 export interface Venue {
   id: string;
   name: string;
@@ -11,8 +18,42 @@ export interface Venue {
   paceFriendliness: number; // 0-100
   dewFactor: number; // 0-100 (higher = more dew in second innings)
   boundarySize: 'small' | 'medium' | 'large';
+  weather: Weather;
   imageUrl?: string;
 }
+
+// Helper to get bowling recommendation based on venue
+export const getBowlingRecommendation = (venue: Venue): { type: 'spin' | 'pace' | 'balanced'; priority: string; description: string } => {
+  const spinScore = venue.spinFriendliness;
+  const paceScore = venue.paceFriendliness;
+  const diff = Math.abs(spinScore - paceScore);
+  
+  if (diff < 15) {
+    return {
+      type: 'balanced',
+      priority: 'Balanced Attack',
+      description: 'Mix of pace and spin recommended. Consider 2 spinners + 3 pacers.'
+    };
+  } else if (spinScore > paceScore) {
+    const intensity = spinScore >= 70 ? 'strongly' : 'slightly';
+    return {
+      type: 'spin',
+      priority: `${intensity === 'strongly' ? 'Spin Priority' : 'Spin Favored'}`,
+      description: spinScore >= 70 
+        ? 'Load up on spinners! Consider 3 spinners + 2 pacers.'
+        : 'Spin has an edge. Consider 2-3 spinners.'
+    };
+  } else {
+    const intensity = paceScore >= 70 ? 'strongly' : 'slightly';
+    return {
+      type: 'pace',
+      priority: `${intensity === 'strongly' ? 'Pace Priority' : 'Pace Favored'}`,
+      description: paceScore >= 70 
+        ? 'Pacers will dominate! Consider 4 pacers + 1 spinner.'
+        : 'Pace has an edge. Consider 3 pacers + 2 spinners.'
+    };
+  }
+};
 
 export const IPL_VENUES: Venue[] = [
   {
@@ -28,6 +69,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 65,
     dewFactor: 70,
     boundarySize: 'medium',
+    weather: { matchTime: 'night', avgTemperature: 28, humidity: 75, windSpeed: 'moderate' },
   },
   {
     id: 'chinnaswamy',
@@ -42,6 +84,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 55,
     dewFactor: 65,
     boundarySize: 'small',
+    weather: { matchTime: 'night', avgTemperature: 24, humidity: 55, windSpeed: 'calm' },
   },
   {
     id: 'chepauk',
@@ -56,6 +99,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 35,
     dewFactor: 75,
     boundarySize: 'large',
+    weather: { matchTime: 'night', avgTemperature: 32, humidity: 80, windSpeed: 'moderate' },
   },
   {
     id: 'eden',
@@ -70,6 +114,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 50,
     dewFactor: 80,
     boundarySize: 'medium',
+    weather: { matchTime: 'night', avgTemperature: 30, humidity: 70, windSpeed: 'calm' },
   },
   {
     id: 'feroz-shah',
@@ -84,6 +129,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 55,
     dewFactor: 60,
     boundarySize: 'medium',
+    weather: { matchTime: 'day-night', avgTemperature: 35, humidity: 45, windSpeed: 'windy' },
   },
   {
     id: 'rajiv-gandhi',
@@ -98,6 +144,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 70,
     dewFactor: 55,
     boundarySize: 'large',
+    weather: { matchTime: 'night', avgTemperature: 29, humidity: 50, windSpeed: 'calm' },
   },
   {
     id: 'sawai-mansingh',
@@ -112,6 +159,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 40,
     dewFactor: 50,
     boundarySize: 'medium',
+    weather: { matchTime: 'night', avgTemperature: 33, humidity: 35, windSpeed: 'moderate' },
   },
   {
     id: 'mohali',
@@ -126,6 +174,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 75,
     dewFactor: 45,
     boundarySize: 'medium',
+    weather: { matchTime: 'day-night', avgTemperature: 28, humidity: 40, windSpeed: 'windy' },
   },
   {
     id: 'narendra-modi',
@@ -140,6 +189,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 55,
     dewFactor: 40,
     boundarySize: 'large',
+    weather: { matchTime: 'night', avgTemperature: 31, humidity: 45, windSpeed: 'calm' },
   },
   {
     id: 'brabourne',
@@ -154,6 +204,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 65,
     dewFactor: 65,
     boundarySize: 'small',
+    weather: { matchTime: 'night', avgTemperature: 27, humidity: 72, windSpeed: 'moderate' },
   },
   {
     id: 'dy-patil',
@@ -168,6 +219,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 55,
     dewFactor: 70,
     boundarySize: 'large',
+    weather: { matchTime: 'night', avgTemperature: 26, humidity: 68, windSpeed: 'calm' },
   },
   {
     id: 'greenfield',
@@ -182,6 +234,7 @@ export const IPL_VENUES: Venue[] = [
     paceFriendliness: 50,
     dewFactor: 75,
     boundarySize: 'medium',
+    weather: { matchTime: 'night', avgTemperature: 29, humidity: 85, windSpeed: 'moderate' },
   },
 ];
 
