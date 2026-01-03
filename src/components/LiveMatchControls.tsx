@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Match, Player } from "@/types/cricket";
-import { RotateCcw, Users, Target } from "lucide-react";
+import { RotateCcw, Users, Target, AlertTriangle } from "lucide-react";
 
 interface LiveMatchControlsProps {
   match: Match;
@@ -91,6 +91,54 @@ const LiveMatchControls = ({
     return teamSetup?.impactPlayers || [];
   };
 
+  // Calculate overseas count in current playing XI
+  const getCurrentOverseasCount = () => {
+    const battingTeam = getBattingTeam();
+    if (!battingTeam) return 0;
+    return battingTeam.filter(p => p.isOverseas).length;
+  };
+
+  // Validate if substitution would exceed overseas limit
+  const validateOverseasLimit = (impactPlayerId: string, replacePlayerId: string): { valid: boolean; message: string } => {
+    const battingTeam = getBattingTeam();
+    const impactPlayers = getImpactPlayers();
+    
+    if (!battingTeam) return { valid: false, message: "No batting team found" };
+    
+    const impactPlayerData = impactPlayers.find(p => p.id === impactPlayerId);
+    const replacePlayerData = battingTeam.find(p => p.id === replacePlayerId);
+    
+    if (!impactPlayerData || !replacePlayerData) {
+      return { valid: false, message: "Player not found" };
+    }
+    
+    const currentOverseas = getCurrentOverseasCount();
+    const isImpactOverseas = impactPlayerData.isOverseas;
+    const isReplaceOverseas = replacePlayerData.isOverseas;
+    
+    // Calculate new overseas count after substitution
+    let newOverseasCount = currentOverseas;
+    if (isReplaceOverseas) newOverseasCount -= 1;
+    if (isImpactOverseas) newOverseasCount += 1;
+    
+    if (newOverseasCount > 4) {
+      return { 
+        valid: false, 
+        message: `Cannot substitute: Would exceed maximum 4 overseas players (current: ${currentOverseas}, after: ${newOverseasCount})`
+      };
+    }
+    
+    return { valid: true, message: "" };
+  };
+
+  // Memoized validation result
+  const substitutionValidation = useMemo(() => {
+    if (!impactPlayer || !replacePlayer) {
+      return { valid: true, message: "" };
+    }
+    return validateOverseasLimit(impactPlayer, replacePlayer);
+  }, [impactPlayer, replacePlayer]);
+
   const handleBowlerChange = () => {
     if (selectedBowler) {
       onBowlerChange(selectedBowler);
@@ -109,6 +157,10 @@ const LiveMatchControls = ({
 
   const handleImpactPlayer = () => {
     if (impactPlayer && replacePlayer) {
+      const validation = validateOverseasLimit(impactPlayer, replacePlayer);
+      if (!validation.valid) {
+        return; // Don't proceed if validation fails
+      }
       onUseImpactPlayer(impactPlayer, replacePlayer);
       setImpactPlayerUsed(true);
       setShowImpactSelection(false);
@@ -272,6 +324,9 @@ const LiveMatchControls = ({
               <p className="text-sm text-amber-800">
                 You can only use ONE impact player substitution per match. This cannot be undone.
               </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Current overseas in XI: {getCurrentOverseasCount()}/4
+              </p>
             </div>
             
             <div>
@@ -283,7 +338,7 @@ const LiveMatchControls = ({
                 <SelectContent>
                   {getImpactPlayers().map(player => (
                     <SelectItem key={player.id} value={player.id}>
-                      {player.name} (Bat: {player.batSkill}, Bowl: {player.bowlSkill})
+                      {player.name} {player.isOverseas && "(OS)"} (Bat: {player.batSkill}, Bowl: {player.bowlSkill})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -299,15 +354,28 @@ const LiveMatchControls = ({
                 <SelectContent>
                   {getBattingTeam()?.map(player => (
                     <SelectItem key={player.id} value={player.id}>
-                      {player.name}
+                      {player.name} {player.isOverseas && "(OS)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
+            {/* Validation Warning */}
+            {!substitutionValidation.valid && (
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <p className="text-sm text-destructive">
+                  {substitutionValidation.message}
+                </p>
+              </div>
+            )}
+            
             <div className="flex space-x-2">
-              <Button onClick={handleImpactPlayer} disabled={!impactPlayer || !replacePlayer}>
+              <Button 
+                onClick={handleImpactPlayer} 
+                disabled={!impactPlayer || !replacePlayer || !substitutionValidation.valid}
+              >
                 Make Substitution
               </Button>
               <Button variant="outline" onClick={() => setShowImpactSelection(false)}>
