@@ -8,11 +8,14 @@ import { Label } from "@/components/ui/label";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Team, Player } from "@/types/cricket";
 import { useToast } from "@/hooks/use-toast";
-import { Globe, ArrowUp, ArrowDown } from "lucide-react";
+import { Globe, ArrowUp, ArrowDown, MapPin, Zap } from "lucide-react";
+import { Venue, calculatePlayerSuitability, getBowlingRecommendation } from "@/data/venues";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MatchSetupDialogProps {
   team1: Team | null;
   team2: Team | null;
+  venue?: Venue | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMatchReady: (team1Setup: TeamSetup, team2Setup: TeamSetup) => void;
@@ -26,7 +29,7 @@ interface TeamSetup {
   openingPair: [Player, Player];
 }
 
-const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: MatchSetupDialogProps) => {
+const MatchSetupDialog = ({ team1, team2, venue, open, onOpenChange, onMatchReady }: MatchSetupDialogProps) => {
   const { toast } = useToast();
   const [currentTeam, setCurrentTeam] = useState<1 | 2>(1);
   const [team1Setup, setTeam1Setup] = useState<Partial<TeamSetup>>({});
@@ -223,6 +226,8 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
     return true;
   });
 
+  const bowlingRec = venue ? getBowlingRecommendation(venue) : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -231,6 +236,38 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
             Match Setup - {team.name} ({currentTeam === 1 ? "Team 1" : "Team 2"})
           </DialogTitle>
         </DialogHeader>
+
+        {/* Venue Info Banner */}
+        {venue && (
+          <div className="p-3 bg-muted/30 rounded-lg border mb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="font-semibold">{venue.name}</span>
+                <span className="text-muted-foreground text-sm">• {venue.city}</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <Badge variant={venue.pitchType === 'spin' ? 'secondary' : venue.pitchType === 'pace' ? 'outline' : 'default'}>
+                  {venue.pitchType.charAt(0).toUpperCase() + venue.pitchType.slice(1)} Pitch
+                </Badge>
+                {bowlingRec && (
+                  <div className="flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    <span className={bowlingRec.type === 'spin' ? 'text-purple-500' : bowlingRec.type === 'pace' ? 'text-blue-500' : 'text-green-500'}>
+                      {bowlingRec.priority}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+              <span>Avg Score: {venue.avgFirstInningsScore}</span>
+              <span>Spin: {venue.spinFriendliness}%</span>
+              <span>Pace: {venue.paceFriendliness}%</span>
+              <span>Dew: {venue.dewFactor}%</span>
+            </div>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Playing XI Selection */}
@@ -243,34 +280,61 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
             </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {team.squad.map((player) => (
-                <div key={player.id} className="flex items-center space-x-3 p-2 border rounded">
-                  <Checkbox
-                    checked={selectedXI.includes(player.id)}
-                    onCheckedChange={() => togglePlayerXI(player.id)}
-                    disabled={!selectedXI.includes(player.id) && selectedXI.length >= 11}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium">{player.name}</span>
-                      {player.isOverseas && (
-                        <Badge variant="outline" className="text-xs">
-                          <Globe className="h-3 w-3 mr-1" />
-                          OS
-                        </Badge>
+              <TooltipProvider>
+                {team.squad.map((player) => {
+                  const suitability = venue ? calculatePlayerSuitability(player, venue) : null;
+                  return (
+                    <div key={player.id} className="flex items-center space-x-3 p-2 border rounded">
+                      <Checkbox
+                        checked={selectedXI.includes(player.id)}
+                        onCheckedChange={() => togglePlayerXI(player.id)}
+                        disabled={!selectedXI.includes(player.id) && selectedXI.length >= 11}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{player.name}</span>
+                          {player.isOverseas && (
+                            <Badge variant="outline" className="text-xs">
+                              <Globe className="h-3 w-3 mr-1" />
+                              OS
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Bat: {player.batSkill} | Bowl: {player.bowlSkill}
+                        </div>
+                        {player.performanceHistory && player.performanceHistory.totalMatches > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {player.performanceHistory.totalRuns} runs, {player.performanceHistory.totalWickets} wkts
+                          </div>
+                        )}
+                      </div>
+                      {suitability && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`text-right min-w-[60px] ${suitability.color}`}>
+                              <div className="text-sm font-bold">{suitability.score}</div>
+                              <div className="text-[10px]">{suitability.label}</div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-[200px]">
+                            <p className="font-semibold mb-1">Venue Suitability</p>
+                            {suitability.reasons.length > 0 ? (
+                              <ul className="text-xs list-disc pl-3">
+                                {suitability.reasons.map((r, i) => (
+                                  <li key={i}>{r}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-xs">Standard conditions match</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Bat: {player.batSkill} | Bowl: {player.bowlSkill}
-                    </div>
-                    {player.performanceHistory && player.performanceHistory.totalMatches > 0 && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {player.performanceHistory.totalRuns} runs, {player.performanceHistory.totalWickets} wkts
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </TooltipProvider>
             </div>
           </div>
 
@@ -366,34 +430,61 @@ const MatchSetupDialog = ({ team1, team2, open, onOpenChange, onMatchReady }: Ma
             </div>
             
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availableForImpact.map((player) => (
-                <div key={player.id} className="flex items-center space-x-3 p-2 border rounded">
-                  <Checkbox
-                    checked={selectedImpact.includes(player.id)}
-                    onCheckedChange={() => togglePlayerImpact(player.id)}
-                    disabled={!selectedImpact.includes(player.id) && selectedImpact.length >= 4}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium">{player.name}</span>
-                      {player.isOverseas && (
-                        <Badge variant="outline" className="text-xs">
-                          <Globe className="h-3 w-3 mr-1" />
-                          OS
-                        </Badge>
+              <TooltipProvider>
+                {availableForImpact.map((player) => {
+                  const suitability = venue ? calculatePlayerSuitability(player, venue) : null;
+                  return (
+                    <div key={player.id} className="flex items-center space-x-3 p-2 border rounded">
+                      <Checkbox
+                        checked={selectedImpact.includes(player.id)}
+                        onCheckedChange={() => togglePlayerImpact(player.id)}
+                        disabled={!selectedImpact.includes(player.id) && selectedImpact.length >= 4}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{player.name}</span>
+                          {player.isOverseas && (
+                            <Badge variant="outline" className="text-xs">
+                              <Globe className="h-3 w-3 mr-1" />
+                              OS
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Bat: {player.batSkill} | Bowl: {player.bowlSkill}
+                        </div>
+                        {player.performanceHistory && player.performanceHistory.totalMatches > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {player.performanceHistory.totalRuns} runs, {player.performanceHistory.totalWickets} wkts
+                          </div>
+                        )}
+                      </div>
+                      {suitability && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`text-right min-w-[60px] ${suitability.color}`}>
+                              <div className="text-sm font-bold">{suitability.score}</div>
+                              <div className="text-[10px]">{suitability.label}</div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-[200px]">
+                            <p className="font-semibold mb-1">Venue Suitability</p>
+                            {suitability.reasons.length > 0 ? (
+                              <ul className="text-xs list-disc pl-3">
+                                {suitability.reasons.map((r, i) => (
+                                  <li key={i}>{r}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-xs">Standard conditions match</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Bat: {player.batSkill} | Bowl: {player.bowlSkill}
-                    </div>
-                    {player.performanceHistory && player.performanceHistory.totalMatches > 0 && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {player.performanceHistory.totalRuns} runs, {player.performanceHistory.totalWickets} wkts
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </TooltipProvider>
             </div>
           </div>
         </div>
