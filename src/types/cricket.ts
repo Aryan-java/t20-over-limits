@@ -147,13 +147,16 @@ export interface Match {
     impactPlayers: Player[];
     battingOrder: Player[];
     openingPair: [Player, Player];
+    impactPlayerUsed: boolean;
+    substitutedPlayerId?: string; // ID of player who was replaced
   };
   team2Setup?: {
     playingXI: Player[];
     impactPlayers: Player[];
     battingOrder: Player[];
     openingPair: [Player, Player];
-    impactPlayerUsed?: boolean;
+    impactPlayerUsed: boolean;
+    substitutedPlayerId?: string; // ID of player who was replaced
   };
   superOver?: {
     team1Innings: Innings;

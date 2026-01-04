@@ -476,8 +476,14 @@ export default function TournamentTab() {
             const match = createMatch(
               selectedFixture.team1.id,
               selectedFixture.team2.id,
-              team1Setup,
-              team2Setup
+              {
+                ...team1Setup,
+                impactPlayerUsed: false
+              },
+              {
+                ...team2Setup,
+                impactPlayerUsed: false
+              }
             );
             setCurrentMatch(match);
             setMatchSetupDialogOpen(false);

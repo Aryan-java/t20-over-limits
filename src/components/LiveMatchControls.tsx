@@ -29,7 +29,6 @@ const LiveMatchControls = ({
   const [selectedBatsman, setSelectedBatsman] = useState("");
   const [impactPlayer, setImpactPlayer] = useState("");
   const [replacePlayer, setReplacePlayer] = useState("");
-  const [impactPlayerUsed, setImpactPlayerUsed] = useState(false);
 
   const getCurrentInnings = () => {
     return match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
@@ -80,15 +79,28 @@ const LiveMatchControls = ({
     );
   };
 
-  const getImpactPlayers = () => {
+  const getCurrentTeamSetup = () => {
     const innings = getCurrentInnings();
-    if (!innings) return [];
+    if (!innings) return null;
     
-    const teamSetup = innings.battingTeam === match.team1.name 
+    return innings.battingTeam === match.team1.name 
       ? match.team1Setup 
       : match.team2Setup;
-    
+  };
+
+  const getImpactPlayers = () => {
+    const teamSetup = getCurrentTeamSetup();
     return teamSetup?.impactPlayers || [];
+  };
+
+  const isImpactPlayerUsed = () => {
+    const teamSetup = getCurrentTeamSetup();
+    return teamSetup?.impactPlayerUsed || false;
+  };
+
+  const getSubstitutedPlayerId = () => {
+    const teamSetup = getCurrentTeamSetup();
+    return teamSetup?.substitutedPlayerId;
   };
 
   // Calculate overseas count in current playing XI
@@ -162,7 +174,7 @@ const LiveMatchControls = ({
         return; // Don't proceed if validation fails
       }
       onUseImpactPlayer(impactPlayer, replacePlayer);
-      setImpactPlayerUsed(true);
+      // The impactPlayerUsed flag is now updated in the match state via onUseImpactPlayer
       setShowImpactSelection(false);
       setImpactPlayer("");
       setReplacePlayer("");
@@ -225,11 +237,11 @@ const LiveMatchControls = ({
             <Button 
               variant="outline" 
               onClick={() => setShowImpactSelection(true)}
-              disabled={impactPlayerUsed}
+              disabled={isImpactPlayerUsed() || getImpactPlayers().length === 0}
               className="flex items-center space-x-2"
             >
               <Target className="h-4 w-4" />
-              <span>{impactPlayerUsed ? "Impact Used" : "Impact Player"}</span>
+              <span>{isImpactPlayerUsed() ? "Impact Used" : "Impact Player"}</span>
             </Button>
           </div>
 
@@ -346,19 +358,23 @@ const LiveMatchControls = ({
             </div>
             
             <div>
-              <label className="text-sm font-medium">Replace Player</label>
+              <label className="text-sm font-medium">Replace Player from Playing XI</label>
               <Select value={replacePlayer} onValueChange={setReplacePlayer}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose player to replace" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getBattingTeam()?.map(player => (
+                  {getBattingTeam()?.filter(player => !player.dismissed).map(player => (
                     <SelectItem key={player.id} value={player.id}>
-                      {player.name} {player.isOverseas && "(OS)"}
+                      {player.name} {player.isOverseas && "(OS)"} 
+                      {player.runs > 0 && ` - ${player.runs}(${player.balls})`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                The replaced player cannot participate further in this match
+              </p>
             </div>
             
             {/* Validation Warning */}
