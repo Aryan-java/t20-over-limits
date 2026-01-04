@@ -39,13 +39,15 @@ const FixturesTab = () => {
         playingXI: team1Setup.playingXI,
         impactPlayers: team1Setup.impactPlayers,
         battingOrder: team1Setup.battingOrder,
-        openingPair: team1Setup.openingPair
+        openingPair: team1Setup.openingPair,
+        impactPlayerUsed: false
       },
       {
         playingXI: team2Setup.playingXI,
         impactPlayers: team2Setup.impactPlayers,
         battingOrder: team2Setup.battingOrder,
-        openingPair: team2Setup.openingPair
+        openingPair: team2Setup.openingPair,
+        impactPlayerUsed: false
       }
     );
     setCurrentMatch(match);

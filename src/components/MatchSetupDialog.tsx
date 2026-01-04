@@ -85,9 +85,10 @@ const MatchSetupDialog = ({ team1, team2, venue, open, onOpenChange, onMatchRead
 
   const togglePlayerImpact = (playerId: string) => {
     if (selectedImpact.includes(playerId)) {
-      setSelectedImpact(selectedImpact.filter(id => id !== playerId));
-    } else if (selectedImpact.length < 4) {
-      setSelectedImpact([...selectedImpact, playerId]);
+      setSelectedImpact([]);
+    } else {
+      // Only allow exactly 1 impact player
+      setSelectedImpact([playerId]);
     }
   };
 
@@ -410,23 +411,29 @@ const MatchSetupDialog = ({ team1, team2, venue, open, onOpenChange, onMatchRead
             )}
           </div>
 
-          {/* Impact Players */}
+          {/* Impact Player */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Impact Players ({selectedImpact.length}/4)</h3>
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800">
-                <strong>Note:</strong> You can only use ONE impact player per match.
-                {overseasInXI >= 4 && (
-                  <span className="block mt-1 text-amber-700">
-                    ⚠️ Playing XI has 4 overseas players. Only Indian players can be selected as impact.
-                  </span>
-                )}
-                {overseasInXI === 3 && (
-                  <span className="block mt-1 text-amber-700">
-                    ℹ️ You can select 1 overseas impact player (XI has 3 overseas).
-                  </span>
-                )}
+            <h3 className="text-lg font-semibold">Impact Player ({selectedImpact.length}/1)</h3>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/30 dark:border-amber-800">
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                <strong>Impact Player Rule:</strong>
               </p>
+              <ul className="text-xs text-amber-700 dark:text-amber-400 mt-1 space-y-1 list-disc pl-4">
+                <li>Select exactly <strong>1 Impact Player</strong> (12th player)</li>
+                <li>Can substitute <strong>ONE</strong> player from Playing XI during match</li>
+                <li>Substituted player <strong>cannot</strong> participate further</li>
+                <li>Substitution is <strong>permanent</strong> and cannot be reversed</li>
+              </ul>
+              {overseasInXI >= 4 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">
+                  ⚠️ Playing XI has 4 overseas players. Only Indian players can be selected as impact.
+                </p>
+              )}
+              {overseasInXI === 3 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+                  ℹ️ You can select 1 overseas impact player (XI has 3 overseas).
+                </p>
+              )}
             </div>
             
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -434,11 +441,10 @@ const MatchSetupDialog = ({ team1, team2, venue, open, onOpenChange, onMatchRead
                 {availableForImpact.map((player) => {
                   const suitability = venue ? calculatePlayerSuitability(player, venue) : null;
                   return (
-                    <div key={player.id} className="flex items-center space-x-3 p-2 border rounded">
+                    <div key={player.id} className={`flex items-center space-x-3 p-2 border rounded ${selectedImpact.includes(player.id) ? 'border-primary bg-primary/5' : ''}`}>
                       <Checkbox
                         checked={selectedImpact.includes(player.id)}
                         onCheckedChange={() => togglePlayerImpact(player.id)}
-                        disabled={!selectedImpact.includes(player.id) && selectedImpact.length >= 4}
                       />
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">

@@ -41,8 +41,60 @@ const LiveMatchTab = () => {
   };
 
   const handleUseImpactPlayer = (playerId: string, replacePlayerId: string) => {
-    // Use impact player substitution
-    console.log("Using impact player:", playerId, "to replace:", replacePlayerId);
+    if (!currentMatch) return;
+    
+    const innings = currentMatch.currentInnings === 1 ? currentMatch.firstInnings : currentMatch.secondInnings;
+    if (!innings) return;
+    
+    const isTeam1Batting = innings.battingTeam === currentMatch.team1.name;
+    const teamSetup = isTeam1Batting ? currentMatch.team1Setup : currentMatch.team2Setup;
+    
+    if (!teamSetup) return;
+    
+    // Find the impact player and the player being replaced
+    const impactPlayer = teamSetup.impactPlayers.find(p => p.id === playerId);
+    const replacePlayerIdx = teamSetup.playingXI.findIndex(p => p.id === replacePlayerId);
+    
+    if (!impactPlayer || replacePlayerIdx === -1) return;
+    
+    // Create new playing XI with substitution
+    const newPlayingXI = [...teamSetup.playingXI];
+    const replacedPlayer = newPlayingXI[replacePlayerIdx];
+    
+    // Mark the replaced player as dismissed (cannot participate further)
+    newPlayingXI[replacePlayerIdx] = {
+      ...impactPlayer,
+      isPlaying: true,
+      runs: 0,
+      balls: 0,
+      fours: 0,
+      sixes: 0,
+      dismissed: false,
+      dismissalInfo: '',
+      oversBowled: 0,
+      maidens: 0,
+      wickets: 0,
+      runsConceded: 0,
+      widesConceded: 0,
+      noBallsConceded: 0,
+      dotBalls: 0,
+    };
+    
+    // Update the match state
+    const updatedSetup = {
+      ...teamSetup,
+      playingXI: newPlayingXI,
+      impactPlayerUsed: true,
+      substitutedPlayerId: replacePlayerId
+    };
+    
+    if (isTeam1Batting) {
+      updateMatch({ team1Setup: updatedSetup });
+    } else {
+      updateMatch({ team2Setup: updatedSetup });
+    }
+    
+    console.log(`Impact Player: ${impactPlayer.name} replaced ${replacedPlayer.name}`);
   };
 
   if (!currentMatch) {
