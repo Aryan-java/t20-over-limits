@@ -5,6 +5,7 @@ import MatchSetupDialog from "./MatchSetupDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { useState } from "react";
 import { Team } from "@/types/cricket";
+import { Venue } from "@/data/venues";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,14 +20,14 @@ import { useToast } from "@/hooks/use-toast";
 
 const FixturesTab = () => {
   const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch } = useCricketStore();
-  const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team} | null>(null);
+  const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team, venue: Venue} | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const { toast } = useToast();
 
-  const handleStartMatch = (team1Id: string, team2Id: string) => {
+  const handleStartMatch = (team1Id: string, team2Id: string, venue: Venue) => {
     const team1 = teams.find(t => t.id === team1Id)!;
     const team2 = teams.find(t => t.id === team2Id)!;
-    setSetupMatch({ team1, team2 });
+    setSetupMatch({ team1, team2, venue });
   };
 
   const handleMatchReady = (team1Setup: any, team2Setup: any) => {
@@ -119,7 +120,7 @@ const FixturesTab = () => {
                     key={fixture.id}
                     match={createMatch(fixture.team1.id, fixture.team2.id)}
                     venue={fixture.venue}
-                    onStartMatch={() => handleStartMatch(fixture.team1.id, fixture.team2.id)}
+                    onStartMatch={() => handleStartMatch(fixture.team1.id, fixture.team2.id, fixture.venue)}
                     isFixture
                   />
                 ))}
@@ -155,6 +156,7 @@ const FixturesTab = () => {
       <MatchSetupDialog
         team1={setupMatch?.team1 || null}
         team2={setupMatch?.team2 || null}
+        venue={setupMatch?.venue || null}
         open={!!setupMatch}
         onOpenChange={(open) => !open && setSetupMatch(null)}
         onMatchReady={handleMatchReady}

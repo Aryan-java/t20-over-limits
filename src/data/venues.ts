@@ -55,6 +55,87 @@ export const getBowlingRecommendation = (venue: Venue): { type: 'spin' | 'pace' 
   }
 };
 
+// Calculate player suitability score for a venue (0-100)
+export const calculatePlayerSuitability = (
+  player: { batSkill: number; bowlSkill: number },
+  venue: Venue
+): { score: number; label: string; color: string; reasons: string[] } => {
+  const reasons: string[] = [];
+  let totalScore = 0;
+  let factorCount = 0;
+
+  // Batting contribution based on boundary size and expected scores
+  const avgScore = (venue.avgFirstInningsScore + venue.avgSecondInningsScore) / 2;
+  const isHighScoring = avgScore >= 175;
+  const batWeight = isHighScoring ? 0.6 : 0.4;
+  
+  if (player.batSkill >= 70 && isHighScoring) {
+    totalScore += player.batSkill * 1.1;
+    reasons.push('Strong batter for high-scoring venue');
+  } else if (player.batSkill >= 70 && venue.boundarySize === 'small') {
+    totalScore += player.batSkill * 1.15;
+    reasons.push('Power hitter suits small boundaries');
+  } else {
+    totalScore += player.batSkill;
+  }
+  factorCount++;
+
+  // Bowling contribution based on spin/pace friendliness
+  const spinBowler = player.bowlSkill >= 50 && player.batSkill < player.bowlSkill;
+  const paceBowler = player.bowlSkill >= 50 && player.batSkill < player.bowlSkill;
+  
+  if (player.bowlSkill >= 60) {
+    // Determine if player is more spin or pace oriented (simplified: high bowl skill with low bat = bowler)
+    // For now, we'll use bowling skill relative to venue
+    const spinBonus = (venue.spinFriendliness / 100) * 15;
+    const paceBonus = (venue.paceFriendliness / 100) * 15;
+    
+    if (venue.spinFriendliness > venue.paceFriendliness) {
+      totalScore += player.bowlSkill + spinBonus;
+      if (player.bowlSkill >= 70) reasons.push('Spin-friendly conditions favor this bowler');
+    } else {
+      totalScore += player.bowlSkill + paceBonus;
+      if (player.bowlSkill >= 70) reasons.push('Pace-friendly conditions favor this bowler');
+    }
+  } else {
+    totalScore += player.bowlSkill;
+  }
+  factorCount++;
+
+  // Dew factor consideration for all-rounders
+  if (player.batSkill >= 60 && player.bowlSkill >= 60 && venue.dewFactor >= 60) {
+    totalScore += 10;
+    reasons.push('All-rounder valuable with dew factor');
+  }
+
+  // Calculate final score
+  const avgPlayerScore = totalScore / factorCount;
+  const normalizedScore = Math.min(100, Math.round(avgPlayerScore));
+
+  // Determine label and color
+  let label: string;
+  let color: string;
+  
+  if (normalizedScore >= 85) {
+    label = 'Excellent';
+    color = 'text-emerald-500';
+  } else if (normalizedScore >= 75) {
+    label = 'Good';
+    color = 'text-green-500';
+  } else if (normalizedScore >= 65) {
+    label = 'Average';
+    color = 'text-yellow-500';
+  } else if (normalizedScore >= 50) {
+    label = 'Below Avg';
+    color = 'text-orange-500';
+  } else {
+    label = 'Poor';
+    color = 'text-red-500';
+  }
+
+  return { score: normalizedScore, label, color, reasons: reasons.slice(0, 2) };
+};
+
 export const IPL_VENUES: Venue[] = [
   {
     id: 'wankhede',
