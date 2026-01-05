@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User } from "lucide-react";
+import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User, MapPin } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCricketStore } from "@/hooks/useCricketStore";
@@ -308,6 +308,12 @@ export default function TournamentTab() {
                             <span className="text-sm text-muted-foreground px-4">vs</span>
                             <span className="font-semibold">{fixture.team2.name}</span>
                           </div>
+                          {fixture.venue && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <MapPin className="h-3 w-3" />
+                              <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                            </div>
+                          )}
                           {fixture.played && fixture.match && (
                             <div className="mt-2 pt-2 border-t">
                               <p className="text-sm font-medium text-cricket-green">
@@ -388,6 +394,12 @@ export default function TournamentTab() {
                               <span className="text-sm text-muted-foreground px-4">vs</span>
                               <span className="font-semibold">{fixture.team2.name}</span>
                             </div>
+                            {fixture.venue && (
+                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3" />
+                                <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                              </div>
+                            )}
                             {fixture.played && fixture.match && (
                               <div className="mt-2 pt-2 border-t">
                                 <p className="text-sm font-medium text-cricket-green">
