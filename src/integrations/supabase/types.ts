@@ -79,6 +79,84 @@ export type Database = {
         }
         Relationships: []
       }
+      player_all_time_stats: {
+        Row: {
+          balls_bowled: number
+          balls_faced: number
+          best_bowling_runs: number
+          best_bowling_wickets: number
+          created_at: string
+          fifties: number
+          fours: number
+          highest_score: number
+          hundreds: number
+          id: string
+          image_url: string | null
+          maidens: number
+          matches_batted: number
+          matches_bowled: number
+          not_outs: number
+          player_id: string
+          player_name: string
+          runs_conceded: number
+          sixes: number
+          team_name: string | null
+          total_runs: number
+          total_wickets: number
+          updated_at: string
+        }
+        Insert: {
+          balls_bowled?: number
+          balls_faced?: number
+          best_bowling_runs?: number
+          best_bowling_wickets?: number
+          created_at?: string
+          fifties?: number
+          fours?: number
+          highest_score?: number
+          hundreds?: number
+          id?: string
+          image_url?: string | null
+          maidens?: number
+          matches_batted?: number
+          matches_bowled?: number
+          not_outs?: number
+          player_id: string
+          player_name: string
+          runs_conceded?: number
+          sixes?: number
+          team_name?: string | null
+          total_runs?: number
+          total_wickets?: number
+          updated_at?: string
+        }
+        Update: {
+          balls_bowled?: number
+          balls_faced?: number
+          best_bowling_runs?: number
+          best_bowling_wickets?: number
+          created_at?: string
+          fifties?: number
+          fours?: number
+          highest_score?: number
+          hundreds?: number
+          id?: string
+          image_url?: string | null
+          maidens?: number
+          matches_batted?: number
+          matches_bowled?: number
+          not_outs?: number
+          player_id?: string
+          player_name?: string
+          runs_conceded?: number
+          sixes?: number
+          team_name?: string | null
+          total_runs?: number
+          total_wickets?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
