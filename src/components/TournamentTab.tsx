@@ -309,9 +309,22 @@ export default function TournamentTab() {
                             <span className="font-semibold">{fixture.team2.name}</span>
                           </div>
                           {fixture.venue && (
-                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                              <MapPin className="h-3 w-3" />
-                              <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                              </div>
+                              <span className="text-muted-foreground/50">•</span>
+                              <span className="capitalize">{fixture.venue.pitchType} pitch</span>
+                              {fixture.venue.weather && (
+                                <>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span>{fixture.venue.weather.matchTime === 'day' ? '☀️' : '🌙'} {fixture.venue.weather.avgTemperature}°C</span>
+                                  {fixture.venue.weather.humidity > 60 && (
+                                    <span className="text-blue-500">💧 {fixture.venue.weather.humidity}%</span>
+                                  )}
+                                </>
+                              )}
                             </div>
                           )}
                           {fixture.played && fixture.match && (
@@ -395,9 +408,22 @@ export default function TournamentTab() {
                               <span className="font-semibold">{fixture.team2.name}</span>
                             </div>
                             {fixture.venue && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                <MapPin className="h-3 w-3" />
-                                <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                                </div>
+                                <span className="text-muted-foreground/50">•</span>
+                                <span className="capitalize">{fixture.venue.pitchType} pitch</span>
+                                {fixture.venue.weather && (
+                                  <>
+                                    <span className="text-muted-foreground/50">•</span>
+                                    <span>{fixture.venue.weather.matchTime === 'day' ? '☀️' : '🌙'} {fixture.venue.weather.avgTemperature}°C</span>
+                                    {fixture.venue.weather.humidity > 60 && (
+                                      <span className="text-blue-500">💧 {fixture.venue.weather.humidity}%</span>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             )}
                             {fixture.played && fixture.match && (
