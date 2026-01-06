@@ -40,7 +40,7 @@ const saveAllTimeStats = async (completedMatch: Match) => {
         .from("player_all_time_stats")
         .select("*")
         .eq("player_id", player.id)
-        .single();
+        .maybeSingle();
       
       const runs = player.runs || 0;
       const balls = player.balls || 0;

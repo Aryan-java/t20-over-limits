@@ -48,7 +48,7 @@ export function useAllTimeStats() {
         .from("player_all_time_stats")
         .select("*")
         .eq("player_id", playerStats.player_id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Update existing stats
