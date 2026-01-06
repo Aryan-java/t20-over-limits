@@ -1,10 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
-import { User, TrendingUp, Target, Loader2 } from "lucide-react";
-
+import { User, TrendingUp, Target, Loader2, ChevronRight } from "lucide-react";
 export default function AllTimeStats() {
+  const navigate = useNavigate();
   const { battingLeaderboard, bowlingLeaderboard, isLoading } = useAllTimeStats();
 
   if (isLoading) {
@@ -76,8 +77,9 @@ export default function AllTimeStats() {
                 {battingLeaderboard.slice(0, 15).map((player, index) => (
                   <div
                     key={player.id}
-                    className={`grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-colors ${
-                      index === 0 ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-background/50 hover:bg-muted/50'
+                    onClick={() => navigate(`/player/${player.player_id}`)}
+                    className={`grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-colors cursor-pointer group ${
+                      index === 0 ? 'bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20' : 'bg-background/50 hover:bg-muted/50'
                     }`}
                   >
                     <div className="col-span-1 font-bold text-muted-foreground">
@@ -105,7 +107,10 @@ export default function AllTimeStats() {
                       {calculateStrikeRate(player.total_runs, player.balls_faced)}
                     </div>
                     <div className="col-span-1 text-center text-sm">{player.fifties}</div>
-                    <div className="col-span-1 text-center text-sm">{player.hundreds}</div>
+                    <div className="col-span-1 text-center text-sm flex items-center justify-center gap-1">
+                      {player.hundreds}
+                      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -133,8 +138,9 @@ export default function AllTimeStats() {
                 {bowlingLeaderboard.slice(0, 15).map((player, index) => (
                   <div
                     key={player.id}
-                    className={`grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-colors ${
-                      index === 0 ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-background/50 hover:bg-muted/50'
+                    onClick={() => navigate(`/player/${player.player_id}`)}
+                    className={`grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-colors cursor-pointer group ${
+                      index === 0 ? 'bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20' : 'bg-background/50 hover:bg-muted/50'
                     }`}
                   >
                     <div className="col-span-1 font-bold text-muted-foreground">
@@ -160,8 +166,9 @@ export default function AllTimeStats() {
                     <div className="col-span-1 text-center text-sm">
                       {calculateBowlingAvg(player.runs_conceded, player.total_wickets)}
                     </div>
-                    <div className="col-span-2 text-center text-sm">
+                    <div className="col-span-2 text-center text-sm flex items-center justify-center gap-1">
                       {calculateEconomy(player.runs_conceded, player.balls_bowled)}
+                      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
                     </div>
                   </div>
                 ))}
