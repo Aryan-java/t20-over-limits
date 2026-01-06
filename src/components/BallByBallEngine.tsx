@@ -9,7 +9,7 @@ import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 
 interface BallByBallEngineProps {
   match: Match;
