@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Play, ChartBar as BarChart3, Trophy } from "lucide-react";
+import { Users, Play, ChartBar as BarChart3, Trophy, Award } from "lucide-react";
 
 interface TabNavigationProps {
   activeTab: string;
@@ -10,7 +10,7 @@ interface TabNavigationProps {
 const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps) => {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-4 mb-6">
+      <TabsList className="grid w-full grid-cols-5 mb-6">
         <TabsTrigger value="teams" className="flex items-center space-x-2">
           <Users className="h-4 w-4" />
           <span>Teams</span>
@@ -22,6 +22,10 @@ const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps)
         <TabsTrigger value="tournament" className="flex items-center space-x-2">
           <Trophy className="h-4 w-4" />
           <span>Tournament</span>
+        </TabsTrigger>
+        <TabsTrigger value="records" className="flex items-center space-x-2">
+          <Award className="h-4 w-4" />
+          <span>Records</span>
         </TabsTrigger>
         <TabsTrigger value="stats" className="flex items-center space-x-2">
           <BarChart3 className="h-4 w-4" />

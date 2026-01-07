@@ -15,7 +15,6 @@ import DetailedScorecard from "./DetailedScorecard";
 import MatchSetupDialog from "./MatchSetupDialog";
 import { useToast } from "@/hooks/use-toast";
 import PointsTable from "./PointsTable";
-import AllTimeStats from "./AllTimeStats";
 
 export default function TournamentTab() {
   const navigate = useNavigate();
@@ -277,8 +276,6 @@ export default function TournamentTab() {
           </CardContent>
         </Card>
       </div>
-
-      <AllTimeStats />
 
       {fixtures.length > 0 && (
         <>
