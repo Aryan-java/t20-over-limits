@@ -92,10 +92,7 @@ export default function AllTimeStats() {
                           <User className="h-4 w-4" />
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{player.player_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{player.team_name}</p>
-                      </div>
+                      <p className="font-semibold text-sm truncate">{player.player_name}</p>
                     </div>
                     <div className="col-span-1 text-center text-sm">{player.matches_batted}</div>
                     <div className="col-span-2 text-center font-bold text-orange-600">{player.total_runs}</div>
@@ -153,10 +150,7 @@ export default function AllTimeStats() {
                           <User className="h-4 w-4" />
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{player.player_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{player.team_name}</p>
-                      </div>
+                      <p className="font-semibold text-sm truncate">{player.player_name}</p>
                     </div>
                     <div className="col-span-1 text-center text-sm">{player.matches_bowled}</div>
                     <div className="col-span-2 text-center font-bold text-purple-600">{player.total_wickets}</div>
