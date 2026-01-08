@@ -100,13 +100,64 @@ export function useAllTimeStats() {
     },
   });
 
-  const battingLeaderboard = stats
-    ?.filter(s => s.matches_batted > 0)
-    .sort((a, b) => b.total_runs - a.total_runs) || [];
+  // Aggregate stats by player name (treating same name as same player across teams)
+  const aggregateByName = (data: PlayerAllTimeStats[] | undefined) => {
+    if (!data) return [];
+    
+    const aggregated = new Map<string, PlayerAllTimeStats>();
+    
+    for (const player of data) {
+      const name = player.player_name.toLowerCase().trim();
+      const existing = aggregated.get(name);
+      
+      if (existing) {
+        // Merge stats
+        aggregated.set(name, {
+          ...existing,
+          matches_batted: existing.matches_batted + player.matches_batted,
+          total_runs: existing.total_runs + player.total_runs,
+          balls_faced: existing.balls_faced + player.balls_faced,
+          highest_score: Math.max(existing.highest_score, player.highest_score),
+          fifties: existing.fifties + player.fifties,
+          hundreds: existing.hundreds + player.hundreds,
+          fours: existing.fours + player.fours,
+          sixes: existing.sixes + player.sixes,
+          not_outs: existing.not_outs + player.not_outs,
+          matches_bowled: existing.matches_bowled + player.matches_bowled,
+          total_wickets: existing.total_wickets + player.total_wickets,
+          balls_bowled: existing.balls_bowled + player.balls_bowled,
+          runs_conceded: existing.runs_conceded + player.runs_conceded,
+          best_bowling_wickets: player.best_bowling_wickets > existing.best_bowling_wickets 
+            ? player.best_bowling_wickets 
+            : (player.best_bowling_wickets === existing.best_bowling_wickets && player.best_bowling_runs < existing.best_bowling_runs)
+              ? player.best_bowling_wickets
+              : existing.best_bowling_wickets,
+          best_bowling_runs: player.best_bowling_wickets > existing.best_bowling_wickets 
+            ? player.best_bowling_runs 
+            : (player.best_bowling_wickets === existing.best_bowling_wickets && player.best_bowling_runs < existing.best_bowling_runs)
+              ? player.best_bowling_runs
+              : existing.best_bowling_runs,
+          maidens: existing.maidens + player.maidens,
+          // Keep the first image_url found
+          image_url: existing.image_url || player.image_url,
+        });
+      } else {
+        aggregated.set(name, { ...player, team_name: null }); // Remove team association
+      }
+    }
+    
+    return Array.from(aggregated.values());
+  };
 
-  const bowlingLeaderboard = stats
-    ?.filter(s => s.matches_bowled > 0)
-    .sort((a, b) => b.total_wickets - a.total_wickets) || [];
+  const aggregatedStats = aggregateByName(stats);
+
+  const battingLeaderboard = aggregatedStats
+    .filter(s => s.matches_batted > 0)
+    .sort((a, b) => b.total_runs - a.total_runs);
+
+  const bowlingLeaderboard = aggregatedStats
+    .filter(s => s.matches_bowled > 0)
+    .sort((a, b) => b.total_wickets - a.total_wickets);
 
   return {
     stats,
