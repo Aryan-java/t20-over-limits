@@ -11,6 +11,7 @@ import LiveMatchControls from "./LiveMatchControls";
 import RunRateGraph from "./RunRateGraph";
 import PartnershipAnalysis from "./PartnershipAnalysis";
 import VenueInfoDialog from "./VenueInfoDialog";
+import WinPrediction from "./WinPrediction";
 import { getRandomVenue } from "@/data/venues";
 
 const LiveMatchTab = () => {
@@ -245,6 +246,11 @@ const LiveMatchTab = () => {
         </div>
         
         <div className="space-y-6">
+          {/* Win Prediction - Only show during live match */}
+          {matchStarted && currentMatch.isLive && !currentMatch.isCompleted && (
+            <WinPrediction match={currentMatch} />
+          )}
+          
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Match Info</CardTitle>

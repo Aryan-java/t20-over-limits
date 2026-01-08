@@ -10,6 +10,7 @@ import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
 import { supabase } from "@/lib/supabaseClient";
+import SuperOverDialog from "./SuperOverDialog";
 
 interface BallByBallEngineProps {
   match: Match;
@@ -140,6 +141,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [nextBatsmanIndex, setNextBatsmanIndex] = useState(2);
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
   const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
+  const [showSuperOver, setShowSuperOver] = useState(false);
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -829,7 +831,14 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           result = `${firstInnings.battingTeam} won by ${runsDiff} runs`;
           winnerId = firstInnings.battingTeam === matchUpdate.team1.name ? matchUpdate.team1.id : matchUpdate.team2.id;
         } else {
-          result = 'Match Tied';
+          // Match Tied - Trigger Super Over!
+          result = 'Match Tied - Super Over!';
+          updateMatch({
+            ...matchUpdate,
+            result: 'Match Tied - Super Over Required',
+          });
+          setShowSuperOver(true);
+          return;
         }
 
         const manOfTheMatch = calculateManOfTheMatch();
@@ -1333,6 +1342,28 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Super Over Dialog */}
+      <SuperOverDialog
+        match={match}
+        open={showSuperOver}
+        onOpenChange={setShowSuperOver}
+        onSuperOverComplete={(winner, result) => {
+          const manOfTheMatch = calculateManOfTheMatch();
+          const completedMatch = {
+            ...match,
+            result,
+            isCompleted: true,
+            manOfTheMatch,
+          };
+          updateMatch(completedMatch);
+          const { completeMatch } = useCricketStore.getState();
+          completeMatch(completedMatch);
+          saveAllTimeStats(completedMatch);
+          setShowSuperOver(false);
+          setShowMatchResultDialog(true);
+        }}
+      />
     </div>
   );
 };
