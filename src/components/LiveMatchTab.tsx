@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +20,13 @@ const LiveMatchTab = () => {
   const [showVenueInfo, setShowVenueInfo] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
 
-  // Find the venue for this match from fixtures
-  const matchFixture = fixtures.find(
-    f => f.team1.id === currentMatch?.team1.id && f.team2.id === currentMatch?.team2.id
-  );
-  const venue = matchFixture?.venue || getRandomVenue();
+  // Memoize venue so it doesn't change on every re-render
+  const venue = useMemo(() => {
+    const matchFixture = fixtures.find(
+      f => f.team1.id === currentMatch?.team1.id && f.team2.id === currentMatch?.team2.id
+    );
+    return matchFixture?.venue || getRandomVenue();
+  }, [currentMatch?.team1.id, currentMatch?.team2.id, fixtures]);
 
   const handleBowlerChange = (bowlerId: string) => {
     // Update current bowler in match state
