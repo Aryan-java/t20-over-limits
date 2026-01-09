@@ -16,7 +16,7 @@ interface BallByBallEngineProps {
   match: Match;
 }
 
-const saveAllTimeStats = async (completedMatch: Match) => {
+const saveAllTimeStats = async (completedMatch: Match): Promise<boolean> => {
   try {
     const allPlayers: Player[] = [];
     
@@ -30,101 +30,137 @@ const saveAllTimeStats = async (completedMatch: Match) => {
     if (team2Setup?.playingXI) {
       team2Setup.playingXI.forEach(p => allPlayers.push({ ...p, currentTeamId: completedMatch.team2.id }));
     }
+
+    console.log(`Saving stats for ${allPlayers.length} players...`);
     
-    for (const player of allPlayers) {
-      const teamName = player.currentTeamId === completedMatch.team1.id 
-        ? completedMatch.team1.name 
-        : completedMatch.team2.name;
-      
-      // Check if player exists
-      const { data: existing } = await supabase
-        .from("player_all_time_stats")
-        .select("*")
-        .eq("player_id", player.id)
-        .maybeSingle();
-      
-      const runs = player.runs || 0;
-      const balls = player.balls || 0;
-      const fours = player.fours || 0;
-      const sixes = player.sixes || 0;
-      const wickets = player.wickets || 0;
-      const runsConceded = player.runsConceded || 0;
-      const oversBowled = player.oversBowled || 0;
-      const ballsBowled = Math.floor(oversBowled) * 6 + Math.round((oversBowled % 1) * 10);
-      const maidens = player.maidens || 0;
-      const didBat = balls > 0 || runs > 0;
-      const didBowl = ballsBowled > 0 || wickets > 0;
-      const notOut = !player.dismissed && didBat ? 1 : 0;
-      
-      if (existing) {
-        // Update existing stats
-        const newHighScore = Math.max(existing.highest_score, runs);
-        const newFifties = existing.fifties + (runs >= 50 && runs < 100 ? 1 : 0);
-        const newHundreds = existing.hundreds + (runs >= 100 ? 1 : 0);
+    // Process all players in parallel for better reliability
+    const updatePromises = allPlayers.map(async (player) => {
+      try {
+        const teamName = player.currentTeamId === completedMatch.team1.id 
+          ? completedMatch.team1.name 
+          : completedMatch.team2.name;
         
-        // Check for best bowling
-        let bestWickets = existing.best_bowling_wickets;
-        let bestRuns = existing.best_bowling_runs;
-        if (wickets > bestWickets || (wickets === bestWickets && runsConceded < bestRuns)) {
-          bestWickets = wickets;
-          bestRuns = runsConceded;
+        // Check if player exists
+        const { data: existing, error: fetchError } = await supabase
+          .from("player_all_time_stats")
+          .select("*")
+          .eq("player_id", player.id)
+          .maybeSingle();
+        
+        if (fetchError) {
+          console.error(`Error fetching stats for ${player.name}:`, fetchError);
+          return { success: false, player: player.name, error: fetchError };
         }
         
-        await supabase
-          .from("player_all_time_stats")
-          .update({
-            player_name: player.name,
-            team_name: teamName,
-            image_url: player.imageUrl || null,
-            matches_batted: existing.matches_batted + (didBat ? 1 : 0),
-            total_runs: existing.total_runs + runs,
-            balls_faced: existing.balls_faced + balls,
-            highest_score: newHighScore,
-            fifties: newFifties,
-            hundreds: newHundreds,
-            fours: existing.fours + fours,
-            sixes: existing.sixes + sixes,
-            not_outs: existing.not_outs + notOut,
-            matches_bowled: existing.matches_bowled + (didBowl ? 1 : 0),
-            total_wickets: existing.total_wickets + wickets,
-            balls_bowled: existing.balls_bowled + ballsBowled,
-            runs_conceded: existing.runs_conceded + runsConceded,
-            best_bowling_wickets: bestWickets,
-            best_bowling_runs: bestRuns,
-            maidens: existing.maidens + maidens,
-          })
-          .eq("player_id", player.id);
-      } else {
-        // Insert new stats
-        await supabase
-          .from("player_all_time_stats")
-          .insert({
-            player_id: player.id,
-            player_name: player.name,
-            team_name: teamName,
-            image_url: player.imageUrl || null,
-            matches_batted: didBat ? 1 : 0,
-            total_runs: runs,
-            balls_faced: balls,
-            highest_score: runs,
-            fifties: runs >= 50 && runs < 100 ? 1 : 0,
-            hundreds: runs >= 100 ? 1 : 0,
-            fours: fours,
-            sixes: sixes,
-            not_outs: notOut,
-            matches_bowled: didBowl ? 1 : 0,
-            total_wickets: wickets,
-            balls_bowled: ballsBowled,
-            runs_conceded: runsConceded,
-            best_bowling_wickets: wickets,
-            best_bowling_runs: runsConceded,
-            maidens: maidens,
-          });
+        const runs = player.runs || 0;
+        const balls = player.balls || 0;
+        const fours = player.fours || 0;
+        const sixes = player.sixes || 0;
+        const wickets = player.wickets || 0;
+        const runsConceded = player.runsConceded || 0;
+        const oversBowled = player.oversBowled || 0;
+        const ballsBowled = Math.floor(oversBowled) * 6 + Math.round((oversBowled % 1) * 10);
+        const maidens = player.maidens || 0;
+        const didBat = balls > 0 || runs > 0;
+        const didBowl = ballsBowled > 0 || wickets > 0;
+        const notOut = !player.dismissed && didBat ? 1 : 0;
+        
+        if (existing) {
+          // Update existing stats
+          const newHighScore = Math.max(existing.highest_score, runs);
+          const newFifties = existing.fifties + (runs >= 50 && runs < 100 ? 1 : 0);
+          const newHundreds = existing.hundreds + (runs >= 100 ? 1 : 0);
+          
+          // Check for best bowling
+          let bestWickets = existing.best_bowling_wickets;
+          let bestRuns = existing.best_bowling_runs;
+          if (wickets > bestWickets || (wickets === bestWickets && runsConceded < bestRuns)) {
+            bestWickets = wickets;
+            bestRuns = runsConceded;
+          }
+          
+          const { error: updateError } = await supabase
+            .from("player_all_time_stats")
+            .update({
+              player_name: player.name,
+              team_name: teamName,
+              image_url: player.imageUrl || null,
+              matches_batted: existing.matches_batted + (didBat ? 1 : 0),
+              total_runs: existing.total_runs + runs,
+              balls_faced: existing.balls_faced + balls,
+              highest_score: newHighScore,
+              fifties: newFifties,
+              hundreds: newHundreds,
+              fours: existing.fours + fours,
+              sixes: existing.sixes + sixes,
+              not_outs: existing.not_outs + notOut,
+              matches_bowled: existing.matches_bowled + (didBowl ? 1 : 0),
+              total_wickets: existing.total_wickets + wickets,
+              balls_bowled: existing.balls_bowled + ballsBowled,
+              runs_conceded: existing.runs_conceded + runsConceded,
+              best_bowling_wickets: bestWickets,
+              best_bowling_runs: bestRuns,
+              maidens: existing.maidens + maidens,
+            })
+            .eq("player_id", player.id);
+
+          if (updateError) {
+            console.error(`Error updating stats for ${player.name}:`, updateError);
+            return { success: false, player: player.name, error: updateError };
+          }
+        } else {
+          // Insert new stats
+          const { error: insertError } = await supabase
+            .from("player_all_time_stats")
+            .insert({
+              player_id: player.id,
+              player_name: player.name,
+              team_name: teamName,
+              image_url: player.imageUrl || null,
+              matches_batted: didBat ? 1 : 0,
+              total_runs: runs,
+              balls_faced: balls,
+              highest_score: runs,
+              fifties: runs >= 50 && runs < 100 ? 1 : 0,
+              hundreds: runs >= 100 ? 1 : 0,
+              fours: fours,
+              sixes: sixes,
+              not_outs: notOut,
+              matches_bowled: didBowl ? 1 : 0,
+              total_wickets: wickets,
+              balls_bowled: ballsBowled,
+              runs_conceded: runsConceded,
+              best_bowling_wickets: wickets,
+              best_bowling_runs: runsConceded,
+              maidens: maidens,
+            });
+
+          if (insertError) {
+            console.error(`Error inserting stats for ${player.name}:`, insertError);
+            return { success: false, player: player.name, error: insertError };
+          }
+        }
+        
+        return { success: true, player: player.name };
+      } catch (playerError) {
+        console.error(`Unexpected error for ${player.name}:`, playerError);
+        return { success: false, player: player.name, error: playerError };
       }
+    });
+
+    const results = await Promise.all(updatePromises);
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success);
+    
+    console.log(`All-time stats saved: ${successful}/${allPlayers.length} players updated successfully`);
+    if (failed.length > 0) {
+      console.warn("Failed players:", failed.map(f => f.player).join(", "));
     }
-    console.log("All-time stats saved successfully");
+    
+    return failed.length === 0;
   } catch (error) {
     console.error("Error saving all-time stats:", error);
+    return false;
   }
 };
 
@@ -494,7 +530,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     setNextBatsmanIndex(prev => prev + 1);
   };
 
-  const handleSimulateBall = () => {
+  const handleSimulateBall = async () => {
     const innings = getCurrentInnings();
     if (!innings || innings.isCompleted || !innings.currentBowler) return;
     if (!innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker) return;
@@ -857,8 +893,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         const { completeMatch } = useCricketStore.getState();
         completeMatch(completedMatch);
 
-        // Save all-time stats to database
-        saveAllTimeStats(completedMatch);
+        // Save all-time stats to database (await to ensure completion)
+        await saveAllTimeStats(completedMatch);
 
         setShowMatchResultDialog(true);
         return;
@@ -1348,7 +1384,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         match={match}
         open={showSuperOver}
         onOpenChange={setShowSuperOver}
-        onSuperOverComplete={(winner, result) => {
+        onSuperOverComplete={async (winner, result) => {
           const manOfTheMatch = calculateManOfTheMatch();
           const completedMatch = {
             ...match,
@@ -1359,7 +1395,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           updateMatch(completedMatch);
           const { completeMatch } = useCricketStore.getState();
           completeMatch(completedMatch);
-          saveAllTimeStats(completedMatch);
+          await saveAllTimeStats(completedMatch);
           setShowSuperOver(false);
           setShowMatchResultDialog(true);
         }}
