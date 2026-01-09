@@ -1,12 +1,22 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
-import { User, TrendingUp, Target, Loader2, ChevronRight } from "lucide-react";
+import { User, TrendingUp, Target, Loader2, ChevronRight, RefreshCw } from "lucide-react";
+
 export default function AllTimeStats() {
   const navigate = useNavigate();
-  const { battingLeaderboard, bowlingLeaderboard, isLoading } = useAllTimeStats();
+  const { battingLeaderboard, bowlingLeaderboard, isLoading, refetch } = useAllTimeStats();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
 
   if (isLoading) {
     return (
@@ -41,11 +51,21 @@ export default function AllTimeStats() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-primary" />
           All-Time Stats
         </CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing || isLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="batting" className="w-full">
