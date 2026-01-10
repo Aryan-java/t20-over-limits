@@ -43,32 +43,46 @@ All colors MUST be HSL.
     --cricket-stumps: 35 100% 74%;
     --cricket-boundary: 220 100% 50%;
     
+    /* Extended cricket palette */
+    --cricket-gold: 45 93% 47%;
+    --cricket-purple: 270 70% 55%;
+    --cricket-sky: 200 100% 85%;
+    --cricket-grass: 120 60% 40%;
+    
+    /* Score event colors */
+    --score-four: 142 76% 36%;
+    --score-six: 270 70% 55%;
+    --score-wicket: 0 84% 60%;
+    --score-dot: 200 10% 60%;
+    --score-single: 40 80% 50%;
+    
     /* Gradients */
     --gradient-pitch: linear-gradient(135deg, hsl(var(--cricket-green)), hsl(125 60% 45%));
     --gradient-sky: linear-gradient(180deg, hsl(200 100% 85%), hsl(var(--background)));
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(142 76% 45%));
+    --gradient-gold: linear-gradient(135deg, hsl(45 93% 47%), hsl(35 90% 55%));
+    --gradient-stadium: linear-gradient(180deg, hsl(200 80% 75%), hsl(200 60% 85%), hsl(var(--background)));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(125 20% 98%));
+    --gradient-glass: linear-gradient(135deg, hsla(0 0% 100% / 0.9), hsla(0 0% 100% / 0.7));
     
     /* Shadows */
     --shadow-pitch: 0 4px 20px hsl(var(--cricket-green) / 0.15);
     --shadow-card: 0 2px 10px hsl(140 10% 15% / 0.1);
     --shadow-glow: 0 0 30px hsl(var(--accent) / 0.3);
+    --shadow-elevated: 0 8px 30px hsl(140 10% 15% / 0.12);
+    --shadow-boundary: 0 0 20px hsl(var(--score-four) / 0.5);
+    --shadow-six: 0 0 25px hsl(var(--score-six) / 0.5);
+    --shadow-wicket: 0 0 15px hsl(var(--score-wicket) / 0.4);
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -82,7 +96,7 @@ All colors MUST be HSL.
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 142 76% 50%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -91,7 +105,7 @@ All colors MUST be HSL.
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 40 96% 50%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -99,7 +113,22 @@ All colors MUST be HSL.
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 142 76% 50%;
+    
+    /* Dark mode cricket colors */
+    --cricket-green: 142 76% 45%;
+    --cricket-pitch: 222.2 84% 8%;
+    --cricket-ball: 0 65% 50%;
+    --cricket-stumps: 35 100% 74%;
+    --cricket-boundary: 220 100% 60%;
+    --cricket-gold: 45 93% 55%;
+    --cricket-purple: 270 70% 65%;
+    
+    /* Dark mode gradients */
+    --gradient-card: linear-gradient(145deg, hsl(222.2 84% 8%), hsl(222.2 84% 6%));
+    --gradient-glass: linear-gradient(135deg, hsla(222.2 84% 12% / 0.9), hsla(222.2 84% 8% / 0.7));
+    --gradient-stadium: linear-gradient(180deg, hsl(220 50% 15%), hsl(220 60% 10%), hsl(var(--background)));
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -117,6 +146,233 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
+
+@layer utilities {
+  /* Glass morphism effect */
+  .glass {
+    @apply backdrop-blur-md bg-white/80 border border-white/20;
+  }
+  
+  .glass-dark {
+    @apply backdrop-blur-md bg-black/20 border border-white/10;
+  }
+
+  /* Score event styles */
+  .score-four {
+    @apply bg-cricket-green/10 text-cricket-green border-cricket-green/30;
+  }
+  
+  .score-six {
+    @apply bg-cricket-purple/10 text-cricket-purple border-cricket-purple/30;
+  }
+  
+  .score-wicket {
+    @apply bg-destructive/10 text-destructive border-destructive/30;
+  }
+  
+  .score-dot {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cricket-green to-cricket-boundary;
+  }
+  
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cricket-gold to-accent;
+  }
+  
+  /* Live pulse indicator */
+  .live-pulse {
+    @apply relative;
+  }
+  
+  .live-pulse::before {
+    content: '';
+    @apply absolute -inset-1 rounded-full bg-cricket-ball/30 animate-ping;
+  }
+  
+  /* Ball dot indicator styles */
+  .ball-dot {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200;
+  }
+  
+  .ball-dot-0 {
+    @apply bg-muted text-muted-foreground;
+  }
+  
+  .ball-dot-1, .ball-dot-2, .ball-dot-3 {
+    @apply bg-primary/20 text-primary;
+  }
+  
+  .ball-dot-4 {
+    @apply bg-cricket-green text-white shadow-md;
+  }
+  
+  .ball-dot-6 {
+    @apply bg-cricket-purple text-white shadow-md;
+  }
+  
+  .ball-dot-w {
+    @apply bg-destructive text-white;
+  }
+  
+  .ball-dot-empty {
+    @apply bg-muted/30 border-2 border-dashed border-muted-foreground/20;
+  }
+  
+  /* Skill bar */
+  .skill-bar {
+    @apply h-2 rounded-full bg-muted overflow-hidden;
+  }
+  
+  .skill-bar-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+  
+  /* Qualification zone indicator */
+  .qualification-zone {
+    @apply relative;
+  }
+  
+  .qualification-zone::after {
+    content: '';
+    @apply absolute left-0 top-0 bottom-0 w-1 bg-cricket-green rounded-l;
+  }
+  
+  /* Medal styles */
+  .medal-gold {
+    @apply bg-gradient-to-br from-yellow-400 to-yellow-600 text-white;
+  }
+  
+  .medal-silver {
+    @apply bg-gradient-to-br from-gray-300 to-gray-500 text-white;
+  }
+  
+  .medal-bronze {
+    @apply bg-gradient-to-br from-orange-400 to-orange-700 text-white;
+  }
+}
+
+/* Custom animations */
+@keyframes score-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+@keyframes score-up {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-30px); }
+}
+
+@keyframes boundary-glow {
+  0%, 100% { box-shadow: 0 0 5px hsl(var(--cricket-green) / 0.5); }
+  50% { box-shadow: 0 0 25px hsl(var(--cricket-green) / 0.8); }
+}
+
+@keyframes six-glow {
+  0%, 100% { box-shadow: 0 0 5px hsl(var(--cricket-purple) / 0.5); }
+  50% { box-shadow: 0 0 30px hsl(var(--cricket-purple) / 0.9); }
+}
+
+@keyframes wicket-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+@keyframes fade-slide-up {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  0% { opacity: 0; transform: translateX(20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes progress-fill {
+  0% { width: 0%; }
+  100% { width: var(--progress-width); }
+}
+
+@keyframes number-tick {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-100%); }
+}
+
+@keyframes live-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes trophy-shine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Animation utilities */
+.animate-score-pop {
+  animation: score-pop 0.3s ease-out;
+}
+
+.animate-score-up {
+  animation: score-up 1s ease-out forwards;
+}
+
+.animate-boundary-glow {
+  animation: boundary-glow 1s ease-in-out 3;
+}
+
+.animate-six-glow {
+  animation: six-glow 1s ease-in-out 3;
+}
+
+.animate-wicket-shake {
+  animation: wicket-shake 0.5s ease-in-out;
+}
+
+.animate-fade-slide-up {
+  animation: fade-slide-up 0.4s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-progress-fill {
+  animation: progress-fill 1s ease-out forwards;
+}
+
+.animate-live-dot {
+  animation: live-dot 1.5s ease-in-out infinite;
+}
+
+.animate-trophy-shine {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: trophy-shine 2s linear infinite;
+}
+
+/* Staggered animations */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }

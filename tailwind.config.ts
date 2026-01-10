@@ -53,6 +53,17 @@ export default {
           ball: "hsl(var(--cricket-ball))",
           stumps: "hsl(var(--cricket-stumps))",
           boundary: "hsl(var(--cricket-boundary))",
+          gold: "hsl(var(--cricket-gold))",
+          purple: "hsl(var(--cricket-purple))",
+          sky: "hsl(var(--cricket-sky))",
+          grass: "hsl(var(--cricket-grass))",
+        },
+        score: {
+          four: "hsl(var(--score-four))",
+          six: "hsl(var(--score-six))",
+          wicket: "hsl(var(--score-wicket))",
+          dot: "hsl(var(--score-dot))",
+          single: "hsl(var(--score-single))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -72,25 +83,47 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
+        "bounce-subtle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.95)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-slow": "pulse-slow 2s ease-in-out infinite",
+        "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
+        "scale-in": "scale-in 0.2s ease-out",
+        shimmer: "shimmer 2s linear infinite",
+      },
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "pitch-pattern": "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2322c55e' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+      },
+      boxShadow: {
+        "glow-green": "0 0 20px hsl(142 76% 36% / 0.3)",
+        "glow-gold": "0 0 20px hsl(45 93% 47% / 0.3)",
+        "glow-purple": "0 0 20px hsl(270 70% 55% / 0.3)",
+        "inner-glow": "inset 0 0 20px hsl(0 0% 100% / 0.1)",
       },
     },
   },
