@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Match, Team } from "@/types/cricket";
+import { Trophy, TrendingUp, TrendingDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PointsTableProps {
   teams: Team[];
@@ -15,14 +17,13 @@ interface TeamStats {
   lost: number;
   tied: number;
   points: number;
-  nrr: number; // Net Run Rate
+  nrr: number;
 }
 
 const PointsTable = ({ teams, matches }: PointsTableProps) => {
   const calculateTeamStats = (): TeamStats[] => {
     const stats: Map<string, TeamStats> = new Map();
     
-    // Initialize stats for all teams
     teams.forEach(team => {
       stats.set(team.id, {
         team,
@@ -35,7 +36,6 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
       });
     });
     
-    // Calculate stats from completed matches
     const completedMatches = matches.filter(m => m.result && m.secondInnings?.isCompleted);
     
     completedMatches.forEach(match => {
@@ -62,45 +62,31 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
         team2Stats.points += 2;
       }
       
-      // Calculate NRR (proper formula: (Total runs scored/Total overs faced) - (Total runs conceded/Total overs bowled))
       if (match.firstInnings && match.secondInnings) {
         const team1BattedFirst = match.firstInnings.battingTeam === match.team1.name;
         
         if (team1BattedFirst) {
-          // Team1 batted first, Team2 batted second
           const team1Overs = match.firstInnings.ballsBowled / 6;
           const team2Overs = match.secondInnings.ballsBowled / 6;
-          
-          // For team1: runs scored in 1st innings, runs conceded in 2nd innings
           const team1RunsFor = match.firstInnings.totalRuns / team1Overs;
           const team1RunsAgainst = match.secondInnings.totalRuns / team2Overs;
-          
-          // For team2: runs scored in 2nd innings, runs conceded in 1st innings
           const team2RunsFor = match.secondInnings.totalRuns / team2Overs;
           const team2RunsAgainst = match.firstInnings.totalRuns / team1Overs;
-          
           team1Stats.nrr += (team1RunsFor - team1RunsAgainst);
           team2Stats.nrr += (team2RunsFor - team2RunsAgainst);
         } else {
-          // Team2 batted first, Team1 batted second
           const team2Overs = match.firstInnings.ballsBowled / 6;
           const team1Overs = match.secondInnings.ballsBowled / 6;
-          
-          // For team2: runs scored in 1st innings, runs conceded in 2nd innings
           const team2RunsFor = match.firstInnings.totalRuns / team2Overs;
           const team2RunsAgainst = match.secondInnings.totalRuns / team1Overs;
-          
-          // For team1: runs scored in 2nd innings, runs conceded in 1st innings
           const team1RunsFor = match.secondInnings.totalRuns / team1Overs;
           const team1RunsAgainst = match.firstInnings.totalRuns / team2Overs;
-          
           team1Stats.nrr += (team1RunsFor - team1RunsAgainst);
           team2Stats.nrr += (team2RunsFor - team2RunsAgainst);
         }
       }
     });
     
-    // Convert to array and sort by points, then NRR
     const statsArray = Array.from(stats.values());
     statsArray.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
@@ -111,51 +97,98 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
   };
   
   const teamStats = calculateTeamStats();
+  const qualifyingTeams = 4;
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Points Table</CardTitle>
+    <Card className="overflow-hidden border-2 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-primary/10 via-transparent to-primary/5 border-b">
+        <CardTitle className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Trophy className="h-5 w-5 text-primary" />
+          </div>
+          Points Table
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">Pos</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead className="text-center">P</TableHead>
-              <TableHead className="text-center">W</TableHead>
-              <TableHead className="text-center">L</TableHead>
-              <TableHead className="text-center">T</TableHead>
-              <TableHead className="text-center">Pts</TableHead>
-              <TableHead className="text-center">NRR</TableHead>
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableHead className="w-14 font-bold">Pos</TableHead>
+              <TableHead className="font-bold">Team</TableHead>
+              <TableHead className="text-center font-bold">P</TableHead>
+              <TableHead className="text-center font-bold text-cricket-green">W</TableHead>
+              <TableHead className="text-center font-bold text-destructive">L</TableHead>
+              <TableHead className="text-center font-bold">T</TableHead>
+              <TableHead className="text-center font-bold">Pts</TableHead>
+              <TableHead className="text-center font-bold">NRR</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {teamStats.map((stat, index) => (
-              <TableRow key={stat.team.id}>
-                <TableCell className="font-medium">
-                  <Badge variant={index < 4 ? "default" : "secondary"} className={index < 4 ? "bg-cricket-green" : ""}>
-                    {index + 1}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-medium">{stat.team.name}</TableCell>
-                <TableCell className="text-center">{stat.played}</TableCell>
-                <TableCell className="text-center">{stat.won}</TableCell>
-                <TableCell className="text-center">{stat.lost}</TableCell>
-                <TableCell className="text-center">{stat.tied}</TableCell>
-                <TableCell className="text-center font-bold">{stat.points}</TableCell>
-                <TableCell className={`text-center font-medium ${stat.nrr >= 0 ? 'text-cricket-green' : 'text-destructive'}`}>
-                  {stat.nrr >= 0 ? '+' : ''}{stat.nrr.toFixed(3)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {teamStats.map((stat, index) => {
+              const isQualifying = index < qualifyingTeams;
+              return (
+                <TableRow 
+                  key={stat.team.id}
+                  className={cn(
+                    "transition-colors",
+                    isQualifying && "bg-cricket-green/5 hover:bg-cricket-green/10"
+                  )}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {isQualifying && (
+                        <div className="w-1 h-8 bg-cricket-green rounded-full" />
+                      )}
+                      <Badge 
+                        variant={isQualifying ? "default" : "secondary"} 
+                        className={cn(
+                          "w-7 h-7 rounded-full flex items-center justify-center p-0 font-bold",
+                          isQualifying ? "bg-cricket-green hover:bg-cricket-green" : ""
+                        )}
+                      >
+                        {index + 1}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-semibold">{stat.team.name}</TableCell>
+                  <TableCell className="text-center">{stat.played}</TableCell>
+                  <TableCell className="text-center font-semibold text-cricket-green">{stat.won}</TableCell>
+                  <TableCell className="text-center font-semibold text-destructive">{stat.lost}</TableCell>
+                  <TableCell className="text-center">{stat.tied}</TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-bold text-lg">{stat.points}</span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className={cn(
+                      "flex items-center justify-center gap-1 font-medium",
+                      stat.nrr >= 0 ? "text-cricket-green" : "text-destructive"
+                    )}>
+                      {stat.nrr >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {stat.nrr >= 0 ? '+' : ''}{stat.nrr.toFixed(3)}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
         
         {teamStats.every(s => s.played === 0) && (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No matches completed yet</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <Trophy className="h-12 w-12 mx-auto mb-3 opacity-20" />
+            <p className="font-medium">No matches completed yet</p>
+            <p className="text-sm">Play matches to populate the table</p>
+          </div>
+        )}
+        
+        {teamStats.some(s => s.played > 0) && (
+          <div className="px-4 py-3 bg-muted/20 border-t flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="w-3 h-3 bg-cricket-green rounded" />
+            <span>Qualification Zone (Top {qualifyingTeams})</span>
           </div>
         )}
       </CardContent>

@@ -5,7 +5,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
-import { User, TrendingUp, Target, Loader2, ChevronRight, RefreshCw } from "lucide-react";
+import { User, TrendingUp, Target, Loader2, ChevronRight, RefreshCw, Trophy, Medal } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function AllTimeStats() {
   const navigate = useNavigate();
@@ -20,9 +21,12 @@ export default function AllTimeStats() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <Card className="border-2 shadow-lg">
+        <CardContent className="flex items-center justify-center py-16">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">Loading stats...</span>
+          </div>
         </CardContent>
       </Card>
     );
@@ -49,41 +53,53 @@ export default function AllTimeStats() {
     return ((runs / balls) * 6).toFixed(2);
   };
 
+  const getMedalClass = (index: number) => {
+    if (index === 0) return "medal-gold";
+    if (index === 1) return "medal-silver";
+    if (index === 2) return "medal-bronze";
+    return "bg-muted text-muted-foreground";
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-primary" />
-          All-Time Stats
+    <Card className="border-2 shadow-lg overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-primary/5 via-transparent to-primary/5 border-b">
+        <CardTitle className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Trophy className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <span className="text-xl">All-Time Records</span>
+            <p className="text-sm font-normal text-muted-foreground">Career statistics leaderboard</p>
+          </div>
         </CardTitle>
         <Button
           variant="outline"
           size="sm"
           onClick={handleRefresh}
           disabled={isRefreshing || isLoading}
-          className="gap-2"
+          className="gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           Refresh
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <Tabs defaultValue="batting" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="batting" className="gap-2">
+          <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
+            <TabsTrigger value="batting" className="gap-2 text-sm font-semibold data-[state=active]:bg-cricket-gold data-[state=active]:text-white">
               <TrendingUp className="h-4 w-4" />
-              Batting
+              Batting Leaders
             </TabsTrigger>
-            <TabsTrigger value="bowling" className="gap-2">
+            <TabsTrigger value="bowling" className="gap-2 text-sm font-semibold data-[state=active]:bg-cricket-purple data-[state=active]:text-white">
               <Target className="h-4 w-4" />
-              Bowling
+              Bowling Leaders
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="batting">
+          <TabsContent value="batting" className="animate-fade-slide-up">
             {battingLeaderboard.length > 0 ? (
               <div className="space-y-2">
-                <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-12 gap-2 text-xs font-bold text-muted-foreground px-4 py-3 bg-muted/50 rounded-lg uppercase tracking-wider">
                   <div className="col-span-1">#</div>
                   <div className="col-span-3">Player</div>
                   <div className="col-span-1 text-center">M</div>
@@ -98,31 +114,36 @@ export default function AllTimeStats() {
                   <div
                     key={player.id}
                     onClick={() => navigate(`/player/${player.player_id}`)}
-                    className={`grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-colors cursor-pointer group ${
-                      index === 0 ? 'bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20' : 'bg-background/50 hover:bg-muted/50'
-                    }`}
+                    className={cn(
+                      "grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-all duration-200 cursor-pointer group",
+                      index < 3 
+                        ? "bg-gradient-to-r from-cricket-gold/10 to-transparent border border-cricket-gold/20 hover:from-cricket-gold/20" 
+                        : "bg-card hover:bg-muted/50 border border-transparent hover:border-muted"
+                    )}
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <div className="col-span-1 font-bold text-muted-foreground">
-                      {index + 1}
+                    <div className="col-span-1">
+                      <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold", getMedalClass(index))}>
+                        {index + 1}
+                      </span>
                     </div>
                     <div className="col-span-3 flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-9 w-9 border-2 border-cricket-gold/30">
                         <AvatarImage src={player.image_url || undefined} alt={player.player_name} />
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-cricket-gold/10 text-cricket-gold">
                           <User className="h-4 w-4" />
                         </AvatarFallback>
                       </Avatar>
-                      <p className="font-semibold text-sm truncate">{player.player_name}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate group-hover:text-cricket-gold transition-colors">{player.player_name}</p>
+                        {player.team_name && <p className="text-[10px] text-muted-foreground truncate">{player.team_name}</p>}
+                      </div>
                     </div>
                     <div className="col-span-1 text-center text-sm">{player.matches_batted}</div>
-                    <div className="col-span-2 text-center font-bold text-orange-600">{player.total_runs}</div>
-                    <div className="col-span-1 text-center text-sm">{player.highest_score}</div>
-                    <div className="col-span-1 text-center text-sm">
-                      {calculateBattingAvg(player.total_runs, player.matches_batted, player.not_outs)}
-                    </div>
-                    <div className="col-span-1 text-center text-sm">
-                      {calculateStrikeRate(player.total_runs, player.balls_faced)}
-                    </div>
+                    <div className="col-span-2 text-center font-bold text-cricket-gold text-lg">{player.total_runs}</div>
+                    <div className="col-span-1 text-center text-sm font-medium">{player.highest_score}{player.highest_score >= 100 && '*'}</div>
+                    <div className="col-span-1 text-center text-sm">{calculateBattingAvg(player.total_runs, player.matches_batted, player.not_outs)}</div>
+                    <div className="col-span-1 text-center text-sm">{calculateStrikeRate(player.total_runs, player.balls_faced)}</div>
                     <div className="col-span-1 text-center text-sm">{player.fifties}</div>
                     <div className="col-span-1 text-center text-sm flex items-center justify-center gap-1">
                       {player.hundreds}
@@ -132,18 +153,18 @@ export default function AllTimeStats() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No batting stats recorded yet</p>
-                <p className="text-sm mt-1">Complete matches to build all-time records</p>
+              <div className="text-center py-16 text-muted-foreground">
+                <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                <p className="text-lg font-medium">No batting records yet</p>
+                <p className="text-sm mt-1">Complete matches to build all-time statistics</p>
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="bowling">
+          <TabsContent value="bowling" className="animate-fade-slide-up">
             {bowlingLeaderboard.length > 0 ? (
               <div className="space-y-2">
-                <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-12 gap-2 text-xs font-bold text-muted-foreground px-4 py-3 bg-muted/50 rounded-lg uppercase tracking-wider">
                   <div className="col-span-1">#</div>
                   <div className="col-span-3">Player</div>
                   <div className="col-span-1 text-center">M</div>
@@ -156,30 +177,34 @@ export default function AllTimeStats() {
                   <div
                     key={player.id}
                     onClick={() => navigate(`/player/${player.player_id}`)}
-                    className={`grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-colors cursor-pointer group ${
-                      index === 0 ? 'bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20' : 'bg-background/50 hover:bg-muted/50'
-                    }`}
+                    className={cn(
+                      "grid grid-cols-12 gap-2 items-center p-3 rounded-lg transition-all duration-200 cursor-pointer group",
+                      index < 3 
+                        ? "bg-gradient-to-r from-cricket-purple/10 to-transparent border border-cricket-purple/20 hover:from-cricket-purple/20" 
+                        : "bg-card hover:bg-muted/50 border border-transparent hover:border-muted"
+                    )}
                   >
-                    <div className="col-span-1 font-bold text-muted-foreground">
-                      {index + 1}
+                    <div className="col-span-1">
+                      <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold", getMedalClass(index))}>
+                        {index + 1}
+                      </span>
                     </div>
                     <div className="col-span-3 flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-9 w-9 border-2 border-cricket-purple/30">
                         <AvatarImage src={player.image_url || undefined} alt={player.player_name} />
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-cricket-purple/10 text-cricket-purple">
                           <User className="h-4 w-4" />
                         </AvatarFallback>
                       </Avatar>
-                      <p className="font-semibold text-sm truncate">{player.player_name}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate group-hover:text-cricket-purple transition-colors">{player.player_name}</p>
+                        {player.team_name && <p className="text-[10px] text-muted-foreground truncate">{player.team_name}</p>}
+                      </div>
                     </div>
                     <div className="col-span-1 text-center text-sm">{player.matches_bowled}</div>
-                    <div className="col-span-2 text-center font-bold text-purple-600">{player.total_wickets}</div>
-                    <div className="col-span-2 text-center text-sm">
-                      {player.best_bowling_wickets}/{player.best_bowling_runs}
-                    </div>
-                    <div className="col-span-1 text-center text-sm">
-                      {calculateBowlingAvg(player.runs_conceded, player.total_wickets)}
-                    </div>
+                    <div className="col-span-2 text-center font-bold text-cricket-purple text-lg">{player.total_wickets}</div>
+                    <div className="col-span-2 text-center text-sm font-medium">{player.best_bowling_wickets}/{player.best_bowling_runs}</div>
+                    <div className="col-span-1 text-center text-sm">{calculateBowlingAvg(player.runs_conceded, player.total_wickets)}</div>
                     <div className="col-span-2 text-center text-sm flex items-center justify-center gap-1">
                       {calculateEconomy(player.runs_conceded, player.balls_bowled)}
                       <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
@@ -188,10 +213,10 @@ export default function AllTimeStats() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Target className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p>No bowling stats recorded yet</p>
-                <p className="text-sm mt-1">Complete matches to build all-time records</p>
+              <div className="text-center py-16 text-muted-foreground">
+                <Target className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                <p className="text-lg font-medium">No bowling records yet</p>
+                <p className="text-sm mt-1">Complete matches to build all-time statistics</p>
               </div>
             )}
           </TabsContent>
