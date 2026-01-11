@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -321,6 +323,100 @@ All colors MUST be HSL.
   100% { background-position: 200% center; }
 }
 
+/* Celebration animations */
+@keyframes flash-in {
+  0% { opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+@keyframes particle-burst {
+  0% { 
+    transform: scale(0) translate(0, 0);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scale(1) translate(
+      calc((var(--random-x, 0) - 50) * 2px),
+      calc((var(--random-y, 0) - 50) * 2px)
+    );
+    opacity: 0;
+  }
+}
+
+@keyframes celebration-pop {
+  0% { 
+    transform: scale(0) rotate(-5deg);
+    opacity: 0;
+  }
+  50% { 
+    transform: scale(1.1) rotate(2deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.95) rotate(-1deg);
+  }
+  100% { 
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+@keyframes text-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+@keyframes radial-burst {
+  0% { 
+    opacity: 0;
+    transform: rotate(var(--rotation, 0deg)) scaleY(0);
+  }
+  20% {
+    opacity: 0.6;
+  }
+  100% { 
+    opacity: 0;
+    transform: rotate(var(--rotation, 0deg)) scaleY(1);
+  }
+}
+
+@keyframes ring-expand {
+  0% { 
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-up {
+  0% { 
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  100% { 
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /* Animation utilities */
 .animate-score-pop {
   animation: score-pop 0.3s ease-out;
@@ -369,10 +465,51 @@ All colors MUST be HSL.
   animation: trophy-shine 2s linear infinite;
 }
 
+/* Celebration animation utilities */
+.animate-flash-in {
+  animation: flash-in 1.8s ease-out forwards;
+}
+
+.animate-particle-burst {
+  animation: particle-burst 1.5s ease-out forwards;
+}
+
+.animate-celebration-pop {
+  animation: celebration-pop 0.5s ease-out forwards;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.4s ease-out forwards;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out infinite;
+}
+
+.animate-text-glow {
+  animation: text-glow 1s ease-in-out infinite;
+}
+
+.animate-radial-burst {
+  animation: radial-burst 1s ease-out forwards;
+}
+
+.animate-ring-expand {
+  animation: ring-expand 1.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
 /* Staggered animations */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }
 .stagger-3 { animation-delay: 0.15s; }
 .stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
 .stagger-5 { animation-delay: 0.25s; }
 .stagger-6 { animation-delay: 0.3s; }
