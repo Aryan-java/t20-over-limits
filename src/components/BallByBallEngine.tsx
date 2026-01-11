@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
 import { supabase } from "@/lib/supabaseClient";
 import SuperOverDialog from "./SuperOverDialog";
+import BoundaryCelebration from "@/components/ui/BoundaryCelebration";
+import CommentaryCard from "@/components/ui/CommentaryCard";
 
 interface BallByBallEngineProps {
   match: Match;
@@ -178,6 +180,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
   const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
   const [showSuperOver, setShowSuperOver] = useState(false);
+  const [celebration, setCelebration] = useState<"four" | "six" | "wicket" | null>(null);
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -818,6 +821,15 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     setCommentary(prev => [ballEvent, ...prev]);
     
+    // Trigger celebration effects for boundaries and wickets
+    if (runs === 6 && !isWicket) {
+      setCelebration("six");
+    } else if (runs === 4 && !isWicket) {
+      setCelebration("four");
+    } else if (isWicket) {
+      setCelebration("wicket");
+    }
+    
     // Rebuild team setups so playing XI reflect latest player stats
     const rebuildSetup = (setup: any, team: any) => {
       if (!setup) return setup;
@@ -1001,7 +1013,14 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     innings.currentBatsmen.nonStriker;
 
   return (
-    <div className="space-y-4">
+    <>
+      {/* Boundary/Wicket Celebration Overlay */}
+      <BoundaryCelebration 
+        type={celebration} 
+        onComplete={() => setCelebration(null)} 
+      />
+      
+      <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -1051,47 +1070,15 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                 <p>Select a bowler to start the match simulation</p>
               </div>
             ) : (
-              <div className="max-h-96 overflow-y-auto space-y-3">
+              <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
                 {commentary.map((ball, index) => (
-                  <div 
-                    key={index} 
-                    className={`p-3 rounded-lg border ${
-                      ball.isWicket 
-                        ? 'bg-destructive/10 border-destructive/20' 
-                        : ball.runs >= 4 
-                        ? 'bg-cricket-green/10 border-cricket-green/20'
-                        : 'bg-muted/20'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            {formatBallNumber(ball.ballNumber)}
-                          </Badge>
-                          <span className="text-sm font-medium">
-                            {ball.bowler} to {ball.batsman}
-                          </span>
-                        </div>
-                        <p className="text-sm">{ball.commentary}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {ball.isWicket ? (
-                          <Badge className="bg-destructive text-white">W</Badge>
-                        ) : (
-                          <Badge 
-                            className={
-                              ball.runs >= 4 
-                                ? "bg-cricket-green text-white"
-                                : "bg-muted text-muted-foreground"
-                            }
-                          >
-                            {ball.runs}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <CommentaryCard
+                    key={index}
+                    event={ball}
+                    overNumber={Math.floor((ball.ballNumber - 1) / 6)}
+                    className={index === 0 ? "ring-2 ring-primary/30" : ""}
+                    showDetails={true}
+                  />
                 ))}
               </div>
             )}
@@ -1401,6 +1388,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         }}
       />
     </div>
+    </>
   );
 };
 
