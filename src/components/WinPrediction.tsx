@@ -1,10 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, Zap, Target, Flame, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Zap, Target } from "lucide-react";
 import { Match } from "@/types/cricket";
 import { useMemo } from "react";
-import { cn } from "@/lib/utils";
 
 interface WinPredictionProps {
   match: Match;
@@ -130,135 +129,110 @@ const WinPrediction = ({ match }: WinPredictionProps) => {
   if (!prediction) return null;
 
   const getTrendIcon = (prob: number) => {
-    if (prob > 60) return <TrendingUp className="h-4 w-4 text-cricket-green" />;
-    if (prob < 40) return <TrendingDown className="h-4 w-4 text-destructive" />;
-    return <Minus className="h-4 w-4 text-accent" />;
+    if (prob > 60) return <TrendingUp className="h-4 w-4 text-green-500" />;
+    if (prob < 40) return <TrendingDown className="h-4 w-4 text-red-500" />;
+    return <Minus className="h-4 w-4 text-yellow-500" />;
   };
 
   const getMomentumColor = (momentum: string) => {
     switch (momentum) {
-      case 'high': return 'bg-cricket-green';
-      case 'medium': return 'bg-accent';
-      case 'low': return 'bg-destructive';
+      case 'high': return 'bg-green-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'low': return 'bg-red-500';
       default: return 'bg-muted';
     }
   };
 
-  const getPhaseConfig = (phase: string) => {
+  const getPhaseIcon = (phase: string) => {
     switch (phase) {
-      case 'powerplay': 
-        return { icon: <Zap className="h-3.5 w-3.5" />, class: 'bg-cricket-boundary text-white', label: 'Powerplay' };
-      case 'death': 
-        return { icon: <Flame className="h-3.5 w-3.5" />, class: 'bg-cricket-ball text-white', label: 'Death Overs' };
-      default: 
-        return { icon: <Target className="h-3.5 w-3.5" />, class: 'bg-muted text-muted-foreground', label: 'Middle Overs' };
+      case 'powerplay': return <Zap className="h-4 w-4" />;
+      case 'death': return <Target className="h-4 w-4" />;
+      default: return null;
     }
   };
 
-  const phaseConfig = getPhaseConfig(prediction.phase || 'middle');
-
   return (
-    <Card className="overflow-hidden border-2 border-primary/20 shadow-lg">
-      <CardHeader className="pb-3 bg-gradient-to-r from-primary/10 via-cricket-purple/5 to-primary/10">
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-lg">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-cricket-gold animate-pulse-slow" />
             <span>Win Prediction</span>
-            <Badge variant="outline" className="gap-1 bg-gradient-to-r from-cricket-purple/20 to-primary/20 border-cricket-purple/30">
+            <Badge variant="outline" className="animate-pulse">
               🤖 AI
             </Badge>
           </div>
           {prediction.phase && (
-            <Badge className={cn("gap-1", phaseConfig.class)}>
-              {phaseConfig.icon}
-              <span>{phaseConfig.label}</span>
+            <Badge 
+              className={`${
+                prediction.phase === 'powerplay' 
+                  ? 'bg-blue-600' 
+                  : prediction.phase === 'death' 
+                  ? 'bg-red-600' 
+                  : 'bg-muted'
+              } text-white`}
+            >
+              {getPhaseIcon(prediction.phase)}
+              <span className="ml-1 capitalize">{prediction.phase}</span>
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Win Probability Bars */}
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="space-y-1">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="font-semibold">{prediction.team1}</span>
+                <span className="font-medium text-sm">{prediction.team1}</span>
                 {getTrendIcon(prediction.team1Prob)}
               </div>
-              <span className={cn(
-                "font-bold text-xl",
-                prediction.team1Prob > 60 ? "text-cricket-green" : 
-                prediction.team1Prob < 40 ? "text-destructive" : "text-accent"
-              )}>
-                {Math.round(prediction.team1Prob)}%
-              </span>
+              <span className="font-bold text-lg">{Math.round(prediction.team1Prob)}%</span>
             </div>
-            <div className="h-4 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={cn(
-                  "h-full rounded-full transition-all duration-500",
-                  prediction.team1Prob > 60 ? "bg-gradient-to-r from-cricket-green to-cricket-grass" :
-                  prediction.team1Prob < 40 ? "bg-gradient-to-r from-destructive/70 to-destructive" :
-                  "bg-gradient-to-r from-accent/70 to-accent"
-                )}
-                style={{ width: `${prediction.team1Prob}%` }}
-              />
-            </div>
+            <Progress 
+              value={prediction.team1Prob} 
+              className="h-3"
+            />
           </div>
           
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="font-semibold">{prediction.team2}</span>
+                <span className="font-medium text-sm">{prediction.team2}</span>
                 {getTrendIcon(prediction.team2Prob)}
               </div>
-              <span className={cn(
-                "font-bold text-xl",
-                prediction.team2Prob > 60 ? "text-cricket-green" : 
-                prediction.team2Prob < 40 ? "text-destructive" : "text-accent"
-              )}>
-                {Math.round(prediction.team2Prob)}%
-              </span>
+              <span className="font-bold text-lg">{Math.round(prediction.team2Prob)}%</span>
             </div>
-            <div className="h-4 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={cn(
-                  "h-full rounded-full transition-all duration-500",
-                  prediction.team2Prob > 60 ? "bg-gradient-to-r from-cricket-green to-cricket-grass" :
-                  prediction.team2Prob < 40 ? "bg-gradient-to-r from-destructive/70 to-destructive" :
-                  "bg-gradient-to-r from-accent/70 to-accent"
-                )}
-                style={{ width: `${prediction.team2Prob}%` }}
-              />
-            </div>
+            <Progress 
+              value={prediction.team2Prob} 
+              className="h-3"
+            />
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 pt-3 border-t">
-          <div className="text-center p-3 bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl">
-            <div className="text-xs text-muted-foreground font-medium">Current RR</div>
-            <div className="font-bold text-2xl text-primary">{prediction.currentRunRate}</div>
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+          <div className="text-center p-2 bg-muted/30 rounded-lg">
+            <div className="text-xs text-muted-foreground">Current RR</div>
+            <div className="font-bold text-lg">{prediction.currentRunRate}</div>
           </div>
           
           {match.currentInnings === 2 && 'requiredRunRate' in prediction ? (
-            <div className="text-center p-3 bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl">
-              <div className="text-xs text-muted-foreground font-medium">Required RR</div>
-              <div className={cn(
-                "font-bold text-2xl",
+            <div className="text-center p-2 bg-muted/30 rounded-lg">
+              <div className="text-xs text-muted-foreground">Required RR</div>
+              <div className={`font-bold text-lg ${
                 parseFloat(prediction.requiredRunRate) > parseFloat(prediction.currentRunRate) + 2
-                  ? 'text-destructive'
+                  ? 'text-red-500'
                   : parseFloat(prediction.requiredRunRate) < parseFloat(prediction.currentRunRate)
-                  ? 'text-cricket-green'
-                  : 'text-accent'
-              )}>
+                  ? 'text-green-500'
+                  : 'text-yellow-500'
+              }`}>
                 {prediction.requiredRunRate}
               </div>
             </div>
           ) : (
-            <div className="text-center p-3 bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl">
-              <div className="text-xs text-muted-foreground font-medium">Projected</div>
-              <div className="font-bold text-2xl text-cricket-purple">
+            <div className="text-center p-2 bg-muted/30 rounded-lg">
+              <div className="text-xs text-muted-foreground">Projected</div>
+              <div className="font-bold text-lg">
                 {'projectedScore' in prediction ? prediction.projectedScore : '-'}
               </div>
             </div>
@@ -266,30 +240,25 @@ const WinPrediction = ({ match }: WinPredictionProps) => {
         </div>
 
         {/* Momentum Indicator */}
-        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-muted/30 via-muted/20 to-muted/30 rounded-xl">
-          <span className="text-sm font-medium text-muted-foreground">Batting Momentum</span>
+        <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
+          <span className="text-sm text-muted-foreground">Batting Momentum</span>
           <div className="flex items-center gap-2">
-            <div className={cn("w-3 h-3 rounded-full animate-pulse", getMomentumColor(prediction.momentum))} />
-            <span className={cn(
-              "text-sm font-bold capitalize",
-              prediction.momentum === 'high' ? 'text-cricket-green' :
-              prediction.momentum === 'low' ? 'text-destructive' : 'text-accent'
-            )}>{prediction.momentum}</span>
+            <div className={`w-3 h-3 rounded-full ${getMomentumColor(prediction.momentum)} animate-pulse`} />
+            <span className="text-sm font-medium capitalize">{prediction.momentum}</span>
           </div>
         </div>
 
         {/* Second innings specific - runs/balls remaining */}
         {match.currentInnings === 2 && 'runsRequired' in prediction && (
-          <div className="p-4 bg-gradient-to-r from-cricket-ball/10 via-accent/10 to-cricket-ball/10 rounded-xl border border-cricket-ball/20">
-            <div className="flex justify-around items-center">
+          <div className="p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg border border-orange-500/20">
+            <div className="flex justify-between items-center">
               <div className="text-center">
-                <div className="text-3xl font-black text-cricket-ball">{prediction.runsRequired}</div>
-                <div className="text-xs text-muted-foreground font-medium">runs needed</div>
+                <div className="text-2xl font-bold text-orange-600">{prediction.runsRequired}</div>
+                <div className="text-xs text-muted-foreground">runs needed</div>
               </div>
-              <div className="h-12 w-px bg-border" />
               <div className="text-center">
-                <div className="text-3xl font-black">{prediction.ballsRemaining}</div>
-                <div className="text-xs text-muted-foreground font-medium">balls left</div>
+                <div className="text-2xl font-bold">{prediction.ballsRemaining}</div>
+                <div className="text-xs text-muted-foreground">balls left</div>
               </div>
             </div>
           </div>

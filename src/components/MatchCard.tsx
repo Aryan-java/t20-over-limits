@@ -3,8 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/types/cricket";
 import { Venue, getBowlingRecommendation } from "@/data/venues";
-import { Play, Eye, Trophy, MapPin, Target, Wind, Droplets, Sun, Moon, CloudSun, Thermometer, Zap, Swords } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Play, Eye, Trophy, MapPin, Target, Wind, Droplets, Sun, Moon, CloudSun, Thermometer, Zap } from "lucide-react";
 
 interface MatchCardProps {
   match: Match;
@@ -29,39 +28,24 @@ const MatchCard = ({ match, venue, onStartMatch, onViewMatch, isFixture = false 
   const getStatusBadge = () => {
     switch (status) {
       case "live":
-        return (
-          <Badge className="bg-cricket-ball text-white gap-1.5">
-            <span className="w-2 h-2 bg-white rounded-full animate-live-dot" />
-            LIVE
-          </Badge>
-        );
+        return <Badge className="bg-cricket-ball text-white animate-pulse">🔴 Live</Badge>;
       case "completed":
-        return (
-          <Badge className="bg-cricket-green text-white gap-1">
-            <Trophy className="h-3 w-3" />
-            Completed
-          </Badge>
-        );
+        return <Badge className="bg-cricket-green text-white">Completed</Badge>;
       case "ready":
-        return (
-          <Badge className="bg-gradient-to-r from-accent to-cricket-gold text-accent-foreground gap-1">
-            <Play className="h-3 w-3" />
-            Ready
-          </Badge>
-        );
+        return <Badge className="bg-accent text-accent-foreground">Ready to Setup</Badge>;
       default:
-        return <Badge variant="outline">Pending</Badge>;
+        return <Badge variant="outline">Ready to Setup</Badge>;
     }
   };
 
   const getPitchBadgeColor = (pitchType: string) => {
     switch (pitchType) {
-      case 'batting': return 'bg-cricket-green/10 text-cricket-green border-cricket-green/30';
-      case 'bowling': return 'bg-destructive/10 text-destructive border-destructive/30';
-      case 'balanced': return 'bg-primary/10 text-primary border-primary/30';
-      case 'spin': return 'bg-cricket-purple/10 text-cricket-purple border-cricket-purple/30';
-      case 'pace': return 'bg-accent/10 text-accent border-accent/30';
-      default: return 'bg-muted text-muted-foreground';
+      case 'batting': return 'bg-green-100 text-green-800 border-green-300';
+      case 'bowling': return 'bg-red-100 text-red-800 border-red-300';
+      case 'balanced': return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'spin': return 'bg-purple-100 text-purple-800 border-purple-300';
+      case 'pace': return 'bg-orange-100 text-orange-800 border-orange-300';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -76,32 +60,28 @@ const MatchCard = ({ match, venue, onStartMatch, onViewMatch, isFixture = false 
 
   const getRecommendationColor = (type: 'spin' | 'pace' | 'balanced') => {
     switch (type) {
-      case 'spin': return 'bg-cricket-purple/10 border-cricket-purple/30 text-cricket-purple';
-      case 'pace': return 'bg-accent/10 border-accent/30 text-accent';
-      case 'balanced': return 'bg-primary/10 border-primary/30 text-primary';
+      case 'spin': return 'bg-purple-500/10 border-purple-500/30 text-purple-700';
+      case 'pace': return 'bg-orange-500/10 border-orange-500/30 text-orange-700';
+      case 'balanced': return 'bg-blue-500/10 border-blue-500/30 text-blue-700';
     }
   };
 
   return (
-    <Card className={cn(
-      "overflow-hidden transition-all duration-300 card-hover",
-      status === "live" && "ring-2 ring-cricket-ball/50 shadow-wicket",
-      status === "completed" && "border-cricket-green/30"
-    )}>
-      <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 via-transparent to-primary/5">
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg">
-            <div className="flex items-center gap-2">
-              <span className="font-bold">{match.team1.name}</span>
-              <Swords className="h-4 w-4 text-muted-foreground" />
-              <span className="font-bold">{match.team2.name}</span>
+            <div className="flex items-center space-x-2">
+              <span>{match.team1.name}</span>
+              <span className="text-muted-foreground">vs</span>
+              <span>{match.team2.name}</span>
             </div>
           </CardTitle>
           {getStatusBadge()}
         </div>
         {match.tossWinner && (
-          <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-medium">{match.tossWinner.name}</span> won toss, elected to {match.tossChoice} first
+          <p className="text-sm text-muted-foreground">
+            Toss: {match.tossWinner.name} won, chose to {match.tossChoice} first
           </p>
         )}
       </CardHeader>
@@ -204,19 +184,16 @@ const MatchCard = ({ match, venue, onStartMatch, onViewMatch, isFixture = false 
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex space-x-2">
           {(status === "ready" || status === "pending") && onStartMatch && (
-            <Button 
-              onClick={onStartMatch} 
-              className="flex-1 bg-gradient-to-r from-cricket-green to-cricket-grass hover:from-cricket-green/90 hover:to-cricket-grass/90 shadow-md transition-all duration-300 hover:shadow-lg"
-            >
+            <Button onClick={onStartMatch} className="flex-1 bg-cricket-green hover:bg-cricket-green/90">
               <Play className="h-4 w-4 mr-1" />
               Setup & Start
             </Button>
           )}
           
           {status === "live" && onViewMatch && (
-            <Button onClick={onViewMatch} className="flex-1 border-cricket-ball text-cricket-ball hover:bg-cricket-ball/10" variant="outline">
+            <Button onClick={onViewMatch} className="flex-1" variant="outline">
               <Eye className="h-4 w-4 mr-1" />
               Watch Live
             </Button>
