@@ -31,7 +31,6 @@ const FixturesTab = () => {
   };
 
   const handleMatchReady = (team1Setup: any, team2Setup: any) => {
-    // Create match with team setups
     const match = createMatch(
       team1Setup.team.id, 
       team2Setup.team.id,
@@ -67,43 +66,63 @@ const FixturesTab = () => {
   const upcomingMatches = fixtures.filter(f => !f.played);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Fixtures</h2>
-          <p className="text-muted-foreground">Tournament schedule and match results</p>
-        </div>
-        
-        <div className="flex space-x-2">
-          {fixtures.length > 0 && (
-            <Button variant="outline" onClick={() => setShowResetDialog(true)}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              <span>Reset Fixtures</span>
+    <div className="space-y-6 animate-fade-slide-up">
+      {/* Enhanced Header */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-cricket-green/10 via-transparent to-cricket-pitch/10 border border-cricket-green/20 p-6">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIgZmlsbD0icmdiYSgzNCwxOTcsMTAwLDAuMDUpIi8+PC9zdmc+')] opacity-50" />
+        <div className="relative flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Calendar className="h-6 w-6 text-cricket-green" />
+              Tournament Fixtures
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              {fixtures.length > 0 
+                ? `${upcomingMatches.length} upcoming · ${completedMatches.length} completed`
+                : "Schedule and manage tournament matches"
+              }
+            </p>
+          </div>
+          
+          <div className="flex gap-2">
+            {fixtures.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={() => setShowResetDialog(true)}
+                className="border-destructive/30 text-destructive hover:bg-destructive/10"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            )}
+            <Button 
+              onClick={() => generateFixtures('single')}
+              disabled={teams.length < 2}
+              className="bg-gradient-to-r from-cricket-green to-cricket-pitch hover:from-cricket-green/90 hover:to-cricket-pitch/90 text-white shadow-lg shadow-cricket-green/20"
+            >
+              <Shuffle className="h-4 w-4 mr-2" />
+              Generate Fixtures
             </Button>
-          )}
-          <Button 
-            variant="outline" 
-            onClick={() => generateFixtures('single')}
-            disabled={teams.length < 2}
-            className="flex items-center space-x-2"
-          >
-            <Shuffle className="h-4 w-4" />
-            <span>Generate Fixtures</span>
-          </Button>
+          </div>
         </div>
       </div>
 
       {fixtures.length === 0 ? (
-        <div className="text-center py-12 bg-muted/20 rounded-lg border-2 border-dashed">
-          <div className="space-y-3">
-            <div className="text-4xl">📅</div>
-            <h3 className="text-lg font-medium">No fixtures yet</h3>
-            <p className="text-muted-foreground">
-              {teams.length < 2 
-                ? "Create at least 2 teams to generate fixtures"
-                : "Generate round-robin fixtures to get started"
-              }
-            </p>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-cricket-green/20 via-cricket-pitch/20 to-cricket-green/20 blur-3xl" />
+            <div className="relative glass rounded-2xl p-12 border-2 border-dashed border-cricket-green/30 text-center max-w-md">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-cricket-green/20 to-cricket-pitch/20 flex items-center justify-center">
+                <Calendar className="h-10 w-10 text-cricket-green" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">No Fixtures Yet</h3>
+              <p className="text-muted-foreground">
+                {teams.length < 2 
+                  ? "Create at least 2 teams to generate fixtures"
+                  : "Generate round-robin fixtures to start the tournament"
+                }
+              </p>
+            </div>
           </div>
         </div>
       ) : (
