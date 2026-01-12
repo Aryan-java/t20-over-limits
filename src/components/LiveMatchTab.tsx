@@ -29,17 +29,14 @@ const LiveMatchTab = () => {
   }, [currentMatch?.team1.id, currentMatch?.team2.id, fixtures]);
 
   const handleBowlerChange = (bowlerId: string) => {
-    // Update current bowler in match state
     console.log("Changing bowler to:", bowlerId);
   };
 
   const handleNextBatsman = (batsmanId: string) => {
-    // Update batting lineup
     console.log("Next batsman:", batsmanId);
   };
 
   const handleSimulateBall = () => {
-    // Simulate next ball
     console.log("Simulating ball");
   };
 
@@ -54,17 +51,14 @@ const LiveMatchTab = () => {
     
     if (!teamSetup) return;
     
-    // Find the impact player and the player being replaced
     const impactPlayer = teamSetup.impactPlayers.find(p => p.id === playerId);
     const replacePlayerIdx = teamSetup.playingXI.findIndex(p => p.id === replacePlayerId);
     
     if (!impactPlayer || replacePlayerIdx === -1) return;
     
-    // Create new playing XI with substitution
     const newPlayingXI = [...teamSetup.playingXI];
     const replacedPlayer = newPlayingXI[replacePlayerIdx];
     
-    // Mark the replaced player as dismissed (cannot participate further)
     newPlayingXI[replacePlayerIdx] = {
       ...impactPlayer,
       isPlaying: true,
@@ -83,7 +77,6 @@ const LiveMatchTab = () => {
       dotBalls: 0,
     };
     
-    // Update the match state
     const updatedSetup = {
       ...teamSetup,
       playingXI: newPlayingXI,
@@ -102,13 +95,18 @@ const LiveMatchTab = () => {
 
   if (!currentMatch) {
     return (
-      <div className="text-center py-12 bg-muted/20 rounded-lg border-2 border-dashed">
-        <div className="space-y-3">
-          <div className="text-4xl">🏏</div>
-          <h3 className="text-lg font-medium">No active match</h3>
-          <p className="text-muted-foreground">
-            Start a match from the Fixtures tab to begin live simulation
-          </p>
+      <div className="flex flex-col items-center justify-center py-16 animate-fade-slide-up">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-cricket-green/20 via-cricket-pitch/20 to-cricket-green/20 blur-3xl" />
+          <div className="relative glass rounded-2xl p-12 border-2 border-dashed border-cricket-green/30 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-cricket-green/20 to-cricket-pitch/20 flex items-center justify-center">
+              <span className="text-5xl animate-bounce">🏏</span>
+            </div>
+            <h3 className="text-xl font-bold mb-2 text-foreground">No Active Match</h3>
+            <p className="text-muted-foreground max-w-sm">
+              Head to the Fixtures tab to set up and start a new match
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -116,7 +114,6 @@ const LiveMatchTab = () => {
 
   const handleStartMatch = () => {
     if (!currentMatch.tossWinner) {
-      // Show venue info first, then toss
       setShowVenueInfo(true);
     } else {
       setMatchStarted(true);
@@ -129,7 +126,6 @@ const LiveMatchTab = () => {
   };
 
   const handleTossComplete = () => {
-    // Use fresh state to avoid any stale data after toss update
     const m = useCricketStore.getState().currentMatch;
     if (!m || !m.tossWinner || !m.tossChoice) {
       setShowToss(false);
@@ -138,7 +134,6 @@ const LiveMatchTab = () => {
 
     setShowToss(false);
 
-    // Determine batting and bowling teams based on toss result and choice
     const otherTeamName = m.tossWinner.name === m.team1.name ? m.team2.name : m.team1.name;
     const battingTeam = m.tossChoice === 'bat' ? m.tossWinner.name : otherTeamName;
     const bowlingTeam = m.tossChoice === 'bowl' ? m.tossWinner.name : otherTeamName;
@@ -195,28 +190,65 @@ const LiveMatchTab = () => {
 
     setMatchStarted(true);
   };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Live Match</h2>
-          <p className="text-muted-foreground">
-            {currentMatch.team1.name} vs {currentMatch.team2.name}
-          </p>
-        </div>
-        
-        <div className="flex space-x-2">
-          {!matchStarted && (
-            <Button onClick={handleStartMatch} className="bg-cricket-green hover:bg-cricket-green/90">
-              <Play className="h-4 w-4 mr-2" />
-              {currentMatch.tossWinner ? 'Start Match' : 'Start Toss'}
-            </Button>
-          )}
+    <div className="space-y-6 animate-fade-slide-up">
+      {/* Enhanced Match Header */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-cricket-green/10 via-cricket-pitch/5 to-cricket-green/10 border border-cricket-green/20 p-6">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIgZmlsbD0icmdiYSgzNCwxOTcsMTAwLDAuMSkiLz48L3N2Zz4=')] opacity-50" />
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            {/* Team 1 */}
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cricket-green/30 to-cricket-pitch/30 flex items-center justify-center text-2xl font-bold shadow-lg">
+                {currentMatch.team1.name.substring(0, 2).toUpperCase()}
+              </div>
+              <p className="mt-2 font-semibold text-sm">{currentMatch.team1.name}</p>
+            </div>
+            
+            {/* VS Badge */}
+            <div className="flex flex-col items-center">
+              <Badge className="bg-gradient-to-r from-cricket-green to-cricket-pitch text-white px-4 py-1 text-lg font-bold shadow-lg">
+                VS
+              </Badge>
+              {matchStarted && currentMatch.isLive && (
+                <Badge className="mt-2 bg-score-wicket/90 text-white animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-white mr-2 animate-ping" />
+                  LIVE
+                </Badge>
+              )}
+            </div>
+            
+            {/* Team 2 */}
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cricket-ball/30 to-cricket-stumps/30 flex items-center justify-center text-2xl font-bold shadow-lg">
+                {currentMatch.team2.name.substring(0, 2).toUpperCase()}
+              </div>
+              <p className="mt-2 font-semibold text-sm">{currentMatch.team2.name}</p>
+            </div>
+          </div>
           
-          <Button variant="outline" onClick={() => setCurrentMatch(null)}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            End Match
-          </Button>
+          <div className="flex items-center gap-3">
+            {!matchStarted && (
+              <Button 
+                onClick={handleStartMatch} 
+                className="bg-gradient-to-r from-cricket-green to-cricket-pitch hover:from-cricket-green/90 hover:to-cricket-pitch/90 text-white shadow-lg shadow-cricket-green/20 transition-all hover:scale-105"
+                size="lg"
+              >
+                <Play className="h-5 w-5 mr-2" />
+                {currentMatch.tossWinner ? 'Start Match' : 'Begin Toss'}
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setCurrentMatch(null)}
+              className="border-destructive/30 text-destructive hover:bg-destructive/10"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              End
+            </Button>
+          </div>
         </div>
       </div>
 
