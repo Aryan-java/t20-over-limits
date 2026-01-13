@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, TrendingUp, Trophy, Target, Award, User, Calendar, Star } from "lucide-react";
+import { ArrowLeft, TrendingUp, Trophy, Target, Award, User, Calendar, Star, Globe, Zap } from "lucide-react";
 import CricketHeader from "@/components/CricketHeader";
+import { SkillRadarChart } from "@/components/ui/SkillRadarChart";
+import { MilestoneBadge } from "@/components/ui/MilestoneBadge";
+import { StatProgressBar } from "@/components/ui/CareerStatsGraph";
+import { cn } from "@/lib/utils";
 
 const PlayerProfile = () => {
   const { playerId } = useParams();
@@ -34,11 +38,12 @@ const PlayerProfile = () => {
 
   if (!player || !team) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30">
+      <div className="min-h-screen bg-background">
         <CricketHeader />
         <main className="container mx-auto px-4 py-8">
-          <Card>
+          <Card className="stadium-card">
             <CardContent className="p-8 text-center">
+              <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
               <p className="text-lg text-muted-foreground">Player not found</p>
               <Button onClick={() => navigate("/")} className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -50,6 +55,16 @@ const PlayerProfile = () => {
       </div>
     );
   }
+
+  const getPlayerRole = () => {
+    const diff = player.batSkill - player.bowlSkill;
+    if (diff > 20) return { role: "Batsman", color: "text-cricket-gold", bgColor: "bg-cricket-gold/10", icon: TrendingUp };
+    if (diff < -20) return { role: "Bowler", color: "text-cricket-purple", bgColor: "bg-cricket-purple/10", icon: Target };
+    return { role: "All-Rounder", color: "text-primary", bgColor: "bg-primary/10", icon: Zap };
+  };
+
+  const role = getPlayerRole();
+  const RoleIcon = role.icon;
 
   const performanceHistory = player.performanceHistory || {
     totalMatches: 0,
@@ -97,61 +112,106 @@ const PlayerProfile = () => {
     };
   });
 
-  const strikeRate = performanceHistory.totalMatches > 0 && player.balls > 0
-    ? ((performanceHistory.totalRuns / player.balls) * 100).toFixed(1)
-    : "N/A";
+  // Calculate milestones
+  const getMilestones = () => {
+    if (!playerAllTimeStats) return [];
+    const milestones: Array<{ type: "century" | "half-century" | "five-wickets" | "power-hitter" | "economical"; count?: number }> = [];
+    
+    if (playerAllTimeStats.hundreds > 0) milestones.push({ type: "century", count: playerAllTimeStats.hundreds });
+    if (playerAllTimeStats.fifties > 0) milestones.push({ type: "half-century", count: playerAllTimeStats.fifties });
+    if (playerAllTimeStats.best_bowling_wickets >= 5) milestones.push({ type: "five-wickets" });
+    if (playerAllTimeStats.sixes > 10) milestones.push({ type: "power-hitter" });
+    if (playerAllTimeStats.balls_bowled > 0 && (playerAllTimeStats.runs_conceded / (playerAllTimeStats.balls_bowled / 6)) < 7) {
+      milestones.push({ type: "economical" });
+    }
+    
+    return milestones;
+  };
 
-  const economy = performanceHistory.totalMatches > 0 && player.oversBowled > 0
-    ? (player.runsConceded / player.oversBowled).toFixed(2)
-    : "N/A";
+  const milestones = getMilestones();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cricket-pitch via-background to-cricket-pitch/30">
+    <div className="min-h-screen bg-background">
       <CricketHeader />
       
       <main className="container mx-auto px-4 py-8">
         <Button
           onClick={() => navigate("/")}
           variant="ghost"
-          className="mb-4 gap-2"
+          className="mb-6 gap-2 hover:bg-primary/10"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Tournament
         </Button>
 
-        {/* Player Header */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <Avatar className="h-32 w-32">
+        {/* Enhanced Player Header Card */}
+        <Card className="mb-6 overflow-hidden border-2">
+          {/* Hero gradient header */}
+          <div className="relative h-32 bg-gradient-to-br from-primary via-primary/80 to-cricket-purple overflow-hidden">
+            <div className="absolute inset-0 bg-pitch-pattern opacity-20" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            
+            {player.isOverseas && (
+              <Badge className="absolute top-4 right-4 bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                <Globe className="h-3 w-3 mr-1" />
+                Overseas Player
+              </Badge>
+            )}
+            
+            <Badge className={cn("absolute top-4 left-4 border-0", role.bgColor, role.color)}>
+              <RoleIcon className="h-3 w-3 mr-1" />
+              {role.role}
+            </Badge>
+          </div>
+          
+          <CardContent className="p-6 -mt-16 relative">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              {/* Large Avatar */}
+              <Avatar className="h-32 w-32 ring-4 ring-background shadow-2xl">
                 <AvatarImage src={player.imageUrl} alt={player.name} />
-                <AvatarFallback>
-                  <User className="h-16 w-16" />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-cricket-purple text-white font-bold text-4xl">
+                  {player.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex flex-col md:flex-row items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">{player.name}</h1>
-                  {player.isOverseas && (
-                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
-                      Overseas Player
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-lg text-muted-foreground mb-4">{team.name}</p>
+              <div className="flex-1 pt-4 md:pt-8">
+                <h1 className="text-3xl font-bold">{player.name}</h1>
+                <p className="text-lg text-muted-foreground">{team.name}</p>
                 
-                <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm">Bat Skill: <strong>{player.batSkill}</strong></span>
+                {/* Milestones */}
+                {milestones.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {milestones.map((m, i) => (
+                      <MilestoneBadge key={i} type={m.type} count={m.count} size="md" />
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-purple-500" />
-                    <span className="text-sm">Bowl Skill: <strong>{player.bowlSkill}</strong></span>
-                  </div>
-                </div>
+                )}
               </div>
+              
+              {/* Skill Radar */}
+              <div className="hidden md:block">
+                <SkillRadarChart
+                  batting={player.batSkill}
+                  bowling={player.bowlSkill}
+                  size={160}
+                />
+              </div>
+            </div>
+            
+            {/* Skill Bars */}
+            <div className="grid md:grid-cols-2 gap-6 mt-6 pt-6 border-t">
+              <StatProgressBar 
+                label="Batting Skill" 
+                value={player.batSkill} 
+                maxValue={100} 
+                color="gold" 
+              />
+              <StatProgressBar 
+                label="Bowling Skill" 
+                value={player.bowlSkill} 
+                maxValue={100} 
+                color="purple" 
+              />
             </div>
           </CardContent>
         </Card>
@@ -413,7 +473,9 @@ const PlayerProfile = () => {
                       <div className="text-2xl font-bold">
                         {playerAllTimeStats?.balls_faced 
                           ? ((playerAllTimeStats.total_runs / playerAllTimeStats.balls_faced) * 100).toFixed(1)
-                          : strikeRate}
+                          : "N/A"}
+                      </div>
+                    </div>
                       </div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
@@ -446,7 +508,7 @@ const PlayerProfile = () => {
                       <div className="text-2xl font-bold">
                         {playerAllTimeStats?.balls_bowled 
                           ? ((playerAllTimeStats.runs_conceded / (playerAllTimeStats.balls_bowled / 6))).toFixed(2)
-                          : economy}
+                          : "N/A"}
                       </div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
