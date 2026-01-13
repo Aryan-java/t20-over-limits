@@ -87,56 +87,78 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 220 20% 6%;
+    --foreground: 210 40% 96%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 20% 9%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 20% 9%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 142 76% 50%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 142 70% 45%;
+    --primary-foreground: 220 20% 6%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 20% 14%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 15% 16%;
+    --muted-foreground: 215 20% 60%;
 
-    --accent: 40 96% 50%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 95% 55%;
+    --accent-foreground: 220 20% 6%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142 76% 50%;
+    --border: 220 15% 18%;
+    --input: 220 15% 14%;
+    --ring: 142 70% 45%;
     
-    /* Dark mode cricket colors */
-    --cricket-green: 142 76% 45%;
-    --cricket-pitch: 222.2 84% 8%;
-    --cricket-ball: 0 65% 50%;
-    --cricket-stumps: 35 100% 74%;
-    --cricket-boundary: 220 100% 60%;
-    --cricket-gold: 45 93% 55%;
-    --cricket-purple: 270 70% 65%;
+    /* Enhanced dark mode cricket colors - Stadium night atmosphere */
+    --cricket-green: 142 70% 40%;
+    --cricket-pitch: 220 20% 8%;
+    --cricket-ball: 0 70% 55%;
+    --cricket-stumps: 40 100% 65%;
+    --cricket-boundary: 220 100% 65%;
+    --cricket-gold: 45 95% 60%;
+    --cricket-purple: 270 75% 65%;
+    --cricket-sky: 220 60% 25%;
+    --cricket-grass: 120 50% 30%;
     
-    /* Dark mode gradients */
-    --gradient-card: linear-gradient(145deg, hsl(222.2 84% 8%), hsl(222.2 84% 6%));
-    --gradient-glass: linear-gradient(135deg, hsla(222.2 84% 12% / 0.9), hsla(222.2 84% 8% / 0.7));
-    --gradient-stadium: linear-gradient(180deg, hsl(220 50% 15%), hsl(220 60% 10%), hsl(var(--background)));
+    /* Enhanced score event colors for dark mode */
+    --score-four: 142 70% 45%;
+    --score-six: 270 75% 65%;
+    --score-wicket: 0 80% 55%;
+    --score-dot: 220 15% 40%;
+    --score-single: 45 80% 55%;
     
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    /* Dark mode gradients - Night stadium feel */
+    --gradient-card: linear-gradient(145deg, hsl(220 20% 10%), hsl(220 20% 7%));
+    --gradient-glass: linear-gradient(135deg, hsla(220 20% 15% / 0.95), hsla(220 20% 10% / 0.85));
+    --gradient-stadium: linear-gradient(180deg, hsl(220 30% 12%), hsl(220 25% 8%), hsl(var(--background)));
+    --gradient-pitch: linear-gradient(135deg, hsl(var(--cricket-green) / 0.3), hsl(142 50% 25%));
+    --gradient-sky: linear-gradient(180deg, hsl(220 30% 15%), hsl(var(--background)));
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(142 70% 50%));
+    --gradient-gold: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
+    
+    /* Dark mode shadows - More dramatic */
+    --shadow-pitch: 0 4px 25px hsl(var(--cricket-green) / 0.25);
+    --shadow-card: 0 4px 15px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 40px hsl(var(--accent) / 0.4);
+    --shadow-elevated: 0 10px 40px hsl(0 0% 0% / 0.5);
+    --shadow-boundary: 0 0 30px hsl(var(--score-four) / 0.6);
+    --shadow-six: 0 0 35px hsl(var(--score-six) / 0.6);
+    --shadow-wicket: 0 0 25px hsl(var(--score-wicket) / 0.5);
+    
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 142 70% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 220 15% 14%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 142 70% 45%;
   }
 }
 
@@ -153,28 +175,59 @@ All colors MUST be HSL.
 @layer utilities {
   /* Glass morphism effect */
   .glass {
-    @apply backdrop-blur-md bg-white/80 border border-white/20;
+    @apply backdrop-blur-md bg-white/80 border border-white/20 dark:bg-white/5 dark:border-white/10;
   }
   
   .glass-dark {
-    @apply backdrop-blur-md bg-black/20 border border-white/10;
+    @apply backdrop-blur-md bg-black/20 border border-white/10 dark:bg-black/40 dark:border-white/5;
+  }
+  
+  /* Stadium card style */
+  .stadium-card {
+    @apply bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg dark:bg-card/80 dark:border-primary/10 dark:shadow-xl dark:shadow-black/20;
+  }
+  
+  /* Scoreboard style */
+  .scoreboard {
+    @apply bg-gradient-to-br from-card to-card/80 border-2 border-primary/20 rounded-xl shadow-xl dark:from-card dark:to-background dark:border-primary/30 dark:shadow-primary/5;
+  }
+  
+  /* Pitch stripe pattern for backgrounds */
+  .pitch-stripes {
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 20px,
+      hsl(var(--cricket-green) / 0.03) 20px,
+      hsl(var(--cricket-green) / 0.03) 40px
+    );
+  }
+  
+  .dark .pitch-stripes {
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 20px,
+      hsl(var(--cricket-green) / 0.05) 20px,
+      hsl(var(--cricket-green) / 0.05) 40px
+    );
   }
 
   /* Score event styles */
   .score-four {
-    @apply bg-cricket-green/10 text-cricket-green border-cricket-green/30;
+    @apply bg-cricket-green/10 text-cricket-green border-cricket-green/30 dark:bg-cricket-green/20 dark:text-cricket-green dark:border-cricket-green/40;
   }
   
   .score-six {
-    @apply bg-cricket-purple/10 text-cricket-purple border-cricket-purple/30;
+    @apply bg-cricket-purple/10 text-cricket-purple border-cricket-purple/30 dark:bg-cricket-purple/20 dark:text-cricket-purple dark:border-cricket-purple/40;
   }
   
   .score-wicket {
-    @apply bg-destructive/10 text-destructive border-destructive/30;
+    @apply bg-destructive/10 text-destructive border-destructive/30 dark:bg-destructive/20 dark:text-destructive dark:border-destructive/40;
   }
   
   .score-dot {
-    @apply bg-muted text-muted-foreground;
+    @apply bg-muted text-muted-foreground dark:bg-muted/50;
   }
 
   /* Card hover effect */
