@@ -476,8 +476,6 @@ const PlayerProfile = () => {
                           : "N/A"}
                       </div>
                     </div>
-                      </div>
-                    </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
                       <div className="text-sm text-muted-foreground">Bat Skill</div>
                       <div className="text-2xl font-bold">{player.batSkill}</div>
