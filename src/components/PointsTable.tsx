@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Match, Team } from "@/types/cricket";
-import { Trophy, TrendingUp, TrendingDown } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Medal, Crown, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PointsTableProps {
@@ -98,75 +98,112 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
   
   const teamStats = calculateTeamStats();
   const qualifyingTeams = 4;
+
+  const getPositionBadge = (index: number) => {
+    if (index === 0) return { icon: Crown, color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30' };
+    if (index === 1) return { icon: Medal, color: 'text-gray-400 bg-gray-400/10 border-gray-400/30' };
+    if (index === 2) return { icon: Medal, color: 'text-orange-500 bg-orange-500/10 border-orange-500/30' };
+    return { icon: Star, color: 'text-muted-foreground bg-muted border-border' };
+  };
   
   return (
-    <Card className="overflow-hidden border-2 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-primary/10 via-transparent to-primary/5 border-b">
-        <CardTitle className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Trophy className="h-5 w-5 text-primary" />
+    <Card className="overflow-hidden border-2 shadow-xl relative">
+      {/* Decorative elements */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      
+      <CardHeader className="bg-gradient-to-r from-primary/15 via-primary/10 to-transparent border-b relative">
+        <CardTitle className="flex items-center gap-4">
+          <div className="relative">
+            <div className="p-3 bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-lg">
+              <Trophy className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div className="absolute inset-0 bg-primary/30 rounded-xl blur-md" />
           </div>
-          Points Table
+          <div>
+            <span className="text-xl font-bold">Points Table</span>
+            <div className="text-sm text-muted-foreground font-normal">League Standings</div>
+          </div>
         </CardTitle>
       </CardHeader>
+      
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/30 hover:bg-muted/30">
-              <TableHead className="w-14 font-bold">Pos</TableHead>
+            <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-2">
+              <TableHead className="w-16 font-bold text-center">Pos</TableHead>
               <TableHead className="font-bold">Team</TableHead>
-              <TableHead className="text-center font-bold">P</TableHead>
-              <TableHead className="text-center font-bold text-cricket-green">W</TableHead>
-              <TableHead className="text-center font-bold text-destructive">L</TableHead>
-              <TableHead className="text-center font-bold">T</TableHead>
-              <TableHead className="text-center font-bold">Pts</TableHead>
-              <TableHead className="text-center font-bold">NRR</TableHead>
+              <TableHead className="text-center font-bold w-12">P</TableHead>
+              <TableHead className="text-center font-bold text-cricket-green w-12">W</TableHead>
+              <TableHead className="text-center font-bold text-destructive w-12">L</TableHead>
+              <TableHead className="text-center font-bold w-12">T</TableHead>
+              <TableHead className="text-center font-bold w-16">Pts</TableHead>
+              <TableHead className="text-center font-bold w-24">NRR</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {teamStats.map((stat, index) => {
               const isQualifying = index < qualifyingTeams;
+              const position = getPositionBadge(index);
+              const PositionIcon = position.icon;
+              
               return (
                 <TableRow 
                   key={stat.team.id}
                   className={cn(
-                    "transition-colors",
-                    isQualifying && "bg-cricket-green/5 hover:bg-cricket-green/10"
+                    "transition-all duration-300 group",
+                    isQualifying && "bg-cricket-green/5 hover:bg-cricket-green/10",
+                    !isQualifying && "hover:bg-muted/50"
                   )}
                 >
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       {isQualifying && (
-                        <div className="w-1 h-8 bg-cricket-green rounded-full" />
+                        <div className="w-1 h-10 bg-gradient-to-b from-cricket-green to-cricket-green/50 rounded-full absolute left-0" />
                       )}
                       <Badge 
-                        variant={isQualifying ? "default" : "secondary"} 
                         className={cn(
-                          "w-7 h-7 rounded-full flex items-center justify-center p-0 font-bold",
-                          isQualifying ? "bg-cricket-green hover:bg-cricket-green" : ""
+                          "w-9 h-9 rounded-xl flex items-center justify-center p-0 font-bold text-sm transition-all",
+                          position.color,
+                          "border-2 shadow-sm",
+                          index < 3 && "shadow-lg"
                         )}
                       >
-                        {index + 1}
+                        {index < 3 ? (
+                          <PositionIcon className="h-4 w-4" />
+                        ) : (
+                          index + 1
+                        )}
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell className="font-semibold">{stat.team.name}</TableCell>
-                  <TableCell className="text-center">{stat.played}</TableCell>
-                  <TableCell className="text-center font-semibold text-cricket-green">{stat.won}</TableCell>
-                  <TableCell className="text-center font-semibold text-destructive">{stat.lost}</TableCell>
-                  <TableCell className="text-center">{stat.tied}</TableCell>
+                  <TableCell className="font-bold text-base group-hover:text-primary transition-colors">
+                    {stat.team.name}
+                  </TableCell>
+                  <TableCell className="text-center font-semibold">{stat.played}</TableCell>
                   <TableCell className="text-center">
-                    <span className="font-bold text-lg">{stat.points}</span>
+                    <span className="font-bold text-cricket-green text-lg">{stat.won}</span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-bold text-destructive text-lg">{stat.lost}</span>
+                  </TableCell>
+                  <TableCell className="text-center font-semibold">{stat.tied}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="relative inline-flex items-center justify-center">
+                      <span className="font-black text-xl text-primary">{stat.points}</span>
+                      {stat.points > 0 && (
+                        <div className="absolute inset-0 bg-primary/10 rounded-full blur-sm" />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     <div className={cn(
-                      "flex items-center justify-center gap-1 font-medium",
-                      stat.nrr >= 0 ? "text-cricket-green" : "text-destructive"
+                      "flex items-center justify-center gap-1.5 font-bold px-2 py-1 rounded-lg transition-all",
+                      stat.nrr >= 0 ? "text-cricket-green bg-cricket-green/10" : "text-destructive bg-destructive/10"
                     )}>
                       {stat.nrr >= 0 ? (
-                        <TrendingUp className="h-3 w-3" />
+                        <TrendingUp className="h-3.5 w-3.5" />
                       ) : (
-                        <TrendingDown className="h-3 w-3" />
+                        <TrendingDown className="h-3.5 w-3.5" />
                       )}
                       {stat.nrr >= 0 ? '+' : ''}{stat.nrr.toFixed(3)}
                     </div>
@@ -178,17 +215,22 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
         </Table>
         
         {teamStats.every(s => s.played === 0) && (
-          <div className="text-center py-12 text-muted-foreground">
-            <Trophy className="h-12 w-12 mx-auto mb-3 opacity-20" />
-            <p className="font-medium">No matches completed yet</p>
-            <p className="text-sm">Play matches to populate the table</p>
+          <div className="text-center py-16 text-muted-foreground">
+            <div className="relative inline-block">
+              <Trophy className="h-16 w-16 mx-auto mb-4 opacity-20" />
+              <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl" />
+            </div>
+            <p className="font-bold text-lg">No matches completed yet</p>
+            <p className="text-sm mt-1">Play matches to populate the table</p>
           </div>
         )}
         
         {teamStats.some(s => s.played > 0) && (
-          <div className="px-4 py-3 bg-muted/20 border-t flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-3 h-3 bg-cricket-green rounded" />
-            <span>Qualification Zone (Top {qualifyingTeams})</span>
+          <div className="px-4 py-4 bg-gradient-to-r from-cricket-green/10 via-transparent to-transparent border-t flex items-center gap-3">
+            <div className="w-4 h-4 bg-gradient-to-br from-cricket-green to-cricket-green/70 rounded shadow-sm" />
+            <span className="text-sm font-semibold text-muted-foreground">
+              Playoff Qualification Zone (Top {qualifyingTeams})
+            </span>
           </div>
         )}
       </CardContent>
