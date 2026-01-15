@@ -552,3 +552,36 @@ All colors MUST be HSL.
   mask-composite: exclude;
   pointer-events: none;
 }
+
+/* Weather condition animations */
+@keyframes rain-fall {
+  0% { transform: translateY(-10px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+
+@keyframes dew-shimmer {
+  0%, 100% { opacity: 0.5; filter: blur(0px); }
+  50% { opacity: 1; filter: blur(1px); }
+}
+
+@keyframes wind-sway {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(3px) rotate(1deg); }
+  75% { transform: translateX(-3px) rotate(-1deg); }
+}
+
+@keyframes sun-glow {
+  0%, 100% { filter: drop-shadow(0 0 5px hsl(45 100% 50% / 0.5)); }
+  50% { filter: drop-shadow(0 0 15px hsl(45 100% 50% / 0.8)); }
+}
+
+.animate-rain { animation: rain-fall 1s ease-in-out infinite; }
+.animate-dew { animation: dew-shimmer 2s ease-in-out infinite; }
+.animate-wind { animation: wind-sway 2s ease-in-out infinite; }
+.animate-sun-glow { animation: sun-glow 3s ease-in-out infinite; }
+
+/* Pitch condition effects */
+.pitch-dusty { background: linear-gradient(135deg, hsl(30 60% 70% / 0.1), hsl(25 50% 60% / 0.05)); }
+.pitch-green { background: linear-gradient(135deg, hsl(120 60% 40% / 0.1), hsl(125 50% 35% / 0.05)); }
+.pitch-damp { background: linear-gradient(135deg, hsl(200 60% 50% / 0.1), hsl(210 50% 45% / 0.05)); }
