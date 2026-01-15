@@ -2,15 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Match } from "@/types/cricket";
-import { User, Target, Zap, Flame, TrendingUp, Radio, Crosshair } from "lucide-react";
+import { MatchConditions } from "@/types/weather";
+import { User, Target, Zap, Flame, TrendingUp, Radio, Crosshair, Cloud, Sun, Droplets, Wind } from "lucide-react";
 import OverProgress from "@/components/ui/OverProgress";
 import AnimatedScore from "@/components/ui/AnimatedScore";
+import { WEATHER_ICONS, PITCH_ICONS } from "@/types/weather";
 
 interface LiveScoreboardProps {
   match: Match;
+  conditions?: MatchConditions | null;
 }
 
-const LiveScoreboard = ({ match }: LiveScoreboardProps) => {
+const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
   const formatOvers = (balls: number) => {
     const overs = Math.floor(balls / 6);
     const remainingBalls = balls % 6;
@@ -86,6 +89,25 @@ const LiveScoreboard = ({ match }: LiveScoreboardProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Weather & Pitch Indicators */}
+            {conditions && (
+              <div className="flex items-center gap-1.5 mr-2">
+                <Badge variant="outline" className="gap-1 text-xs bg-background/50 backdrop-blur-sm">
+                  <span>{WEATHER_ICONS[conditions.weather]}</span>
+                  <span className="hidden sm:inline capitalize">{conditions.weather.replace('-', ' ')}</span>
+                </Badge>
+                <Badge variant="outline" className="gap-1 text-xs bg-background/50 backdrop-blur-sm">
+                  <span>{PITCH_ICONS[conditions.pitch]}</span>
+                  <span className="hidden sm:inline capitalize">{conditions.pitch}</span>
+                </Badge>
+                {conditions.dewFactor > 50 && (
+                  <Badge className="gap-1 text-xs bg-indigo-500/20 text-indigo-600 border-indigo-500/30">
+                    <Droplets className="h-3 w-3" />
+                    <span className="hidden sm:inline">Dew</span>
+                  </Badge>
+                )}
+              </div>
+            )}
             {currentInnings && !currentInnings.isCompleted && inPowerplay && (
               <Badge className="bg-gradient-to-r from-cricket-boundary to-blue-600 text-white text-xs gap-1.5 border-0 shadow-lg animate-pulse">
                 <Zap className="h-3 w-3" />

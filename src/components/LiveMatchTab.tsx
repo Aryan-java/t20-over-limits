@@ -12,7 +12,9 @@ import RunRateGraph from "./RunRateGraph";
 import PartnershipAnalysis from "./PartnershipAnalysis";
 import VenueInfoDialog from "./VenueInfoDialog";
 import WinPrediction from "./WinPrediction";
+import WeatherConditionsPanel from "./WeatherConditionsPanel";
 import { getRandomVenue } from "@/data/venues";
+import { useMatchConditions, generateInitialConditions, calculateModifiers } from "@/hooks/useMatchConditions";
 
 const LiveMatchTab = () => {
   const { currentMatch, setCurrentMatch, updateMatch, fixtures } = useCricketStore();
@@ -27,6 +29,27 @@ const LiveMatchTab = () => {
     );
     return matchFixture?.venue || getRandomVenue();
   }, [currentMatch?.team1.id, currentMatch?.team2.id, fixtures]);
+
+  // Match conditions system
+  const { conditions, modifiers, initializeConditions, updateConditions, setConditions } = useMatchConditions(venue);
+
+  // Initialize conditions when match starts
+  useEffect(() => {
+    if (matchStarted && !conditions && venue) {
+      const initialConditions = generateInitialConditions(venue);
+      setConditions(initialConditions);
+    }
+  }, [matchStarted, conditions, venue, setConditions]);
+
+  // Update conditions as match progresses
+  useEffect(() => {
+    if (currentMatch && conditions) {
+      const innings = currentMatch.currentInnings === 1 ? currentMatch.firstInnings : currentMatch.secondInnings;
+      if (innings) {
+        updateConditions(innings.ballsBowled, currentMatch.currentInnings === 2);
+      }
+    }
+  }, [currentMatch?.firstInnings?.ballsBowled, currentMatch?.secondInnings?.ballsBowled, currentMatch?.currentInnings, conditions, updateConditions]);
 
   const handleBowlerChange = (bowlerId: string) => {
     console.log("Changing bowler to:", bowlerId);
@@ -254,7 +277,7 @@ const LiveMatchTab = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <LiveScoreboard match={currentMatch} />
+          <LiveScoreboard match={currentMatch} conditions={conditions} />
           
           {matchStarted && (
             <BallByBallEngine match={currentMatch} />
@@ -280,6 +303,14 @@ const LiveMatchTab = () => {
         </div>
         
         <div className="space-y-6">
+          {/* Weather & Pitch Conditions */}
+          {matchStarted && conditions && modifiers && (
+            <WeatherConditionsPanel 
+              conditions={conditions} 
+              modifiers={modifiers} 
+            />
+          )}
+          
           {/* Win Prediction - Only show during live match */}
           {matchStarted && currentMatch.isLive && !currentMatch.isCompleted && (
             <WinPrediction match={currentMatch} />

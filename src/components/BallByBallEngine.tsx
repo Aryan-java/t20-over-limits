@@ -333,7 +333,15 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     return currentOver >= match.overs - 4;
   };
 
-  const simulateBallOutcome = (batsman: Player, bowler: Player): { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } } => {
+  const simulateBallOutcome = (batsman: Player, bowler: Player, conditionModifiers?: {
+    boundaryMultiplier: number;
+    sixMultiplier: number;
+    runScoringMultiplier: number;
+    paceWicketMultiplier: number;
+    spinWicketMultiplier: number;
+    extrasMultiplier: number;
+    dotBallMultiplier: number;
+  }): { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } } => {
     const batSkill = batsman.batSkill;
     const bowlSkill = bowler.bowlSkill;
 
@@ -356,6 +364,21 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     let sixProb = Math.max(2, 6 + totalDiff * 0.15);
     let singleProb = 35;
     let doubleProb = 15;
+
+    // APPLY WEATHER & PITCH CONDITION MODIFIERS
+    if (conditionModifiers) {
+      boundaryProb *= conditionModifiers.boundaryMultiplier;
+      sixProb *= conditionModifiers.sixMultiplier;
+      dotProb *= conditionModifiers.dotBallMultiplier;
+      
+      // Determine if bowler is more pace or spin oriented
+      const isPaceBowler = bowler.bowlSkill > 60 && bowler.batSkill < bowler.bowlSkill;
+      if (isPaceBowler) {
+        wicketProb *= conditionModifiers.paceWicketMultiplier;
+      } else {
+        wicketProb *= conditionModifiers.spinWicketMultiplier;
+      }
+    }
 
     // POWERPLAY ADJUSTMENTS (Field restrictions: Only 2 fielders outside 30-yard circle)
     if (isPowerplay()) {
@@ -384,7 +407,10 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     }
 
     // Check for extras first (8% chance, slightly higher in death overs)
-    const extrasChance = isDeathOvers() ? 10 : 8;
+    let extrasChance = isDeathOvers() ? 10 : 8;
+    if (conditionModifiers) {
+      extrasChance *= conditionModifiers.extrasMultiplier;
+    }
     const extrasRoll = Math.random() * 100;
     if (extrasRoll < extrasChance) {
       const extrasType = Math.random();
