@@ -173,23 +173,46 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
-  /* Glass morphism effect */
+  /* Enhanced Glass morphism effects */
   .glass {
-    @apply backdrop-blur-md bg-white/80 border border-white/20 dark:bg-white/5 dark:border-white/10;
+    @apply backdrop-blur-xl bg-white/70 border border-white/30 shadow-lg dark:bg-white/5 dark:border-white/10;
   }
   
   .glass-dark {
-    @apply backdrop-blur-md bg-black/20 border border-white/10 dark:bg-black/40 dark:border-white/5;
+    @apply backdrop-blur-xl bg-black/30 border border-white/10 shadow-xl dark:bg-black/50 dark:border-white/5;
   }
   
-  /* Stadium card style */
+  .glass-premium {
+    @apply backdrop-blur-2xl bg-gradient-to-br from-white/80 to-white/60 border border-white/40 shadow-2xl dark:from-white/10 dark:to-white/5 dark:border-white/10;
+  }
+  
+  /* Enhanced Stadium card style */
   .stadium-card {
-    @apply bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg dark:bg-card/80 dark:border-primary/10 dark:shadow-xl dark:shadow-black/20;
+    @apply bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg rounded-xl transition-all duration-300 dark:bg-card/80 dark:border-primary/10 dark:shadow-xl dark:shadow-black/20;
   }
   
-  /* Scoreboard style */
+  .stadium-card:hover {
+    @apply shadow-xl -translate-y-0.5 border-primary/30 dark:border-primary/30;
+  }
+  
+  /* Enhanced Scoreboard style with glassmorphism */
   .scoreboard {
-    @apply bg-gradient-to-br from-card to-card/80 border-2 border-primary/20 rounded-xl shadow-xl dark:from-card dark:to-background dark:border-primary/30 dark:shadow-primary/5;
+    @apply relative bg-gradient-to-br from-card via-card/95 to-card/90 border-2 border-primary/20 rounded-2xl shadow-2xl backdrop-blur-sm dark:from-card dark:via-background dark:to-background dark:border-primary/30 dark:shadow-primary/10;
+  }
+  
+  .scoreboard::before {
+    content: '';
+    @apply absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-cricket-gold/5 pointer-events-none;
+  }
+  
+  /* Premium card with gradient border */
+  .premium-card {
+    @apply relative bg-card rounded-2xl overflow-hidden;
+  }
+  
+  .premium-card::before {
+    content: '';
+    @apply absolute inset-0 rounded-2xl p-[2px] bg-gradient-to-br from-primary via-cricket-gold to-primary -z-10;
   }
   
   /* Pitch stripe pattern for backgrounds */
@@ -213,35 +236,47 @@ All colors MUST be HSL.
     );
   }
 
-  /* Score event styles */
+  /* Enhanced Score event styles with glow */
   .score-four {
-    @apply bg-cricket-green/10 text-cricket-green border-cricket-green/30 dark:bg-cricket-green/20 dark:text-cricket-green dark:border-cricket-green/40;
+    @apply bg-cricket-green/15 text-cricket-green border-cricket-green/40 shadow-sm shadow-cricket-green/20 dark:bg-cricket-green/25 dark:text-cricket-green dark:border-cricket-green/50 dark:shadow-cricket-green/30;
   }
   
   .score-six {
-    @apply bg-cricket-purple/10 text-cricket-purple border-cricket-purple/30 dark:bg-cricket-purple/20 dark:text-cricket-purple dark:border-cricket-purple/40;
+    @apply bg-cricket-purple/15 text-cricket-purple border-cricket-purple/40 shadow-sm shadow-cricket-purple/20 dark:bg-cricket-purple/25 dark:text-cricket-purple dark:border-cricket-purple/50 dark:shadow-cricket-purple/30;
   }
   
   .score-wicket {
-    @apply bg-destructive/10 text-destructive border-destructive/30 dark:bg-destructive/20 dark:text-destructive dark:border-destructive/40;
+    @apply bg-destructive/15 text-destructive border-destructive/40 shadow-sm shadow-destructive/20 dark:bg-destructive/25 dark:text-destructive dark:border-destructive/50 dark:shadow-destructive/30;
   }
   
   .score-dot {
-    @apply bg-muted text-muted-foreground dark:bg-muted/50;
+    @apply bg-muted/80 text-muted-foreground border border-muted-foreground/20 dark:bg-muted/50;
   }
 
-  /* Card hover effect */
+  /* Enhanced Card hover effects */
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+    @apply transition-all duration-300 ease-out;
   }
   
-  /* Gradient text */
+  .card-hover:hover {
+    @apply shadow-xl -translate-y-1 border-primary/30;
+  }
+  
+  .card-hover-glow:hover {
+    @apply shadow-[0_0_30px_hsl(var(--primary)/0.2)];
+  }
+  
+  /* Gradient text styles */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-cricket-green to-cricket-boundary;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cricket-green via-primary to-cricket-boundary;
   }
   
   .text-gradient-gold {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-cricket-gold to-accent;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cricket-gold via-accent to-cricket-stumps;
+  }
+  
+  .text-gradient-purple {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cricket-purple via-primary to-cricket-boundary;
   }
   
   /* Live pulse indicator */

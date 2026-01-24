@@ -65,63 +65,76 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
   };
 
   return (
-    <Card className="overflow-hidden scoreboard relative">
-      {/* Animated border glow for live matches */}
+    <Card className="overflow-hidden scoreboard relative group">
+      {/* Animated gradient border for live matches */}
       {match.isLive && (
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/20 via-cricket-ball/20 to-primary/20 animate-pulse pointer-events-none" />
+        <>
+          <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-primary via-cricket-ball to-cricket-gold opacity-75 blur-sm animate-pulse pointer-events-none" />
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/10 via-cricket-ball/10 to-primary/10 pointer-events-none" />
+        </>
       )}
       
-      <CardHeader className="pb-3 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent relative">
-        {/* Stadium light effect */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-8 bg-primary/20 blur-2xl rounded-full" />
+      <CardHeader className="pb-4 relative overflow-hidden">
+        {/* Premium glassmorphism header background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-primary/5 to-cricket-gold/10 backdrop-blur-sm" />
         
-        <CardTitle className="flex items-center justify-between relative">
-          <div className="flex items-center gap-3">
-            <div className="relative p-2 bg-primary/10 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <div className="absolute inset-0 bg-primary/20 rounded-lg blur animate-pulse" />
+        {/* Stadium floodlight effects */}
+        <div className="absolute -top-4 left-1/4 w-24 h-24 bg-cricket-gold/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -top-4 right-1/4 w-24 h-24 bg-primary/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+        
+        {/* Subtle grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,hsl(var(--primary)/0.05)_50%,transparent_100%)] pointer-events-none" />
+        
+        <CardTitle className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="relative group/icon">
+              {/* Animated glow ring */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary to-cricket-gold rounded-xl blur-lg opacity-50 group-hover/icon:opacity-75 transition-opacity" />
+              <div className="relative p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl border border-primary/30 backdrop-blur-sm">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
             </div>
             <div>
-              <span className="font-bold">Live Score</span>
-              <div className="text-xs text-muted-foreground font-normal">
+              <span className="font-bold text-lg tracking-tight">Live Score</span>
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                 Innings {match.currentInnings}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {/* Weather & Pitch Indicators */}
             {conditions && (
-              <div className="flex items-center gap-1.5 mr-2">
-                <Badge variant="outline" className="gap-1 text-xs bg-background/50 backdrop-blur-sm">
-                  <span>{WEATHER_ICONS[conditions.weather]}</span>
-                  <span className="hidden sm:inline capitalize">{conditions.weather.replace('-', ' ')}</span>
+              <div className="flex items-center gap-1.5 mr-1">
+                <Badge variant="outline" className="gap-1.5 text-xs bg-background/60 backdrop-blur-md border-border/50 shadow-sm">
+                  <span className="text-sm">{WEATHER_ICONS[conditions.weather]}</span>
+                  <span className="hidden sm:inline capitalize font-medium">{conditions.weather.replace('-', ' ')}</span>
                 </Badge>
-                <Badge variant="outline" className="gap-1 text-xs bg-background/50 backdrop-blur-sm">
-                  <span>{PITCH_ICONS[conditions.pitch]}</span>
-                  <span className="hidden sm:inline capitalize">{conditions.pitch}</span>
+                <Badge variant="outline" className="gap-1.5 text-xs bg-background/60 backdrop-blur-md border-border/50 shadow-sm">
+                  <span className="text-sm">{PITCH_ICONS[conditions.pitch]}</span>
+                  <span className="hidden sm:inline capitalize font-medium">{conditions.pitch}</span>
                 </Badge>
                 {conditions.dewFactor > 50 && (
-                  <Badge className="gap-1 text-xs bg-indigo-500/20 text-indigo-600 border-indigo-500/30">
+                  <Badge className="gap-1 text-xs bg-indigo-500/20 text-indigo-400 border-indigo-500/40 backdrop-blur-sm">
                     <Droplets className="h-3 w-3" />
-                    <span className="hidden sm:inline">Dew</span>
+                    <span className="hidden sm:inline font-medium">Dew</span>
                   </Badge>
                 )}
               </div>
             )}
             {currentInnings && !currentInnings.isCompleted && inPowerplay && (
-              <Badge className="bg-gradient-to-r from-cricket-boundary to-blue-600 text-white text-xs gap-1.5 border-0 shadow-lg animate-pulse">
-                <Zap className="h-3 w-3" />
+              <Badge className="bg-gradient-to-r from-cricket-boundary to-blue-600 text-white text-xs gap-1.5 border-0 shadow-lg shadow-blue-500/30 animate-pulse font-semibold">
+                <Zap className="h-3.5 w-3.5" />
                 Powerplay
               </Badge>
             )}
             {currentInnings && !currentInnings.isCompleted && inDeathOvers && (
-              <Badge className="bg-gradient-to-r from-cricket-ball to-red-700 text-white text-xs gap-1.5 border-0 shadow-lg">
-                <Flame className="h-3 w-3" />
+              <Badge className="bg-gradient-to-r from-cricket-ball to-red-700 text-white text-xs gap-1.5 border-0 shadow-lg shadow-red-500/30 font-semibold">
+                <Flame className="h-3.5 w-3.5" />
                 Death Overs
               </Badge>
             )}
             {match.isLive && (
-              <Badge className="bg-cricket-ball text-white gap-2 px-3 py-1.5 border-0 shadow-lg">
+              <Badge className="bg-gradient-to-r from-cricket-ball to-red-600 text-white gap-2 px-4 py-1.5 border-0 shadow-lg shadow-red-500/40 font-bold">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
@@ -133,43 +146,46 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-5 relative">
+      <CardContent className="space-y-6 relative">
         {/* Main Score Display */}
         {currentInnings && (
-          <div className="text-center space-y-4 py-6 relative">
-            {/* Team name with gradient underline */}
-            <div className="relative inline-block">
-              <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+          <div className="text-center space-y-5 py-8 relative">
+            {/* Team name with animated underline */}
+            <div className="relative inline-block group/team">
+              <div className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em]">
                 {currentInnings.battingTeam}
               </div>
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-16 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full" />
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full group-hover/team:w-28 transition-all duration-300" />
             </div>
             
-            {/* Score display with glow effect */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full" />
-              <div className="relative flex items-baseline justify-center gap-2">
+            {/* Enhanced score display with layered glow */}
+            <div className="relative py-4">
+              {/* Multi-layer glow effect */}
+              <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full" />
+              <div className="absolute inset-x-10 inset-y-0 bg-cricket-gold/5 blur-2xl rounded-full" />
+              
+              <div className="relative flex items-baseline justify-center gap-3">
                 <AnimatedScore 
                   value={currentInnings.totalRuns} 
-                  className="text-6xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70"
+                  className="text-7xl md:text-8xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-foreground via-foreground/90 to-foreground/60 drop-shadow-sm"
                 />
-                <span className="text-4xl text-muted-foreground/50 font-light">/</span>
-                <span className="text-4xl font-bold text-destructive">
+                <span className="text-5xl text-muted-foreground/30 font-extralight">/</span>
+                <span className="text-5xl font-bold text-destructive drop-shadow-sm">
                   {currentInnings.wickets}
                 </span>
               </div>
             </div>
             
-            {/* Overs and run rate */}
-            <div className="flex items-center justify-center gap-6 text-sm">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/30 border border-border/50">
-                <Radio className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground font-medium">
+            {/* Enhanced overs and run rate pills */}
+            <div className="flex items-center justify-center gap-4 text-sm">
+              <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-muted/40 border border-border/60 backdrop-blur-sm shadow-sm">
+                <Radio className="h-4 w-4 text-muted-foreground" />
+                <span className="text-foreground font-semibold">
                   {formatOvers(currentInnings.ballsBowled)} overs
                 </span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/15 to-primary/10 border border-primary/30 backdrop-blur-sm shadow-sm shadow-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="text-primary font-bold">
                   CRR: {currentRunRate}
                 </span>
