@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, RotateCcw, Zap, Award, Trophy, Crown } from "lucide-react";
+import { Play, RotateCcw, Zap, Award, Trophy, Crown, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
 import { supabase } from "@/lib/supabaseClient";
 import SuperOverDialog from "./SuperOverDialog";
+import { toast } from "@/hooks/use-toast";
 
 interface BallByBallEngineProps {
   match: Match;
@@ -202,6 +203,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
   const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
   const [showSuperOver, setShowSuperOver] = useState(false);
+  const [isSavingStats, setIsSavingStats] = useState(false);
+  const [statsSaveStatus, setStatsSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -943,8 +946,35 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         const { completeMatch } = useCricketStore.getState();
         completeMatch(completedMatch);
 
-        // Save all-time stats to database (await to ensure completion)
-        await saveAllTimeStats(completedMatch);
+        // Save all-time stats to database with visual feedback
+        setIsSavingStats(true);
+        setStatsSaveStatus('saving');
+        
+        toast({
+          title: "Saving Stats",
+          description: "Updating all-time player records...",
+        });
+
+        const saveSuccess = await saveAllTimeStats(completedMatch);
+        
+        setIsSavingStats(false);
+        setStatsSaveStatus(saveSuccess ? 'success' : 'error');
+
+        if (saveSuccess) {
+          toast({
+            title: "Stats Saved Successfully",
+            description: "All player records have been updated.",
+          });
+        } else {
+          toast({
+            title: "Stats Save Failed",
+            description: "Some player stats could not be saved. Please try refreshing.",
+            variant: "destructive",
+          });
+        }
+
+        // Reset status after 3 seconds
+        setTimeout(() => setStatsSaveStatus('idle'), 3000);
 
         setShowMatchResultDialog(true);
         return;
@@ -1419,11 +1449,47 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
               })()}
             </div>
 
+            {/* Stats Save Status Indicator */}
+            <div className="p-3 rounded-lg border flex items-center justify-center gap-2">
+              {statsSaveStatus === 'saving' && (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Saving player stats...</span>
+                </>
+              )}
+              {statsSaveStatus === 'success' && (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-green-600">All-time records updated!</span>
+                </>
+              )}
+              {statsSaveStatus === 'error' && (
+                <>
+                  <XCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm text-destructive">Some stats failed to save</span>
+                </>
+              )}
+              {statsSaveStatus === 'idle' && (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Stats synchronized</span>
+                </>
+              )}
+            </div>
+
             <Button 
               onClick={() => setShowMatchResultDialog(false)}
               className="w-full bg-cricket-green hover:bg-cricket-green/90"
+              disabled={isSavingStats}
             >
-              Close
+              {isSavingStats ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving Stats...
+                </>
+              ) : (
+                'Close'
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -1445,7 +1511,36 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           updateMatch(completedMatch);
           const { completeMatch } = useCricketStore.getState();
           completeMatch(completedMatch);
-          await saveAllTimeStats(completedMatch);
+          
+          // Save all-time stats with visual feedback
+          setIsSavingStats(true);
+          setStatsSaveStatus('saving');
+          
+          toast({
+            title: "Saving Stats",
+            description: "Updating all-time player records...",
+          });
+
+          const saveSuccess = await saveAllTimeStats(completedMatch);
+          
+          setIsSavingStats(false);
+          setStatsSaveStatus(saveSuccess ? 'success' : 'error');
+
+          if (saveSuccess) {
+            toast({
+              title: "Stats Saved Successfully",
+              description: "All player records have been updated.",
+            });
+          } else {
+            toast({
+              title: "Stats Save Failed",
+              description: "Some player stats could not be saved. Please try refreshing.",
+              variant: "destructive",
+            });
+          }
+
+          setTimeout(() => setStatsSaveStatus('idle'), 3000);
+          
           setShowSuperOver(false);
           setShowMatchResultDialog(true);
         }}
