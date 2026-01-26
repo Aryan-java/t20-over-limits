@@ -263,9 +263,12 @@ const LiveMatchControls = ({
         </CardContent>
       </Card>
 
-      {/* Bowler Selection Dialog */}
-      <Dialog open={showBowlerSelection} onOpenChange={setShowBowlerSelection}>
-        <DialogContent>
+      {/* Bowler Selection Dialog - Cannot be dismissed by clicking outside */}
+      <Dialog open={showBowlerSelection} onOpenChange={() => {}}>
+        <DialogContent
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Select Bowler for Next Over</DialogTitle>
           </DialogHeader>
@@ -294,9 +297,12 @@ const LiveMatchControls = ({
         </DialogContent>
       </Dialog>
 
-      {/* Batsman Selection Dialog */}
-      <Dialog open={showBatsmanSelection} onOpenChange={setShowBatsmanSelection}>
-        <DialogContent>
+      {/* Batsman Selection Dialog - Cannot be dismissed by clicking outside */}
+      <Dialog open={showBatsmanSelection} onOpenChange={() => {}}>
+        <DialogContent
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Select Next Batsman</DialogTitle>
           </DialogHeader>
