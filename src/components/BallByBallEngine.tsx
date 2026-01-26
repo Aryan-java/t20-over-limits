@@ -1179,9 +1179,13 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         </CardContent>
       </Card>
 
-      {/* Bowler Selection Dialog */}
-      <Dialog open={showBowlerDialog} onOpenChange={setShowBowlerDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      {/* Bowler Selection Dialog - Cannot be dismissed by clicking outside */}
+      <Dialog open={showBowlerDialog} onOpenChange={() => {}}>
+        <DialogContent 
+          className="max-w-2xl max-h-[80vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>
               Select Bowler for {innings ? `Over ${Math.floor(innings.ballsBowled / 6) + 1}` : 'Next Over'}
@@ -1250,9 +1254,12 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Batsman Selection Dialog */}
-      <Dialog open={showBatsmanDialog} onOpenChange={setShowBatsmanDialog}>
-        <DialogContent>
+      {/* Batsman Selection Dialog - Cannot be dismissed by clicking outside */}
+      <Dialog open={showBatsmanDialog} onOpenChange={() => {}}>
+        <DialogContent
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Select Next Batsman</DialogTitle>
           </DialogHeader>
