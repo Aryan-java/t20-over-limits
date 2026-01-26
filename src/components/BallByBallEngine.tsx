@@ -1350,9 +1350,47 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             <DialogTitle className="text-2xl text-center">Match Complete! 🏆</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Result */}
-            <div className="p-4 bg-cricket-green/10 rounded-lg text-center">
-              <p className="text-xl font-bold text-cricket-green">{match.result}</p>
+            {/* Winner Celebration */}
+            {(() => {
+              const winnerTeam = (() => {
+                if (!match.firstInnings || !match.secondInnings) return null;
+                const team1Score = match.firstInnings.battingTeam === match.team1.name 
+                  ? match.firstInnings.totalRuns 
+                  : match.secondInnings.totalRuns;
+                const team2Score = match.firstInnings.battingTeam === match.team2.name 
+                  ? match.firstInnings.totalRuns 
+                  : match.secondInnings.totalRuns;
+                if (team1Score > team2Score) return match.team1;
+                if (team2Score > team1Score) return match.team2;
+                return null; // Tie
+              })();
+              
+              return winnerTeam ? (
+                <div className="relative overflow-hidden p-6 bg-gradient-to-br from-cricket-gold/20 via-cricket-green/10 to-cricket-gold/20 rounded-xl border-2 border-cricket-gold/30 text-center">
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIgZmlsbD0icmdiYSgyMzMsMjAzLDEwNywwLjEpIi8+PC9zdmc+')] opacity-50" />
+                  <div className="relative">
+                    <Trophy className="h-12 w-12 mx-auto text-cricket-gold mb-3 animate-bounce" />
+                    <p className="text-sm font-semibold text-cricket-gold mb-1">🎉 WINNER 🎉</p>
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cricket-gold/30 to-cricket-green/30 flex items-center justify-center text-2xl font-bold shadow-lg border-2 border-cricket-gold/50">
+                        {winnerTeam.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <h2 className="text-3xl font-bold bg-gradient-to-r from-cricket-gold to-cricket-green bg-clip-text text-transparent">
+                        {winnerTeam.name}
+                      </h2>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 bg-muted/50 rounded-xl text-center">
+                  <p className="text-xl font-bold">Match Tied!</p>
+                </div>
+              );
+            })()}
+            
+            {/* Result Summary */}
+            <div className="p-3 bg-cricket-green/10 rounded-lg text-center">
+              <p className="text-lg font-semibold text-cricket-green">{match.result}</p>
             </div>
             
             {/* Innings Summary */}
@@ -1377,20 +1415,35 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             {(() => {
               const motm = calculateManOfTheMatch();
               return motm ? (
-                <div className="p-4 bg-yellow-500/10 border-2 border-yellow-500/20 rounded-lg">
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">Man of the Match</p>
-                  <p className="text-xl font-bold">{motm.name}</p>
-                  <div className="flex gap-4 mt-2 text-sm">
-                    {motm.runs > 0 && (
-                      <span className="text-muted-foreground">
-                        {motm.runs} runs ({motm.balls} balls)
-                      </span>
-                    )}
-                    {motm.wickets > 0 && (
-                      <span className="text-muted-foreground">
-                        {motm.wickets}-{motm.runsConceded} ({motm.oversBowled} ov)
-                      </span>
-                    )}
+                <div className="relative overflow-hidden p-4 bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-yellow-500/10 border-2 border-yellow-500/30 rounded-xl">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-500/10 rounded-full blur-xl" />
+                  <div className="relative flex items-center gap-4">
+                    <div className="relative">
+                      <Avatar className="h-16 w-16 border-2 border-yellow-500/50">
+                        <AvatarImage src={motm.imageUrl} alt={motm.name} />
+                        <AvatarFallback className="text-lg font-bold bg-yellow-500/20">{motm.name.substring(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-500" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Award className="h-4 w-4 text-yellow-600" />
+                        <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide">Man of the Match</p>
+                      </div>
+                      <p className="text-xl font-bold">{motm.name}</p>
+                      <div className="flex gap-4 mt-1 text-sm">
+                        {motm.runs > 0 && (
+                          <span className="text-muted-foreground">
+                            🏏 {motm.runs} ({motm.balls}b)
+                          </span>
+                        )}
+                        {motm.wickets > 0 && (
+                          <span className="text-muted-foreground">
+                            🎯 {motm.wickets}/{motm.runsConceded}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null;
