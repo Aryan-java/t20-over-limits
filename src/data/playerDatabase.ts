@@ -235,6 +235,15 @@ const players: Omit<PlayerData, 'imageUrl'>[] = [
   { name: "Varun Aaron", price: 1, isOverseas: false, batSkill: 25, bowlSkill: 75, role: "Bowler" },
   { name: "Venugopal Rao", price: 1, isOverseas: false, batSkill: 68, bowlSkill: 30, role: "Batsman" },
   { name: "Washington Sundar", price: 1, isOverseas: false, batSkill: 60, bowlSkill: 72, role: "All-rounder" },
+  { name: "Josh Hazlewood", price: 1.5, isOverseas: true, batSkill: 25, bowlSkill: 88, role: "Bowler" },
+  { name: "Harshit Rana", price: 1, isOverseas: false, batSkill: 30, bowlSkill: 75, role: "Bowler" },
+  { name: "Yash Dayal", price: 1, isOverseas: false, batSkill: 25, bowlSkill: 75, role: "Bowler" },
+  { name: "Noor Ahmad", price: 1, isOverseas: true, batSkill: 20, bowlSkill: 78, role: "Bowler" },
+  { name: "Heinrich Klaasen", price: 2, isOverseas: true, batSkill: 88, bowlSkill: 20, role: "Wicket-keeper" },
+  { name: "Rajat Patidar", price: 1, isOverseas: false, batSkill: 78, bowlSkill: 25, role: "Batsman" },
+  { name: "Prabhsimran Singh", price: 1, isOverseas: false, batSkill: 75, bowlSkill: 20, role: "Wicket-keeper" },
+  { name: "Travis Head", price: 1.5, isOverseas: true, batSkill: 85, bowlSkill: 40, role: "Batsman" },
+  { name: "Devon Conway", price: 1.5, isOverseas: true, batSkill: 82, bowlSkill: 20, role: "Batsman" },
 ];
 
 export const PLAYER_DATABASE: PlayerData[] = players.map(player => ({
