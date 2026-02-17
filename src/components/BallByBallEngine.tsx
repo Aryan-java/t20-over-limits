@@ -205,6 +205,21 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [showSuperOver, setShowSuperOver] = useState(false);
   const [isSavingStats, setIsSavingStats] = useState(false);
   const [statsSaveStatus, setStatsSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [lastCompletedMatch, setLastCompletedMatch] = useState<Match | null>(null);
+
+  const handleRetryStatsSave = async () => {
+    if (!lastCompletedMatch) return;
+    setIsSavingStats(true);
+    setStatsSaveStatus('saving');
+    const saveSuccess = await saveAllTimeStats(lastCompletedMatch);
+    setIsSavingStats(false);
+    setStatsSaveStatus(saveSuccess ? 'success' : 'error');
+    if (saveSuccess) {
+      toast({ title: "Stats Saved Successfully", description: "All player records have been updated." });
+    } else {
+      toast({ title: "Stats Save Failed", description: "Some records failed. You can retry.", variant: "destructive" });
+    }
+  };
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -955,6 +970,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           description: "Updating all-time player records...",
         });
 
+        setLastCompletedMatch(completedMatch);
         const saveSuccess = await saveAllTimeStats(completedMatch);
         
         setIsSavingStats(false);
@@ -1524,10 +1540,20 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                 </>
               )}
               {statsSaveStatus === 'error' && (
-                <>
-                  <XCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm text-destructive">Some stats failed to save</span>
-                </>
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-sm text-destructive">Some stats failed to save</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRetryStatsSave}
+                    disabled={isSavingStats}
+                  >
+                    Retry
+                  </Button>
+                </div>
               )}
               {statsSaveStatus === 'idle' && (
                 <>
@@ -1581,6 +1607,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             description: "Updating all-time player records...",
           });
 
+          setLastCompletedMatch(completedMatch);
           const saveSuccess = await saveAllTimeStats(completedMatch);
           
           setIsSavingStats(false);
