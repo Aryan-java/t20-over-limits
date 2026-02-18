@@ -16,7 +16,7 @@ import MatchSetupDialog from "./MatchSetupDialog";
 import { useToast } from "@/hooks/use-toast";
 import PointsTable from "./PointsTable";
 import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
-import { toPng } from "html-to-image";
+
 
 export default function TournamentTab() {
   const navigate = useNavigate();
@@ -42,23 +42,31 @@ export default function TournamentTab() {
     });
   };
 
-  const handleDownloadScorecard = async () => {
+  const handleDownloadScorecard = () => {
     if (!scorecardRef.current || !selectedMatch) return;
-    try {
-      const dataUrl = await toPng(scorecardRef.current, { 
-        backgroundColor: '#1a1a2e',
-        quality: 1,
-        pixelRatio: 2 
-      });
-      const link = document.createElement('a');
-      link.download = `${selectedMatch.team1.name}_vs_${selectedMatch.team2.name}_scorecard.png`;
-      link.href = dataUrl;
-      link.click();
-      toast({ title: "Scorecard Downloaded", description: "Image saved successfully." });
-    } catch (err) {
-      console.error('Download failed:', err);
-      toast({ title: "Download Failed", description: "Could not generate image.", variant: "destructive" });
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({ title: "Download Failed", description: "Please allow popups to download the scorecard.", variant: "destructive" });
+      return;
     }
+    const content = scorecardRef.current.innerHTML;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${selectedMatch.team1.name} vs ${selectedMatch.team2.name} - Scorecard</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 20px; background: #0f172a; color: #e2e8f0; }
+            table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #334155; }
+            th { font-weight: 600; }
+            @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>${content}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const handleStartMatch = (fixture: Fixture) => {
