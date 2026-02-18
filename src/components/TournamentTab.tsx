@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User, MapPin } from "lucide-react";
+import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User, MapPin, RefreshCw, Download, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCricketStore } from "@/hooks/useCricketStore";
@@ -15,6 +15,8 @@ import DetailedScorecard from "./DetailedScorecard";
 import MatchSetupDialog from "./MatchSetupDialog";
 import { useToast } from "@/hooks/use-toast";
 import PointsTable from "./PointsTable";
+import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
+import { toPng } from "html-to-image";
 
 export default function TournamentTab() {
   const navigate = useNavigate();
@@ -24,7 +26,40 @@ export default function TournamentTab() {
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
   const [showFormatDialog, setShowFormatDialog] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<TournamentFormat>('single');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const scorecardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const handleResaveStats = async () => {
+    if (!selectedMatch) return;
+    setSaveStatus('saving');
+    const success = await saveAllTimeStats(selectedMatch);
+    setSaveStatus(success ? 'success' : 'error');
+    toast({
+      title: success ? "Stats Saved Successfully" : "Stats Save Failed",
+      description: success ? "All player records have been updated." : "Some records failed. You can retry.",
+      variant: success ? undefined : "destructive",
+    });
+  };
+
+  const handleDownloadScorecard = async () => {
+    if (!scorecardRef.current || !selectedMatch) return;
+    try {
+      const dataUrl = await toPng(scorecardRef.current, { 
+        backgroundColor: '#1a1a2e',
+        quality: 1,
+        pixelRatio: 2 
+      });
+      const link = document.createElement('a');
+      link.download = `${selectedMatch.team1.name}_vs_${selectedMatch.team2.name}_scorecard.png`;
+      link.href = dataUrl;
+      link.click();
+      toast({ title: "Scorecard Downloaded", description: "Image saved successfully." });
+    } catch (err) {
+      console.error('Download failed:', err);
+      toast({ title: "Download Failed", description: "Could not generate image.", variant: "destructive" });
+    }
+  };
 
   const handleStartMatch = (fixture: Fixture) => {
     setSelectedFixture(fixture);
@@ -465,16 +500,47 @@ export default function TournamentTab() {
       )}
 
 
-      <Dialog open={!!selectedMatch} onOpenChange={() => setSelectedMatch(null)}>
+      <Dialog open={!!selectedMatch} onOpenChange={(open) => { if (!open) { setSelectedMatch(null); setSaveStatus('idle'); } }}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              Match Scorecard - {selectedMatch?.team1.name} vs {selectedMatch?.team2.name}
-            </DialogTitle>
+            <div className="flex items-center justify-between w-full pr-8">
+              <DialogTitle>
+                Match Scorecard - {selectedMatch?.team1.name} vs {selectedMatch?.team2.name}
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResaveStats}
+                  disabled={saveStatus === 'saving'}
+                  className="gap-1"
+                >
+                  {saveStatus === 'saving' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : saveStatus === 'success' ? (
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                  ) : saveStatus === 'error' ? (
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? 'Retry' : saveStatus === 'success' ? 'Saved!' : 'Re-save Stats'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadScorecard}
+                  className="gap-1"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedMatch && (
-            <div className="space-y-6">
+            <div ref={scorecardRef} className="space-y-6">
               {selectedMatch.firstInnings && (
                 <DetailedScorecard
                   innings={selectedMatch.firstInnings}
