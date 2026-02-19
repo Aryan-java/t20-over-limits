@@ -20,7 +20,7 @@ import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
 
 export default function TournamentTab() {
   const navigate = useNavigate();
-  const { matchHistory, teams, fixtures, tournament, generateFixtures, resetTournament, startPlayoffs, createMatch, setCurrentMatch } = useCricketStore();
+  const { matchHistory, teams, fixtures, tournament, generateFixtures, resetTournament, startPlayoffs, regeneratePlayoffs, createMatch, setCurrentMatch } = useCricketStore();
   const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
   const [matchSetupDialogOpen, setMatchSetupDialogOpen] = useState(false);
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
@@ -157,7 +157,15 @@ export default function TournamentTab() {
     startPlayoffs();
     toast({
       title: "Playoffs Started!",
-      description: "Qualifier 1 and Eliminator fixtures have been generated.",
+      description: "Qualifier 1 (1st vs 2nd) and Eliminator (3rd vs 4th) fixtures generated.",
+    });
+  };
+
+  const handleRegeneratePlayoffs = () => {
+    regeneratePlayoffs();
+    toast({
+      title: "Playoffs Regenerated!",
+      description: "Playoff bracket has been reset and regenerated from the points table.",
     });
   };
 
@@ -424,82 +432,100 @@ export default function TournamentTab() {
           {playoffStarted && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-6 w-6 text-yellow-500" />
-                  Playoffs
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="h-6 w-6 text-yellow-500" />
+                    Playoffs
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRegeneratePlayoffs}
+                    className="gap-2"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Regenerate Playoffs
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {playoffMatches.map((fixture) => (
-                    <Card
-                      key={fixture.id}
-                      className={`hover:shadow-md transition-all border-yellow-500/30 ${fixture.played ? 'opacity-75' : ''}`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <Badge className="mb-2" variant="secondary">
-                              {fixture.stage === 'qualifier1' && 'Qualifier 1'}
-                              {fixture.stage === 'eliminator' && 'Eliminator'}
-                              {fixture.stage === 'qualifier2' && 'Qualifier 2'}
-                              {fixture.stage === 'final' && 'Final'}
-                            </Badge>
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold">{fixture.team1.name}</span>
-                              <span className="text-sm text-muted-foreground px-4">vs</span>
-                              <span className="font-semibold">{fixture.team2.name}</span>
-                            </div>
-                            {fixture.venue && (
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                  {playoffMatches.map((fixture) => {
+                    const stageLabel = fixture.stage === 'qualifier1'
+                      ? 'Qualifier 1 · 1st vs 2nd'
+                      : fixture.stage === 'eliminator'
+                      ? 'Eliminator · 3rd vs 4th'
+                      : fixture.stage === 'qualifier2'
+                      ? 'Qualifier 2 · Loser Q1 vs Winner Elim'
+                      : 'Final · Winner Q1 vs Winner Q2';
+
+                    return (
+                      <Card
+                        key={fixture.id}
+                        className={`hover:shadow-md transition-all border-yellow-500/30 ${fixture.played ? 'opacity-75' : ''}`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <Badge className="mb-2" variant="secondary">
+                                {stageLabel}
+                              </Badge>
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold">{fixture.team1.name}</span>
+                                <span className="text-sm text-muted-foreground px-4">vs</span>
+                                <span className="font-semibold">{fixture.team2.name}</span>
+                              </div>
+                              {fixture.venue && (
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{fixture.venue.name}, {fixture.venue.city}</span>
+                                  </div>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span className="capitalize">{fixture.venue.pitchType} pitch</span>
+                                  {fixture.venue.weather && (
+                                    <>
+                                      <span className="text-muted-foreground/50">•</span>
+                                      <span>{fixture.venue.weather.matchTime === 'day' ? '☀️' : '🌙'} {fixture.venue.weather.avgTemperature}°C</span>
+                                      {fixture.venue.weather.humidity > 60 && (
+                                        <span className="text-blue-500">💧 {fixture.venue.weather.humidity}%</span>
+                                      )}
+                                    </>
+                                  )}
                                 </div>
-                                <span className="text-muted-foreground/50">•</span>
-                                <span className="capitalize">{fixture.venue.pitchType} pitch</span>
-                                {fixture.venue.weather && (
-                                  <>
-                                    <span className="text-muted-foreground/50">•</span>
-                                    <span>{fixture.venue.weather.matchTime === 'day' ? '☀️' : '🌙'} {fixture.venue.weather.avgTemperature}°C</span>
-                                    {fixture.venue.weather.humidity > 60 && (
-                                      <span className="text-blue-500">💧 {fixture.venue.weather.humidity}%</span>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            )}
-                            {fixture.played && fixture.match && (
-                              <div className="mt-2 pt-2 border-t">
-                                <p className="text-sm font-medium text-cricket-green">
-                                  {fixture.match.result}
-                                </p>
-                              </div>
+                              )}
+                              {fixture.played && fixture.match && (
+                                <div className="mt-2 pt-2 border-t">
+                                  <p className="text-sm font-medium text-cricket-green">
+                                    {fixture.match.result}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            {!fixture.played ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleStartMatch(fixture)}
+                                className="ml-4 gap-2"
+                              >
+                                <Play className="h-4 w-4" />
+                                Start Match
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fixture.match && setSelectedMatch(fixture.match as MatchHistory)}
+                                className="ml-4 gap-2"
+                              >
+                                View Scorecard
+                              </Button>
                             )}
                           </div>
-                          {!fixture.played ? (
-                            <Button
-                              size="sm"
-                              onClick={() => handleStartMatch(fixture)}
-                              className="ml-4 gap-2"
-                            >
-                              <Play className="h-4 w-4" />
-                              Start Match
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => fixture.match && setSelectedMatch(fixture.match as MatchHistory)}
-                              className="ml-4 gap-2"
-                            >
-                              View Scorecard
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
