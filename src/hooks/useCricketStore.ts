@@ -38,6 +38,7 @@ interface CricketStore {
   // Tournament actions
   initializeTournament: (format: 'single' | 'double') => void;
   startPlayoffs: () => void;
+  regeneratePlayoffs: () => void;
   updateTournamentStats: () => void;
   resetTournament: () => void;
 
@@ -438,6 +439,25 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       } : null,
       fixtures: [...state.fixtures, qualifier1, eliminator],
     }));
+  },
+
+  regeneratePlayoffs: () => {
+    // Remove all playoff fixtures from the fixtures array and reset tournament playoff state
+    set(state => ({
+      fixtures: state.fixtures.filter(f => f.stage === 'league'),
+      tournament: state.tournament ? {
+        ...state.tournament,
+        playoffMatches: {
+          qualifier1: null,
+          eliminator: null,
+          qualifier2: null,
+          final: null,
+        },
+        isPlayoffStarted: false,
+      } : null,
+    }));
+    // Re-run startPlayoffs to regenerate from current points table
+    get().startPlayoffs();
   },
 
   updateTournamentStats: () => {
