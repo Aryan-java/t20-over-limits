@@ -36,11 +36,24 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
       });
     });
     
-    const completedMatches = matches.filter(m => m.result && m.secondInnings?.isCompleted);
+    const completedMatches = matches.filter(m => m.isCompleted && m.result);
     
     completedMatches.forEach(match => {
-      const team1Stats = stats.get(match.team1.id);
-      const team2Stats = stats.get(match.team2.id);
+      // Try to find team stats by ID first, then by name as fallback
+      let team1Stats = stats.get(match.team1.id);
+      let team2Stats = stats.get(match.team2.id);
+
+      // Fallback: match by team name if ID lookup fails
+      if (!team1Stats) {
+        for (const [, s] of stats) {
+          if (s.team.name === match.team1.name) { team1Stats = s; break; }
+        }
+      }
+      if (!team2Stats) {
+        for (const [, s] of stats) {
+          if (s.team.name === match.team2.name) { team2Stats = s; break; }
+        }
+      }
       
       if (!team1Stats || !team2Stats || !match.result) return;
       
@@ -65,24 +78,17 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
       if (match.firstInnings && match.secondInnings) {
         const team1BattedFirst = match.firstInnings.battingTeam === match.team1.name;
         
+        const fi = match.firstInnings;
+        const si = match.secondInnings;
+        const fiOvers = fi.ballsBowled > 0 ? fi.ballsBowled / 6 : 1;
+        const siOvers = si.ballsBowled > 0 ? si.ballsBowled / 6 : 1;
+
         if (team1BattedFirst) {
-          const team1Overs = match.firstInnings.ballsBowled / 6;
-          const team2Overs = match.secondInnings.ballsBowled / 6;
-          const team1RunsFor = match.firstInnings.totalRuns / team1Overs;
-          const team1RunsAgainst = match.secondInnings.totalRuns / team2Overs;
-          const team2RunsFor = match.secondInnings.totalRuns / team2Overs;
-          const team2RunsAgainst = match.firstInnings.totalRuns / team1Overs;
-          team1Stats.nrr += (team1RunsFor - team1RunsAgainst);
-          team2Stats.nrr += (team2RunsFor - team2RunsAgainst);
+          team1Stats.nrr += (fi.totalRuns / fiOvers) - (si.totalRuns / siOvers);
+          team2Stats.nrr += (si.totalRuns / siOvers) - (fi.totalRuns / fiOvers);
         } else {
-          const team2Overs = match.firstInnings.ballsBowled / 6;
-          const team1Overs = match.secondInnings.ballsBowled / 6;
-          const team2RunsFor = match.firstInnings.totalRuns / team2Overs;
-          const team2RunsAgainst = match.secondInnings.totalRuns / team1Overs;
-          const team1RunsFor = match.secondInnings.totalRuns / team1Overs;
-          const team1RunsAgainst = match.firstInnings.totalRuns / team2Overs;
-          team1Stats.nrr += (team1RunsFor - team1RunsAgainst);
-          team2Stats.nrr += (team2RunsFor - team2RunsAgainst);
+          team2Stats.nrr += (fi.totalRuns / fiOvers) - (si.totalRuns / siOvers);
+          team1Stats.nrr += (si.totalRuns / siOvers) - (fi.totalRuns / fiOvers);
         }
       }
     });
@@ -215,24 +221,19 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
         </Table>
         
         {teamStats.every(s => s.played === 0) && (
-          <div className="text-center py-16 text-muted-foreground">
-            <div className="relative inline-block">
-              <Trophy className="h-16 w-16 mx-auto mb-4 opacity-20" />
-              <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl" />
-            </div>
-            <p className="font-bold text-lg">No matches completed yet</p>
-            <p className="text-sm mt-1">Play matches to populate the table</p>
+          <div className="text-center py-8 text-muted-foreground border-t">
+            <Trophy className="h-10 w-10 mx-auto mb-2 opacity-20" />
+            <p className="font-semibold">No matches completed yet</p>
+            <p className="text-sm mt-1">Play matches to see standings update</p>
           </div>
         )}
         
-        {teamStats.some(s => s.played > 0) && (
-          <div className="px-4 py-4 bg-gradient-to-r from-cricket-green/10 via-transparent to-transparent border-t flex items-center gap-3">
-            <div className="w-4 h-4 bg-gradient-to-br from-cricket-green to-cricket-green/70 rounded shadow-sm" />
-            <span className="text-sm font-semibold text-muted-foreground">
-              Playoff Qualification Zone (Top {qualifyingTeams})
-            </span>
-          </div>
-        )}
+        <div className="px-4 py-3 bg-gradient-to-r from-cricket-green/10 via-transparent to-transparent border-t flex items-center gap-3">
+          <div className="w-4 h-4 bg-gradient-to-br from-cricket-green to-cricket-green/70 rounded shadow-sm flex-shrink-0" />
+          <span className="text-sm font-semibold text-muted-foreground">
+            Top {qualifyingTeams} qualify for playoffs
+          </span>
+        </div>
       </CardContent>
     </Card>
   );
