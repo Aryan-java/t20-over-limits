@@ -1,13 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Match, Team } from "@/types/cricket";
+import { Fixture, Match, Team } from "@/types/cricket";
 import { Trophy, TrendingUp, TrendingDown, Medal, Crown, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PointsTableProps {
   teams: Team[];
   matches: Match[];
+  fixtures?: Fixture[];
 }
 
 interface TeamStats {
@@ -20,7 +21,7 @@ interface TeamStats {
   nrr: number;
 }
 
-const PointsTable = ({ teams, matches }: PointsTableProps) => {
+const PointsTable = ({ teams, matches, fixtures }: PointsTableProps) => {
   const calculateTeamStats = (): TeamStats[] => {
     const stats: Map<string, TeamStats> = new Map();
     
@@ -35,8 +36,22 @@ const PointsTable = ({ teams, matches }: PointsTableProps) => {
         nrr: 0
       });
     });
+
+    // Get IDs of league fixtures that have been played, so we only count league matches
+    const leagueMatchIds = fixtures
+      ? new Set(
+          fixtures
+            .filter(f => f.stage === 'league' && f.played && f.match)
+            .map(f => f.match!.id)
+        )
+      : null;
     
-    const completedMatches = matches.filter(m => m.isCompleted && m.result);
+    const completedMatches = matches.filter(m => {
+      if (!m.isCompleted || !m.result) return false;
+      // If fixtures provided, only count league matches
+      if (leagueMatchIds) return leagueMatchIds.has(m.id);
+      return true;
+    });
     
     completedMatches.forEach(match => {
       // Try to find team stats by ID first, then by name as fallback
