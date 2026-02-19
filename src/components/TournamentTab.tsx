@@ -330,7 +330,7 @@ export default function TournamentTab() {
 
       {fixtures.length > 0 && (
         <>
-          <PointsTable teams={teams} matches={matchHistory} />
+          <PointsTable teams={teams} matches={matchHistory} fixtures={fixtures} />
 
           <Card>
             <CardHeader>
