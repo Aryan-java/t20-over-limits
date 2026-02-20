@@ -365,44 +365,62 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
 
   startPlayoffs: () => {
-    const { teams, matchHistory } = get();
+    const { teams, matchHistory, fixtures } = get();
     
-    // Calculate points table to get top 4 teams
-    const teamStats = teams.map(team => {
-      const matches = matchHistory.filter(
-        m => m.team1.id === team.id || m.team2.id === team.id
-      );
-      
-      let wins = 0, points = 0, totalRunsScored = 0, totalRunsConceded = 0, totalBallsFaced = 0, totalBallsBowled = 0;
-      
-      matches.forEach(match => {
-        const isTeam1 = match.team1.id === team.id;
-        const teamInnings = isTeam1 ? match.firstInnings : match.secondInnings;
-        const opposingInnings = isTeam1 ? match.secondInnings : match.firstInnings;
-        
-        if (teamInnings) {
-          totalRunsScored += teamInnings.totalRuns;
-          totalBallsFaced += teamInnings.ballsBowled;
-        }
-        if (opposingInnings) {
-          totalRunsConceded += opposingInnings.totalRuns;
-          totalBallsBowled += opposingInnings.ballsBowled;
-        }
-        
-        if (match.result?.includes(team.name)) {
-          wins++;
-          points += 2;
-        }
-      });
-      
-      const nrr = totalBallsFaced > 0 && totalBallsBowled > 0
-        ? (totalRunsScored / (totalBallsFaced / 6)) - (totalRunsConceded / (totalBallsBowled / 6))
-        : 0;
-      
-      return { team, points, nrr, wins };
+    // Only count league-stage matches for standings (same logic as PointsTable)
+    const leagueMatchIds = new Set(
+      fixtures
+        .filter(f => f.stage === 'league' && f.played && f.match)
+        .map(f => f.match!.id)
+    );
+
+    const leagueMatches = matchHistory.filter(m => leagueMatchIds.has(m.id));
+
+    // Calculate points table to get top 4 teams — mirrors PointsTable logic exactly
+    const statsMap = new Map<string, { team: typeof teams[0]; points: number; nrr: number; wins: number; tied: number }>();
+    teams.forEach(team => {
+      statsMap.set(team.id, { team, points: 0, nrr: 0, wins: 0, tied: 0 });
     });
+
+    leagueMatches.forEach(match => {
+      if (!match.isCompleted || !match.result) return;
+
+      // Find stats entries (ID-first, name fallback)
+      let s1 = statsMap.get(match.team1.id);
+      let s2 = statsMap.get(match.team2.id);
+      if (!s1) { for (const [, s] of statsMap) { if (s.team.name === match.team1.name) { s1 = s; break; } } }
+      if (!s2) { for (const [, s] of statsMap) { if (s.team.name === match.team2.name) { s2 = s; break; } } }
+      if (!s1 || !s2) return;
+
+      if (match.result.includes('Tied')) {
+        s1.tied++; s2.tied++;
+        s1.points += 1; s2.points += 1;
+      } else if (match.result.includes(match.team1.name)) {
+        s1.wins++; s1.points += 2;
+      } else {
+        s2.wins++; s2.points += 2;
+      }
+
+      // NRR: use battingTeam field to correctly assign innings, not team1/team2 position
+      if (match.firstInnings && match.secondInnings) {
+        const fi = match.firstInnings;
+        const si = match.secondInnings;
+        const fiOvers = fi.ballsBowled > 0 ? fi.ballsBowled / 6 : 1;
+        const siOvers = si.ballsBowled > 0 ? si.ballsBowled / 6 : 1;
+        const team1BattedFirst = fi.battingTeam === match.team1.name;
+        if (team1BattedFirst) {
+          s1.nrr += (fi.totalRuns / fiOvers) - (si.totalRuns / siOvers);
+          s2.nrr += (si.totalRuns / siOvers) - (fi.totalRuns / fiOvers);
+        } else {
+          s2.nrr += (fi.totalRuns / fiOvers) - (si.totalRuns / siOvers);
+          s1.nrr += (si.totalRuns / siOvers) - (fi.totalRuns / fiOvers);
+        }
+      }
+    });
+
+    const teamStats = Array.from(statsMap.values());
     
-    // Sort by points, then NRR
+    // Sort by points desc, then NRR desc
     teamStats.sort((a, b) => b.points - a.points || b.nrr - a.nrr);
     
     const top4 = teamStats.slice(0, 4);
@@ -631,12 +649,22 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         };
       }),
       matchHistory: [...state.matchHistory, completedMatch],
-      fixtures: state.fixtures.map(fixture =>
-        (fixture.team1.id === match.team1.id && fixture.team2.id === match.team2.id) ||
-        (fixture.team1.id === match.team2.id && fixture.team2.id === match.team1.id)
-          ? { ...fixture, played: true, match: completedMatch }
-          : fixture
-      ),
+      fixtures: (() => {
+        // Find the first UNPLAYED fixture between these two teams to mark as played
+        // (handles double round-robin where teams meet twice)
+        let marked = false;
+        return state.fixtures.map(fixture => {
+          if (marked) return fixture;
+          const teamsMatch =
+            (fixture.team1.id === match.team1.id && fixture.team2.id === match.team2.id) ||
+            (fixture.team1.id === match.team2.id && fixture.team2.id === match.team1.id);
+          if (teamsMatch && !fixture.played) {
+            marked = true;
+            return { ...fixture, played: true, match: completedMatch };
+          }
+          return fixture;
+        });
+      })(),
       currentMatch: null,
     }));
     
