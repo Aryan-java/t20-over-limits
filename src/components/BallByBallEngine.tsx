@@ -700,7 +700,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         isWicket ? striker.dismissalInfo : undefined,
         match.currentInnings === 2 && match.firstInnings ? match.firstInnings.totalRuns + 1 : undefined,
         match.currentInnings === 2 && match.firstInnings ? (match.firstInnings.totalRuns + 1 - newTotalRuns) : undefined,
-        match.currentInnings === 2 ? (match.overs * 6 - newBallsBowled) : undefined
+        match.currentInnings === 2 ? (match.overs * 6 - newBallsBowled) : undefined,
+        match.overs
       );
     };
     
