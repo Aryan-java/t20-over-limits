@@ -405,8 +405,9 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       if (match.firstInnings && match.secondInnings) {
         const fi = match.firstInnings;
         const si = match.secondInnings;
-        const fiOvers = fi.ballsBowled > 0 ? fi.ballsBowled / 6 : 1;
-        const siOvers = si.ballsBowled > 0 ? si.ballsBowled / 6 : 1;
+        const maxOvers = 20;
+        const fiOvers = fi.ballsBowled > 0 ? Math.min(fi.ballsBowled / 6, maxOvers) : maxOvers;
+        const siOvers = si.ballsBowled > 0 ? Math.min(si.ballsBowled / 6, maxOvers) : maxOvers;
         const team1BattedFirst = fi.battingTeam === match.team1.name;
         if (team1BattedFirst) {
           s1.nrr += (fi.totalRuns / fiOvers) - (si.totalRuns / siOvers);

@@ -95,8 +95,9 @@ const PointsTable = ({ teams, matches, fixtures }: PointsTableProps) => {
         
         const fi = match.firstInnings;
         const si = match.secondInnings;
-        const fiOvers = fi.ballsBowled > 0 ? fi.ballsBowled / 6 : 1;
-        const siOvers = si.ballsBowled > 0 ? si.ballsBowled / 6 : 1;
+        const maxOvers = 20;
+        const fiOvers = fi.ballsBowled > 0 ? Math.min(fi.ballsBowled / 6, maxOvers) : maxOvers;
+        const siOvers = si.ballsBowled > 0 ? Math.min(si.ballsBowled / 6, maxOvers) : maxOvers;
 
         if (team1BattedFirst) {
           team1Stats.nrr += (fi.totalRuns / fiOvers) - (si.totalRuns / siOvers);
