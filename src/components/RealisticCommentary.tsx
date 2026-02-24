@@ -29,8 +29,9 @@ const getMilestoneComment = (batsman: Player, runs: number): string => {
   return "";
 };
 
-// Phase-aware flavor text
+// Phase-aware flavor text — only ~25% of the time
 const getPhasePrefix = (over: number, matchOvers: number): string => {
+  if (Math.random() > 0.25) return ""; // skip most of the time
   if (over < 6) {
     return pick([
       "Powerplay mein",
@@ -51,7 +52,7 @@ const getPhasePrefix = (over: number, matchOvers: number): string => {
   return "";
 };
 
-// Pressure commentary for chases
+// Pressure commentary for chases — only on critical moments or ~20% random
 const getChasePressure = (
   requiredRuns?: number,
   ballsRemaining?: number
@@ -59,6 +60,10 @@ const getChasePressure = (
   if (!requiredRuns || !ballsRemaining) return "";
 
   const rrr = (requiredRuns / ballsRemaining) * 6;
+  const isCritical = ballsRemaining <= 12 || rrr > 12 || requiredRuns <= 15;
+
+  // Only show on critical moments or 20% of the time
+  if (!isCritical && Math.random() > 0.2) return "";
 
   if (ballsRemaining <= 6) {
     if (requiredRuns <= 1) return ` | Ek run chahiye! Heart in the mouth!`;
@@ -94,6 +99,31 @@ const getBowlerSpellNote = (bowler: Player): string => {
     }
   }
   return "";
+};
+
+// Random all-time / current spell stats flavor (~20% chance per ball)
+const getBatsmanStatsFlavor = (batsman: Player): string => {
+  if (Math.random() > 0.2) return "";
+  const sr = batsman.balls > 0 ? ((batsman.runs / batsman.balls) * 100).toFixed(0) : "0";
+  const options = [
+    ` 📊 ${batsman.name}: ${batsman.runs}(${batsman.balls}), SR ${sr} — ${batsman.fours} fours, ${batsman.sixes} sixes so far.`,
+    ` 🏏 ${batsman.name} batting at ${sr} strike rate this innings!`,
+    ` Stats check — ${batsman.name}: ${batsman.runs} off ${batsman.balls}, ${batsman.fours}x4, ${batsman.sixes}x6.`,
+    ` ${batsman.name} has faced ${batsman.balls} balls for ${batsman.runs} — looking ${Number(sr) > 140 ? "dangerous" : Number(sr) > 100 ? "steady" : "cautious"}!`,
+  ];
+  return pick(options);
+};
+
+const getBowlerStatsFlavor = (bowler: Player): string => {
+  if (Math.random() > 0.2) return "";
+  const econ = bowler.oversBowled > 0 ? (bowler.runsConceded / (Math.floor(bowler.oversBowled) + (bowler.oversBowled % 1) * 10 / 6)).toFixed(1) : "0.0";
+  const options = [
+    ` 📊 ${bowler.name}: ${bowler.wickets}-${bowler.runsConceded} in ${bowler.oversBowled} overs, Econ ${econ}.`,
+    ` 🎯 Spell check — ${bowler.name}: ${bowler.wickets}/${bowler.runsConceded}, ${bowler.dotBalls} dots!`,
+    ` ${bowler.name} has conceded ${bowler.runsConceded} runs in ${bowler.oversBowled} overs — economy ${econ}.`,
+    ` Bowling figures: ${bowler.name} ${bowler.wickets}-${bowler.maidens}-${bowler.runsConceded}-${bowler.oversBowled}. ${Number(econ) < 7 ? "Tight spell!" : Number(econ) > 10 ? "Under pressure!" : "Decent outing."}`,
+  ];
+  return pick(options);
 };
 
 export const generateRealisticCommentary = (
@@ -361,10 +391,10 @@ export const generateRealisticCommentary = (
   // Chase pressure
   const chaseNote = getChasePressure(requiredRuns, ballsRemaining);
 
-  // Free hit reminder
-  const freeHitNote = event.extras?.type === "no-ball" ? "" : ""; // handled in extras
+  // Random stats flavor (only one at a time, not both)
+  const statsFlavor = Math.random() > 0.5 ? getBatsmanStatsFlavor(batsman) : getBowlerStatsFlavor(bowler);
 
-  return `${overBall} - ${phaseTag}${commentary}${milestone}${chaseNote}`;
+  return `${overBall} - ${phaseTag}${commentary}${milestone}${chaseNote}${statsFlavor}`;
 };
 
 export const getMatchSituationCommentary = (
