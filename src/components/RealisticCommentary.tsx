@@ -1,5 +1,25 @@
 import { Player, BallEvent } from "@/types/cricket";
 
+export interface AllTimePlayerStats {
+  player_name: string;
+  total_runs: number;
+  balls_faced: number;
+  highest_score: number;
+  fifties: number;
+  hundreds: number;
+  fours: number;
+  sixes: number;
+  matches_batted: number;
+  not_outs: number;
+  total_wickets: number;
+  balls_bowled: number;
+  runs_conceded: number;
+  best_bowling_wickets: number;
+  best_bowling_runs: number;
+  maidens: number;
+  matches_bowled: number;
+}
+
 // Helper to pick random from array
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
@@ -101,7 +121,7 @@ const getBowlerSpellNote = (bowler: Player): string => {
   return "";
 };
 
-// Random all-time / current spell stats flavor (~20% chance per ball)
+// Random current spell stats flavor (~20% chance per ball)
 const getBatsmanStatsFlavor = (batsman: Player): string => {
   if (Math.random() > 0.2) return "";
   const sr = batsman.balls > 0 ? ((batsman.runs / batsman.balls) * 100).toFixed(0) : "0";
@@ -126,6 +146,46 @@ const getBowlerStatsFlavor = (bowler: Player): string => {
   return pick(options);
 };
 
+// All-time career stats flavor (~5% chance per ball)
+const getCareerBatsmanFlavor = (batsman: Player, allTimeStats?: Map<string, AllTimePlayerStats>): string => {
+  if (!allTimeStats || Math.random() > 0.05) return "";
+  const stats = allTimeStats.get(batsman.name);
+  if (!stats || stats.matches_batted < 1) return "";
+
+  const avg = stats.not_outs < stats.matches_batted
+    ? (stats.total_runs / (stats.matches_batted - stats.not_outs)).toFixed(1)
+    : stats.total_runs.toFixed(1);
+  const careerSR = stats.balls_faced > 0 ? ((stats.total_runs / stats.balls_faced) * 100).toFixed(0) : "0";
+
+  const options = [
+    ` 📜 Career: ${batsman.name} — ${stats.total_runs} runs in ${stats.matches_batted} innings, Avg ${avg}, SR ${careerSR}.`,
+    ` 🏅 ${batsman.name} has ${stats.fifties} fifties & ${stats.hundreds} hundreds in his career!`,
+    ` 📈 All-time: ${batsman.name} — ${stats.fours} career fours, ${stats.sixes} career sixes. Highest: ${stats.highest_score}.`,
+    ` 🎖️ ${batsman.name}'s career best: ${stats.highest_score}. Total: ${stats.total_runs} runs across ${stats.matches_batted} innings.`,
+    ...(stats.hundreds > 0 ? [` 💯 ${batsman.name} has ${stats.hundreds} career century${stats.hundreds > 1 ? "ies" : ""}! Legend status.`] : []),
+    ...(stats.total_runs > 500 ? [` 🐐 ${stats.total_runs}+ career runs for ${batsman.name} — consistent performer!`] : []),
+  ];
+  return pick(options);
+};
+
+const getCareerBowlerFlavor = (bowler: Player, allTimeStats?: Map<string, AllTimePlayerStats>): string => {
+  if (!allTimeStats || Math.random() > 0.05) return "";
+  const stats = allTimeStats.get(bowler.name);
+  if (!stats || stats.matches_bowled < 1) return "";
+
+  const careerEcon = stats.balls_bowled > 0 ? ((stats.runs_conceded / (stats.balls_bowled / 6))).toFixed(1) : "0.0";
+  const bbFigures = `${stats.best_bowling_wickets}/${stats.best_bowling_runs}`;
+
+  const options = [
+    ` 📜 Career: ${bowler.name} — ${stats.total_wickets} wickets in ${stats.matches_bowled} innings, Econ ${careerEcon}.`,
+    ` 🎯 All-time best: ${bowler.name} ${bbFigures}. Total: ${stats.total_wickets} career wickets.`,
+    ` 📈 ${bowler.name} has bowled ${stats.maidens} career maidens — disciplined campaigner!`,
+    ` 🎖️ ${bowler.name}: ${stats.total_wickets} wickets across ${stats.matches_bowled} matches. Best: ${bbFigures}.`,
+    ...(stats.total_wickets > 20 ? [` 🔥 ${stats.total_wickets}+ career wickets for ${bowler.name} — lethal operator!`] : []),
+  ];
+  return pick(options);
+};
+
 export const generateRealisticCommentary = (
   event: BallEvent,
   bowler: Player,
@@ -138,7 +198,8 @@ export const generateRealisticCommentary = (
   targetRuns?: number,
   requiredRuns?: number,
   ballsRemaining?: number,
-  matchOvers: number = 20
+  matchOvers: number = 20,
+  allTimeStats?: Map<string, AllTimePlayerStats>
 ): string => {
   const overBall = `${over}.${ball}`;
   const phase = getPhasePrefix(over, matchOvers);
@@ -394,7 +455,10 @@ export const generateRealisticCommentary = (
   // Random stats flavor (only one at a time, not both)
   const statsFlavor = Math.random() > 0.5 ? getBatsmanStatsFlavor(batsman) : getBowlerStatsFlavor(bowler);
 
-  return `${overBall} - ${phaseTag}${commentary}${milestone}${chaseNote}${statsFlavor}`;
+  // All-time career stats (~5% chance, separate from current spell stats)
+  const careerFlavor = Math.random() > 0.5 ? getCareerBatsmanFlavor(batsman, allTimeStats) : getCareerBowlerFlavor(bowler, allTimeStats);
+
+  return `${overBall} - ${phaseTag}${commentary}${milestone}${chaseNote}${statsFlavor}${careerFlavor}`;
 };
 
 export const getMatchSituationCommentary = (
