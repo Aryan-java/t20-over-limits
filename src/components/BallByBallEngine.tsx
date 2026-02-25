@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +8,11 @@ import { Play, RotateCcw, Zap, Award, Trophy, Crown, Loader2, CheckCircle2, XCir
 import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { generateRealisticCommentary } from "./RealisticCommentary";
+import { generateRealisticCommentary, AllTimePlayerStats } from "./RealisticCommentary";
 import SuperOverDialog from "./SuperOverDialog";
 import { toast } from "@/hooks/use-toast";
 import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BallByBallEngineProps {
   match: Match;
@@ -36,7 +37,20 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [isSavingStats, setIsSavingStats] = useState(false);
   const [statsSaveStatus, setStatsSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [lastCompletedMatch, setLastCompletedMatch] = useState<Match | null>(null);
+  const allTimeStatsRef = useRef<Map<string, AllTimePlayerStats>>(new Map());
 
+  // Fetch all-time stats once when component mounts
+  useEffect(() => {
+    const fetchAllTimeStats = async () => {
+      const { data } = await supabase.from("player_all_time_stats").select("*");
+      if (data) {
+        const map = new Map<string, AllTimePlayerStats>();
+        data.forEach((row) => map.set(row.player_name, row as AllTimePlayerStats));
+        allTimeStatsRef.current = map;
+      }
+    };
+    fetchAllTimeStats();
+  }, []);
   const handleRetryStatsSave = async () => {
     if (!lastCompletedMatch) return;
     setIsSavingStats(true);
@@ -701,7 +715,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         match.currentInnings === 2 && match.firstInnings ? match.firstInnings.totalRuns + 1 : undefined,
         match.currentInnings === 2 && match.firstInnings ? (match.firstInnings.totalRuns + 1 - newTotalRuns) : undefined,
         match.currentInnings === 2 ? (match.overs * 6 - newBallsBowled) : undefined,
-        match.overs
+        match.overs,
+        allTimeStatsRef.current
       );
     };
     
