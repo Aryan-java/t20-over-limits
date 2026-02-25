@@ -8,7 +8,7 @@ import { Play, RotateCcw, Zap, Award, Trophy, Crown, Loader2, CheckCircle2, XCir
 import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { generateRealisticCommentary, AllTimePlayerStats } from "./RealisticCommentary";
+import { generateRealisticCommentary, AllTimePlayerStats, CAREER_STAT_MARKER } from "./RealisticCommentary";
 import SuperOverDialog from "./SuperOverDialog";
 import { toast } from "@/hooks/use-toast";
 import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
@@ -994,47 +994,65 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
               </div>
             ) : (
               <div className="max-h-96 overflow-y-auto space-y-3">
-                {commentary.map((ball, index) => (
-                  <div 
-                    key={index} 
-                    className={`p-3 rounded-lg border ${
-                      ball.isWicket 
-                        ? 'bg-destructive/10 border-destructive/20' 
-                        : ball.runs >= 4 
-                        ? 'bg-cricket-green/10 border-cricket-green/20'
-                        : 'bg-muted/20'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            {formatBallNumber(ball.ballNumber)}
-                          </Badge>
-                          <span className="text-sm font-medium">
-                            {ball.bowler} to {ball.batsman}
-                          </span>
+                {commentary.map((ball, index) => {
+                  const hasCareerStat = ball.commentary?.includes(CAREER_STAT_MARKER);
+                  const displayCommentary = ball.commentary?.replace(CAREER_STAT_MARKER, "") || "";
+                  // Split into main commentary and career stat part
+                  const careerIdx = hasCareerStat && ball.commentary ? ball.commentary.indexOf(CAREER_STAT_MARKER) : -1;
+                  const mainCommentary = careerIdx >= 0 ? ball.commentary!.substring(0, careerIdx) : displayCommentary;
+                  const careerText = careerIdx >= 0 ? ball.commentary!.substring(careerIdx + CAREER_STAT_MARKER.length) : "";
+
+                  return (
+                    <div 
+                      key={index} 
+                      className={`p-3 rounded-lg border ${
+                        ball.isWicket 
+                          ? 'bg-destructive/10 border-destructive/20' 
+                          : ball.runs >= 4 
+                          ? 'bg-cricket-green/10 border-cricket-green/20'
+                          : 'bg-muted/20'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Badge variant="outline" className="text-xs">
+                              {formatBallNumber(ball.ballNumber)}
+                            </Badge>
+                            <span className="text-sm font-medium">
+                              {ball.bowler} to {ball.batsman}
+                            </span>
+                          </div>
+                          <p className="text-sm">{mainCommentary}</p>
+                          {hasCareerStat && careerText && (
+                            <div className="mt-2 px-3 py-2 rounded-md border animate-shimmer bg-gradient-to-r from-cricket-gold/10 via-accent/15 to-cricket-gold/10 border-cricket-gold/30 relative overflow-hidden">
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/10 to-transparent animate-trophy-shine pointer-events-none" />
+                              <p className="text-xs font-semibold text-accent-foreground relative z-10 flex items-center gap-1.5">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse-glow" />
+                                <span className="text-gradient-gold">{careerText.trim()}</span>
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm">{ball.commentary}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {ball.isWicket ? (
-                          <Badge className="bg-destructive text-white">W</Badge>
-                        ) : (
-                          <Badge 
-                            className={
-                              ball.runs >= 4 
-                                ? "bg-cricket-green text-white"
-                                : "bg-muted text-muted-foreground"
-                            }
-                          >
-                            {ball.runs}
-                          </Badge>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          {ball.isWicket ? (
+                            <Badge className="bg-destructive text-destructive-foreground">W</Badge>
+                          ) : (
+                            <Badge 
+                              className={
+                                ball.runs >= 4 
+                                  ? "bg-cricket-green text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              }
+                            >
+                              {ball.runs}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

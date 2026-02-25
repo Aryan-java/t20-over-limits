@@ -146,6 +146,9 @@ const getBowlerStatsFlavor = (bowler: Player): string => {
   return pick(options);
 };
 
+// Career stat marker for UI highlight detection
+export const CAREER_STAT_MARKER = "⟦CAREER⟧";
+
 // All-time career stats flavor (~5% chance per ball)
 const getCareerBatsmanFlavor = (batsman: Player, allTimeStats?: Map<string, AllTimePlayerStats>): string => {
   if (!allTimeStats || Math.random() > 0.05) return "";
@@ -165,7 +168,7 @@ const getCareerBatsmanFlavor = (batsman: Player, allTimeStats?: Map<string, AllT
     ...(stats.hundreds > 0 ? [` 💯 ${batsman.name} has ${stats.hundreds} career century${stats.hundreds > 1 ? "ies" : ""}! Legend status.`] : []),
     ...(stats.total_runs > 500 ? [` 🐐 ${stats.total_runs}+ career runs for ${batsman.name} — consistent performer!`] : []),
   ];
-  return pick(options);
+  return CAREER_STAT_MARKER + pick(options);
 };
 
 const getCareerBowlerFlavor = (bowler: Player, allTimeStats?: Map<string, AllTimePlayerStats>): string => {
@@ -183,7 +186,7 @@ const getCareerBowlerFlavor = (bowler: Player, allTimeStats?: Map<string, AllTim
     ` 🎖️ ${bowler.name}: ${stats.total_wickets} wickets across ${stats.matches_bowled} matches. Best: ${bbFigures}.`,
     ...(stats.total_wickets > 20 ? [` 🔥 ${stats.total_wickets}+ career wickets for ${bowler.name} — lethal operator!`] : []),
   ];
-  return pick(options);
+  return CAREER_STAT_MARKER + pick(options);
 };
 
 export const generateRealisticCommentary = (
