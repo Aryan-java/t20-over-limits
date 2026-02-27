@@ -28,7 +28,7 @@ export interface PlayerAllTimeStats {
 export function useAllTimeStats() {
   const queryClient = useQueryClient();
 
-  const { data: stats, isLoading, refetch } = useQuery({
+  const { data: stats, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["player-all-time-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,10 +39,10 @@ export function useAllTimeStats() {
       if (error) throw error;
       return data as PlayerAllTimeStats[];
     },
-    // Refetch on window focus to get latest stats
     refetchOnWindowFocus: true,
-    // Also refetch when data might be stale
     staleTime: 5000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   const updateStatsMutation = useMutation({
@@ -168,6 +168,7 @@ export function useAllTimeStats() {
     battingLeaderboard,
     bowlingLeaderboard,
     isLoading,
+    isError,
     updateStats: updateStatsMutation.mutate,
     refetch,
   };
