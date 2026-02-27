@@ -28,7 +28,7 @@ export interface PlayerAllTimeStats {
 export function useAllTimeStats() {
   const queryClient = useQueryClient();
 
-  const { data: stats, isLoading, isError, error, refetch } = useQuery({
+  const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ["player-all-time-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -41,8 +41,9 @@ export function useAllTimeStats() {
     },
     refetchOnWindowFocus: true,
     staleTime: 5000,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    retry: 2,
+    retryDelay: 500,
+    gcTime: 1000 * 60 * 5,
   });
 
   const updateStatsMutation = useMutation({
