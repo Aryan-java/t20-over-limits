@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 export default function AllTimeStats() {
   const navigate = useNavigate();
-  const { battingLeaderboard, bowlingLeaderboard, isLoading, refetch } = useAllTimeStats();
+  const { battingLeaderboard, bowlingLeaderboard, isLoading, isError, refetch } = useAllTimeStats();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -29,6 +29,25 @@ export default function AllTimeStats() {
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
             </div>
             <span className="text-sm text-muted-foreground font-medium">Loading records...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card className="stadium-card">
+        <CardContent className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <Trophy className="h-12 w-12 text-destructive opacity-50" />
+            </div>
+            <p className="text-sm text-muted-foreground font-medium">Failed to load records</p>
+            <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
