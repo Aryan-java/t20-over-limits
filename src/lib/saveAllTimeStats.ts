@@ -132,7 +132,7 @@ export const saveAllTimeStats = async (completedMatch: Match): Promise<boolean> 
 
     console.log(`Saving stats for ${allPlayers.length} players...`);
 
-    const batchSize = 5;
+    const batchSize = 3;
     const results: { success: boolean; player: string; error?: unknown }[] = [];
 
     for (let i = 0; i < allPlayers.length; i += batchSize) {
@@ -143,7 +143,7 @@ export const saveAllTimeStats = async (completedMatch: Match): Promise<boolean> 
       results.push(...batchResults);
 
       if (i + batchSize < allPlayers.length) {
-        await delay(100);
+        await delay(200);
       }
     }
 
