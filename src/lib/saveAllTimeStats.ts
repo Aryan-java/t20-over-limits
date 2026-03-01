@@ -1,5 +1,5 @@
 import { Match, Player } from "@/types/cricket";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
