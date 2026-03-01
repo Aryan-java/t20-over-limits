@@ -8,11 +8,10 @@ import { Play, RotateCcw, Zap, Award, Trophy, Crown, Loader2, CheckCircle2, XCir
 import { Match, BallEvent, Player } from "@/types/cricket";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { generateRealisticCommentary, AllTimePlayerStats, CAREER_STAT_MARKER } from "./RealisticCommentary";
+import { generateRealisticCommentary } from "./RealisticCommentary";
 import SuperOverDialog from "./SuperOverDialog";
 import { toast } from "@/hooks/use-toast";
 import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
-import { supabase } from "@/integrations/supabase/client";
 
 interface BallByBallEngineProps {
   match: Match;
@@ -37,20 +36,6 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [isSavingStats, setIsSavingStats] = useState(false);
   const [statsSaveStatus, setStatsSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [lastCompletedMatch, setLastCompletedMatch] = useState<Match | null>(null);
-  const allTimeStatsRef = useRef<Map<string, AllTimePlayerStats>>(new Map());
-
-  // Fetch all-time stats once when component mounts
-  useEffect(() => {
-    const fetchAllTimeStats = async () => {
-      const { data } = await supabase.from("player_all_time_stats").select("*");
-      if (data) {
-        const map = new Map<string, AllTimePlayerStats>();
-        data.forEach((row) => map.set(row.player_name, row as AllTimePlayerStats));
-        allTimeStatsRef.current = map;
-      }
-    };
-    fetchAllTimeStats();
-  }, []);
   const handleRetryStatsSave = async () => {
     if (!lastCompletedMatch) return;
     setIsSavingStats(true);
@@ -715,8 +700,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         match.currentInnings === 2 && match.firstInnings ? match.firstInnings.totalRuns + 1 : undefined,
         match.currentInnings === 2 && match.firstInnings ? (match.firstInnings.totalRuns + 1 - newTotalRuns) : undefined,
         match.currentInnings === 2 ? (match.overs * 6 - newBallsBowled) : undefined,
-        match.overs,
-        allTimeStatsRef.current
+        match.overs
       );
     };
     
@@ -995,12 +979,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
             ) : (
               <div className="max-h-96 overflow-y-auto space-y-3">
                 {commentary.map((ball, index) => {
-                  const hasCareerStat = ball.commentary?.includes(CAREER_STAT_MARKER);
-                  const displayCommentary = ball.commentary?.replace(CAREER_STAT_MARKER, "") || "";
-                  // Split into main commentary and career stat part
-                  const careerIdx = hasCareerStat && ball.commentary ? ball.commentary.indexOf(CAREER_STAT_MARKER) : -1;
-                  const mainCommentary = careerIdx >= 0 ? ball.commentary!.substring(0, careerIdx) : displayCommentary;
-                  const careerText = careerIdx >= 0 ? ball.commentary!.substring(careerIdx + CAREER_STAT_MARKER.length) : "";
+                  const displayCommentary = ball.commentary || "";
 
                   return (
                     <div 
@@ -1023,16 +1002,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                               {ball.bowler} to {ball.batsman}
                             </span>
                           </div>
-                          <p className="text-sm">{mainCommentary}</p>
-                          {hasCareerStat && careerText && (
-                            <div className="mt-2 px-3 py-2 rounded-md border animate-shimmer bg-gradient-to-r from-cricket-gold/10 via-accent/15 to-cricket-gold/10 border-cricket-gold/30 relative overflow-hidden">
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/10 to-transparent animate-trophy-shine pointer-events-none" />
-                              <p className="text-xs font-semibold text-accent-foreground relative z-10 flex items-center gap-1.5">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse-glow" />
-                                <span className="text-gradient-gold">{careerText.trim()}</span>
-                              </p>
-                            </div>
-                          )}
+                          <p className="text-sm">{displayCommentary}</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           {ball.isWicket ? (
