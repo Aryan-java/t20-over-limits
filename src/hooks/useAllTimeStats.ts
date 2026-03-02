@@ -43,6 +43,7 @@ export function useAllTimeStats() {
           .from("player_all_time_stats")
           .select("id,player_id,player_name,team_name,image_url,matches_batted,total_runs,balls_faced,highest_score,fifties,hundreds,fours,sixes,not_outs,matches_bowled,total_wickets,balls_bowled,runs_conceded,best_bowling_wickets,best_bowling_runs,maidens")
           .order("total_runs", { ascending: false })
+          .limit(20)
           .abortSignal(controller.signal);
         
         clearTimeout(timeout);
