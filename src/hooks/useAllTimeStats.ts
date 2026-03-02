@@ -30,36 +30,21 @@ export function useAllTimeStats() {
 
   const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ["player-all-time-stats"],
-    queryFn: async ({ signal }) => {
-      // Add timeout to prevent hanging forever
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("player_all_time_stats")
+        .select("id,player_id,player_name,team_name,image_url,matches_batted,total_runs,balls_faced,highest_score,fifties,hundreds,fours,sixes,not_outs,matches_bowled,total_wickets,balls_bowled,runs_conceded,best_bowling_wickets,best_bowling_runs,maidens")
+        .order("total_runs", { ascending: false })
+        .limit(20);
       
-      // Combine with React Query's signal
-      signal?.addEventListener('abort', () => controller.abort());
-      
-      try {
-        const { data, error } = await supabase
-          .from("player_all_time_stats")
-          .select("id,player_id,player_name,team_name,image_url,matches_batted,total_runs,balls_faced,highest_score,fifties,hundreds,fours,sixes,not_outs,matches_bowled,total_wickets,balls_bowled,runs_conceded,best_bowling_wickets,best_bowling_runs,maidens")
-          .order("total_runs", { ascending: false })
-          .limit(20)
-          .abortSignal(controller.signal);
-        
-        clearTimeout(timeout);
-        if (error) throw error;
-        return data as PlayerAllTimeStats[];
-      } catch (err) {
-        clearTimeout(timeout);
-        throw err;
-      }
+      if (error) throw error;
+      return data as PlayerAllTimeStats[];
     },
     refetchOnWindowFocus: false,
-    staleTime: 30000,
-    retry: 1,
-    retryDelay: 1000,
+    staleTime: 60000,
+    retry: 2,
+    retryDelay: 2000,
     gcTime: 1000 * 60 * 5,
-    networkMode: 'always',
   });
 
   const updateStatsMutation = useMutation({
