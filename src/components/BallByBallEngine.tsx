@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
 import SuperOverDialog from "./SuperOverDialog";
 import { toast } from "@/hooks/use-toast";
+import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
 
 
 interface BallByBallEngineProps {
@@ -775,6 +776,12 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         const { completeMatch } = useCricketStore.getState();
         completeMatch(completedMatch);
 
+        // Save all-time stats
+        saveAllTimeStats(completedMatch).then(success => {
+          if (success) {
+            toast({ title: "Stats Saved", description: "All-time player records updated." });
+          }
+        });
 
         setShowMatchResultDialog(true);
         return;
@@ -1340,7 +1347,12 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           updateMatch(completedMatch);
           const { completeMatch } = useCricketStore.getState();
           completeMatch(completedMatch);
-          
+
+          saveAllTimeStats(completedMatch).then(success => {
+            if (success) {
+              toast({ title: "Stats Saved", description: "All-time player records updated." });
+            }
+          });
           
           setShowSuperOver(false);
           setShowMatchResultDialog(true);

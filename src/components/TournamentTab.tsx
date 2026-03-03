@@ -15,6 +15,7 @@ import DetailedScorecard from "./DetailedScorecard";
 import MatchSetupDialog from "./MatchSetupDialog";
 import { useToast } from "@/hooks/use-toast";
 import PointsTable from "./PointsTable";
+import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
 
 
 
