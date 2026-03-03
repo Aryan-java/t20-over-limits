@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useCricketStore } from "@/hooks/useCricketStore";
-import { useAllTimeStats } from "@/hooks/useAllTimeStats";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,6 @@ const PlayerProfile = () => {
   const { playerId } = useParams();
   const navigate = useNavigate();
   const { teams, matchHistory } = useCricketStore();
-  const { stats: allTimeStats, isLoading: statsLoading } = useAllTimeStats();
-
-  // Find all-time stats from database
-  const playerAllTimeStats = allTimeStats?.find(s => s.player_id === playerId);
 
   // Find the player across all teams
   let player = null;
@@ -114,18 +110,7 @@ const PlayerProfile = () => {
 
   // Calculate milestones
   const getMilestones = () => {
-    if (!playerAllTimeStats) return [];
-    const milestones: Array<{ type: "century" | "half-century" | "five-wickets" | "power-hitter" | "economical"; count?: number }> = [];
-    
-    if (playerAllTimeStats.hundreds > 0) milestones.push({ type: "century", count: playerAllTimeStats.hundreds });
-    if (playerAllTimeStats.fifties > 0) milestones.push({ type: "half-century", count: playerAllTimeStats.fifties });
-    if (playerAllTimeStats.best_bowling_wickets >= 5) milestones.push({ type: "five-wickets" });
-    if (playerAllTimeStats.sixes > 10) milestones.push({ type: "power-hitter" });
-    if (playerAllTimeStats.balls_bowled > 0 && (playerAllTimeStats.runs_conceded / (playerAllTimeStats.balls_bowled / 6)) < 7) {
-      milestones.push({ type: "economical" });
-    }
-    
-    return milestones;
+    return [];
   };
 
   const milestones = getMilestones();
@@ -401,55 +386,6 @@ const PlayerProfile = () => {
 
           <TabsContent value="stats">
             <div className="grid gap-4">
-              {/* All-Time Records from Database */}
-              {playerAllTimeStats && (
-                <Card className="border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-orange-500/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-yellow-600">
-                      <Star className="h-5 w-5" />
-                      All-Time Career Records
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                        <div className="text-sm text-muted-foreground">Highest Score</div>
-                        <div className="text-2xl font-bold text-orange-600">{playerAllTimeStats.highest_score}</div>
-                      </div>
-                      <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                        <div className="text-sm text-muted-foreground">50s / 100s</div>
-                        <div className="text-2xl font-bold text-orange-600">{playerAllTimeStats.fifties} / {playerAllTimeStats.hundreds}</div>
-                      </div>
-                      <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <div className="text-sm text-muted-foreground">Best Bowling</div>
-                        <div className="text-2xl font-bold text-purple-600">{playerAllTimeStats.best_bowling_wickets}/{playerAllTimeStats.best_bowling_runs}</div>
-                      </div>
-                      <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <div className="text-sm text-muted-foreground">Maidens</div>
-                        <div className="text-2xl font-bold text-purple-600">{playerAllTimeStats.maidens}</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-3 bg-muted/20 rounded-lg">
-                        <div className="text-sm text-muted-foreground">4s Hit</div>
-                        <div className="text-2xl font-bold">{playerAllTimeStats.fours}</div>
-                      </div>
-                      <div className="p-3 bg-muted/20 rounded-lg">
-                        <div className="text-sm text-muted-foreground">6s Hit</div>
-                        <div className="text-2xl font-bold">{playerAllTimeStats.sixes}</div>
-                      </div>
-                      <div className="p-3 bg-muted/20 rounded-lg">
-                        <div className="text-sm text-muted-foreground">Not Outs</div>
-                        <div className="text-2xl font-bold">{playerAllTimeStats.not_outs}</div>
-                      </div>
-                      <div className="p-3 bg-muted/20 rounded-lg">
-                        <div className="text-sm text-muted-foreground">Balls Faced</div>
-                        <div className="text-2xl font-bold">{playerAllTimeStats.balls_faced}</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               <Card>
                 <CardHeader>
@@ -462,18 +398,16 @@ const PlayerProfile = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-3 bg-muted/20 rounded-lg">
                       <div className="text-sm text-muted-foreground">Total Runs</div>
-                      <div className="text-2xl font-bold">{playerAllTimeStats?.total_runs || performanceHistory.totalRuns}</div>
+                      <div className="text-2xl font-bold">{performanceHistory.totalRuns}</div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
                       <div className="text-sm text-muted-foreground">Matches Batted</div>
-                      <div className="text-2xl font-bold">{playerAllTimeStats?.matches_batted || performanceHistory.totalMatches}</div>
+                      <div className="text-2xl font-bold">{performanceHistory.totalMatches}</div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
                       <div className="text-sm text-muted-foreground">Strike Rate</div>
                       <div className="text-2xl font-bold">
-                        {playerAllTimeStats?.balls_faced 
-                          ? ((playerAllTimeStats.total_runs / playerAllTimeStats.balls_faced) * 100).toFixed(1)
-                          : "N/A"}
+                        {"N/A"}
                       </div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
@@ -495,18 +429,16 @@ const PlayerProfile = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-3 bg-muted/20 rounded-lg">
                       <div className="text-sm text-muted-foreground">Total Wickets</div>
-                      <div className="text-2xl font-bold">{playerAllTimeStats?.total_wickets || performanceHistory.totalWickets}</div>
+                      <div className="text-2xl font-bold">{performanceHistory.totalWickets}</div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
                       <div className="text-sm text-muted-foreground">Matches Bowled</div>
-                      <div className="text-2xl font-bold">{playerAllTimeStats?.matches_bowled || performanceHistory.totalMatches}</div>
+                      <div className="text-2xl font-bold">{performanceHistory.totalMatches}</div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
                       <div className="text-sm text-muted-foreground">Economy</div>
                       <div className="text-2xl font-bold">
-                        {playerAllTimeStats?.balls_bowled 
-                          ? ((playerAllTimeStats.runs_conceded / (playerAllTimeStats.balls_bowled / 6))).toFixed(2)
-                          : "N/A"}
+                        {"N/A"}
                       </div>
                     </div>
                     <div className="p-3 bg-muted/20 rounded-lg">
