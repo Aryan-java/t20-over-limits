@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.player_all_time_stats CASCADE;

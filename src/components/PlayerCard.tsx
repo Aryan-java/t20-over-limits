@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Player } from "@/types/cricket";
-import { PlayerAllTimeStats } from "@/hooks/useAllTimeStats";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 interface PlayerCardProps {
   player: Player;
-  stats?: PlayerAllTimeStats;
+  stats?: any;
   variant?: "compact" | "detailed" | "full";
   onClick?: () => void;
   className?: string;

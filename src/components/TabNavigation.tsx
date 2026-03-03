@@ -1,5 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Play, ChartBar as BarChart3, Trophy, Award, Activity, Sparkles } from "lucide-react";
+import { Users, Play, ChartBar as BarChart3, Trophy, Activity, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,6 @@ const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps)
     { value: "teams", label: "Teams", icon: Users, notification: pendingProposals > 0 ? pendingProposals : undefined },
     { value: "live", label: "Live Match", icon: Play, live: hasLiveMatch },
     { value: "tournament", label: "Tournament", icon: Trophy },
-    { value: "records", label: "Records", icon: Award },
     { value: "stats", label: "Statistics", icon: BarChart3 },
   ];
 
@@ -31,7 +30,7 @@ const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps)
         <div className="absolute -inset-2 bg-gradient-to-r from-transparent via-primary/15 to-transparent blur-2xl rounded-3xl opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-r from-cricket-gold/5 via-primary/10 to-cricket-gold/5 blur-xl rounded-2xl" />
         
-        <TabsList className="relative grid w-full grid-cols-5 h-[72px] p-2 bg-card/95 backdrop-blur-xl border border-border/60 shadow-2xl rounded-2xl dark:bg-card/80 dark:border-primary/20 overflow-hidden">
+        <TabsList className="relative grid w-full grid-cols-4 h-[72px] p-2 bg-card/95 backdrop-blur-xl border border-border/60 shadow-2xl rounded-2xl dark:bg-card/80 dark:border-primary/20 overflow-hidden">
           {/* Subtle inner gradient */}
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-2xl" />
           
@@ -39,8 +38,8 @@ const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps)
           <div 
             className="absolute inset-y-2 transition-all duration-500 ease-out rounded-xl shadow-xl pointer-events-none"
             style={{
-              width: 'calc(20% - 8px)',
-              left: `calc(${tabs.findIndex(t => t.value === activeTab) * 20}% + 4px)`,
+              width: 'calc(25% - 8px)',
+              left: `calc(${tabs.findIndex(t => t.value === activeTab) * 25}% + 4px)`,
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary to-primary/90 rounded-xl" />
