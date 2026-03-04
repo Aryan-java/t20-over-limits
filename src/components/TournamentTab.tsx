@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User, MapPin, RefreshCw, Download, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Trophy, Award, Calendar, ChevronRight, Plus, RotateCcw, Play, Crown, User, MapPin, RefreshCw, Download, Loader2, CheckCircle2, XCircle, CheckCircle, AlertCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCricketStore } from "@/hooks/useCricketStore";
@@ -28,7 +28,29 @@ export default function TournamentTab() {
   const [showFormatDialog, setShowFormatDialog] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<TournamentFormat>('single');
   const scorecardRef = useRef<HTMLDivElement>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const { toast } = useToast();
+
+  const handleResaveStats = async () => {
+    if (!selectedMatch) return;
+    setSaveStatus("saving");
+    try {
+      const success = await saveAllTimeStats(selectedMatch);
+      if (success) {
+        setSaveStatus("success");
+        toast({ title: "Stats re-saved successfully!" });
+        setTimeout(() => setSaveStatus("idle"), 3000);
+      } else {
+        setSaveStatus("error");
+        toast({ title: "Failed to re-save stats", variant: "destructive" });
+        setTimeout(() => setSaveStatus("idle"), 3000);
+      }
+    } catch {
+      setSaveStatus("error");
+      toast({ title: "Failed to re-save stats", variant: "destructive" });
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    }
+  };
 
   const handleDownloadScorecard = () => {
     if (!scorecardRef.current || !selectedMatch) return;
@@ -530,6 +552,19 @@ export default function TournamentTab() {
                 Match Scorecard - {selectedMatch?.team1.name} vs {selectedMatch?.team2.name}
               </DialogTitle>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResaveStats}
+                  disabled={saveStatus === "saving"}
+                  className="gap-1"
+                >
+                  {saveStatus === "saving" && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  {saveStatus === "success" && <CheckCircle className="h-4 w-4 text-green-500" />}
+                  {saveStatus === "error" && <AlertCircle className="h-4 w-4 text-destructive" />}
+                  {saveStatus === "idle" && <RefreshCw className="h-4 w-4" />}
+                  {saveStatus === "saving" ? "Saving..." : saveStatus === "success" ? "Saved!" : saveStatus === "error" ? "Retry" : "Re-save Stats"}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
