@@ -35,7 +35,18 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      include: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query"],
+      include: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "@tanstack/react-query",
+        "@radix-ui/react-tooltip",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-tabs",
+        "@radix-ui/react-select",
+        "@radix-ui/react-popover",
+      ],
+      force: true,
     },
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(supabaseUrl),
