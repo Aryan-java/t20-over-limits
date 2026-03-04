@@ -28,7 +28,29 @@ export default function TournamentTab() {
   const [showFormatDialog, setShowFormatDialog] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<TournamentFormat>('single');
   const scorecardRef = useRef<HTMLDivElement>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const { toast } = useToast();
+
+  const handleResaveStats = async () => {
+    if (!selectedMatch) return;
+    setSaveStatus("saving");
+    try {
+      const success = await saveAllTimeStats(selectedMatch);
+      if (success) {
+        setSaveStatus("success");
+        toast({ title: "Stats re-saved successfully!" });
+        setTimeout(() => setSaveStatus("idle"), 3000);
+      } else {
+        setSaveStatus("error");
+        toast({ title: "Failed to re-save stats", variant: "destructive" });
+        setTimeout(() => setSaveStatus("idle"), 3000);
+      }
+    } catch {
+      setSaveStatus("error");
+      toast({ title: "Failed to re-save stats", variant: "destructive" });
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    }
+  };
 
   const handleDownloadScorecard = () => {
     if (!scorecardRef.current || !selectedMatch) return;
