@@ -555,6 +555,19 @@ export default function TournamentTab() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={handleResaveStats}
+                  disabled={saveStatus === "saving"}
+                  className="gap-1"
+                >
+                  {saveStatus === "saving" && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  {saveStatus === "success" && <CheckCircle className="h-4 w-4 text-green-500" />}
+                  {saveStatus === "error" && <AlertCircle className="h-4 w-4 text-destructive" />}
+                  {saveStatus === "idle" && <RefreshCw className="h-4 w-4" />}
+                  {saveStatus === "saving" ? "Saving..." : saveStatus === "success" ? "Saved!" : saveStatus === "error" ? "Retry" : "Re-save Stats"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleDownloadScorecard}
                   className="gap-1"
                 >
