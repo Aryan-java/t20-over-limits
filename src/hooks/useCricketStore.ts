@@ -34,6 +34,7 @@ interface CricketStore {
   // Fixture actions
   generateFixtures: (format?: 'single' | 'double') => void;
   resetFixtures: () => void;
+  regenerateFixture: (fixtureId: string) => void;
   
   // Tournament actions
   initializeTournament: (format: 'single' | 'double') => void;
