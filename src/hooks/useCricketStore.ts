@@ -362,6 +362,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     }));
   },
 
+  initializeTournament: (format: 'single' | 'double') => {
     const { fixtures } = get();
     const tournament: Tournament = {
       format,
