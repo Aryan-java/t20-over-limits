@@ -138,6 +138,7 @@ const LiveMatchTab = () => {
   }
 
   const handleStartMatch = () => {
+    setDismissedResult(false);
     if (!currentMatch.tossWinner) {
       setShowVenueInfo(true);
     } else {
