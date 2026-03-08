@@ -346,7 +346,22 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     });
   },
 
-  initializeTournament: (format: 'single' | 'double') => {
+  regenerateFixture: (fixtureId: string) => {
+    set((state) => ({
+      fixtures: state.fixtures.map(fixture => {
+        if (fixture.id === fixtureId && fixture.played) {
+          return { ...fixture, played: false, match: undefined };
+        }
+        return fixture;
+      }),
+      matchHistory: state.matchHistory.filter(mh => {
+        const fixture = state.fixtures.find(f => f.id === fixtureId);
+        if (!fixture || !fixture.match) return true;
+        return mh.id !== fixture.match.id;
+      }),
+    }));
+  },
+
     const { fixtures } = get();
     const tournament: Tournament = {
       format,
