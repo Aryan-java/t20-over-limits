@@ -18,10 +18,11 @@ import { getRandomVenue } from "@/data/venues";
 import { useMatchConditions, generateInitialConditions, calculateModifiers } from "@/hooks/useMatchConditions";
 
 const LiveMatchTab = () => {
-  const { currentMatch, setCurrentMatch, updateMatch, fixtures } = useCricketStore();
+  const { currentMatch, setCurrentMatch, updateMatch, fixtures, teams } = useCricketStore();
   const [showToss, setShowToss] = useState(false);
   const [showVenueInfo, setShowVenueInfo] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
+  const [dismissedResult, setDismissedResult] = useState(false);
 
   // Memoize venue so it doesn't change on every re-render
   const venue = useMemo(() => {
