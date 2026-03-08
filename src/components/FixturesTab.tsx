@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Calendar, Shuffle, RotateCcw } from "lucide-react";
+import { Calendar, Shuffle, RotateCcw, RefreshCw } from "lucide-react";
 import MatchCard from "./MatchCard";
 import MatchSetupDialog from "./MatchSetupDialog";
 import { useCricketStore } from "@/hooks/useCricketStore";
@@ -19,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const FixturesTab = () => {
-  const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch } = useCricketStore();
+  const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch, regenerateFixture } = useCricketStore();
   const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team, venue: Venue} | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const { toast } = useToast();
@@ -162,11 +162,29 @@ const FixturesTab = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {completedMatches.slice(0, 4).map((fixture) => (
-                  <MatchCard
-                    key={fixture.id}
-                    match={fixture.match!}
-                    onViewMatch={() => {}}
-                  />
+                  <div key={fixture.id} className="relative">
+                    <MatchCard
+                      match={fixture.match!}
+                      onViewMatch={() => {}}
+                    />
+                    <div className="mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-cricket-green/30 text-cricket-green hover:bg-cricket-green/10"
+                        onClick={() => {
+                          regenerateFixture(fixture.id);
+                          toast({
+                            title: "Match Reset",
+                            description: `${fixture.team1.name} vs ${fixture.team2.name} is ready to replay.`,
+                          });
+                        }}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Replay Match
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

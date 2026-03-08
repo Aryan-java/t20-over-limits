@@ -34,6 +34,7 @@ interface CricketStore {
   // Fixture actions
   generateFixtures: (format?: 'single' | 'double') => void;
   resetFixtures: () => void;
+  regenerateFixture: (fixtureId: string) => void;
   
   // Tournament actions
   initializeTournament: (format: 'single' | 'double') => void;
@@ -343,6 +344,22 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       matchHistory: [],
       currentMatch: null,
     });
+  },
+
+  regenerateFixture: (fixtureId: string) => {
+    set((state) => ({
+      fixtures: state.fixtures.map(fixture => {
+        if (fixture.id === fixtureId && fixture.played) {
+          return { ...fixture, played: false, match: undefined };
+        }
+        return fixture;
+      }),
+      matchHistory: state.matchHistory.filter(mh => {
+        const fixture = state.fixtures.find(f => f.id === fixtureId);
+        if (!fixture || !fixture.match) return true;
+        return mh.id !== fixture.match.id;
+      }),
+    }));
   },
 
   initializeTournament: (format: 'single' | 'double') => {
