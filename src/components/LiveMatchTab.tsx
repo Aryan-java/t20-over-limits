@@ -12,15 +12,17 @@ import RunRateGraph from "./RunRateGraph";
 import PartnershipAnalysis from "./PartnershipAnalysis";
 import VenueInfoDialog from "./VenueInfoDialog";
 import WinPrediction from "./WinPrediction";
+import MatchResultPanel from "./MatchResultPanel";
 import WeatherConditionsPanel from "./WeatherConditionsPanel";
 import { getRandomVenue } from "@/data/venues";
 import { useMatchConditions, generateInitialConditions, calculateModifiers } from "@/hooks/useMatchConditions";
 
 const LiveMatchTab = () => {
-  const { currentMatch, setCurrentMatch, updateMatch, fixtures } = useCricketStore();
+  const { currentMatch, setCurrentMatch, updateMatch, fixtures, teams } = useCricketStore();
   const [showToss, setShowToss] = useState(false);
   const [showVenueInfo, setShowVenueInfo] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
+  const [dismissedResult, setDismissedResult] = useState(false);
 
   // Memoize venue so it doesn't change on every re-render
   const venue = useMemo(() => {
@@ -136,6 +138,7 @@ const LiveMatchTab = () => {
   }
 
   const handleStartMatch = () => {
+    setDismissedResult(false);
     if (!currentMatch.tossWinner) {
       setShowVenueInfo(true);
     } else {
@@ -274,6 +277,25 @@ const LiveMatchTab = () => {
           </div>
         </div>
       </div>
+
+      {/* Match Result Panel - shown inline when match completes */}
+      {currentMatch.isCompleted && !dismissedResult && (
+        <MatchResultPanel
+          match={currentMatch}
+          manOfTheMatch={currentMatch.manOfTheMatch || null}
+          topRunScorer={(() => {
+            const allPlayers = teams.flatMap(t => t.squad).filter(p => p.performanceHistory && p.performanceHistory.totalRuns > 0);
+            allPlayers.sort((a, b) => (b.performanceHistory?.totalRuns || 0) - (a.performanceHistory?.totalRuns || 0));
+            return allPlayers[0] || null;
+          })()}
+          topWicketTaker={(() => {
+            const allPlayers = teams.flatMap(t => t.squad).filter(p => p.performanceHistory && p.performanceHistory.totalWickets > 0);
+            allPlayers.sort((a, b) => (b.performanceHistory?.totalWickets || 0) - (a.performanceHistory?.totalWickets || 0));
+            return allPlayers[0] || null;
+          })()}
+          onClose={() => setDismissedResult(true)}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
