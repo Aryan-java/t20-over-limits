@@ -16,6 +16,8 @@ interface MatchResultPanelProps {
 }
 
 const MatchResultPanel = ({ match, manOfTheMatch, topRunScorer, topWicketTaker, onClose }: MatchResultPanelProps) => {
+  const [showScorecard, setShowScorecard] = useState(false);
+
   const winnerTeam = (() => {
     if (!match.firstInnings || !match.secondInnings) return null;
     const team1Score = match.firstInnings.battingTeam === match.team1.name
