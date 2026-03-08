@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Crown, Award, X } from "lucide-react";
+import { Trophy, Crown, Award, X, ClipboardList } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Match, Player } from "@/types/cricket";
+import DetailedScorecard from "./DetailedScorecard";
 
 interface MatchResultPanelProps {
   match: Match;
