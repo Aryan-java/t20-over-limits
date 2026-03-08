@@ -683,7 +683,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           return fixture;
         });
       })(),
-      currentMatch: null,
+      currentMatch: state.currentMatch ? { ...state.currentMatch, isCompleted: true, result: match.result, manOfTheMatch: match.manOfTheMatch } : null,
     }));
     
     // Update tournament stats after match completion
