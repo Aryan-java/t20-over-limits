@@ -12,6 +12,7 @@ import RunRateGraph from "./RunRateGraph";
 import PartnershipAnalysis from "./PartnershipAnalysis";
 import VenueInfoDialog from "./VenueInfoDialog";
 import WinPrediction from "./WinPrediction";
+import MatchResultPanel from "./MatchResultPanel";
 import WeatherConditionsPanel from "./WeatherConditionsPanel";
 import { getRandomVenue } from "@/data/venues";
 import { useMatchConditions, generateInitialConditions, calculateModifiers } from "@/hooks/useMatchConditions";
