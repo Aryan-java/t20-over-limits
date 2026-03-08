@@ -19,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const FixturesTab = () => {
-  const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch } = useCricketStore();
+  const { teams, fixtures, generateFixtures, resetFixtures, createMatch, setCurrentMatch, regenerateFixture } = useCricketStore();
   const [setupMatch, setSetupMatch] = useState<{team1: Team, team2: Team, venue: Venue} | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const { toast } = useToast();
