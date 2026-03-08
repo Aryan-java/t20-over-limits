@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Crown, Award, X } from "lucide-react";
+import { Trophy, Crown, Award, X, ClipboardList } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Match, Player } from "@/types/cricket";
+import DetailedScorecard from "./DetailedScorecard";
 
 interface MatchResultPanelProps {
   match: Match;
@@ -14,6 +16,8 @@ interface MatchResultPanelProps {
 }
 
 const MatchResultPanel = ({ match, manOfTheMatch, topRunScorer, topWicketTaker, onClose }: MatchResultPanelProps) => {
+  const [showScorecard, setShowScorecard] = useState(false);
+
   const winnerTeam = (() => {
     if (!match.firstInnings || !match.secondInnings) return null;
     const team1Score = match.firstInnings.battingTeam === match.team1.name
@@ -172,6 +176,37 @@ const MatchResultPanel = ({ match, manOfTheMatch, topRunScorer, topWicketTaker, 
             </div>
           )}
         </div>
+
+        {/* View Scorecard Button */}
+        <Button
+          onClick={() => setShowScorecard(!showScorecard)}
+          className="w-full bg-gradient-to-r from-cricket-green to-cricket-pitch hover:from-cricket-green/90 hover:to-cricket-pitch/90 text-white"
+          size="lg"
+        >
+          <ClipboardList className="h-5 w-5 mr-2" />
+          {showScorecard ? "Hide Scorecard" : "View Full Scorecard"}
+        </Button>
+
+        {/* Inline Detailed Scorecard */}
+        {showScorecard && (
+          <div className="space-y-6 pt-2">
+            {match.firstInnings && (
+              <DetailedScorecard
+                innings={match.firstInnings}
+                title={`${match.firstInnings.battingTeam} - First Innings`}
+                bowlers={(match.firstInnings.bowlingTeam === match.team1.name ? match.team1.squad : match.team2.squad)}
+              />
+            )}
+            {match.secondInnings && (
+              <DetailedScorecard
+                innings={match.secondInnings}
+                title={`${match.secondInnings.battingTeam} - Second Innings`}
+                target={match.firstInnings ? match.firstInnings.totalRuns + 1 : undefined}
+                bowlers={(match.secondInnings.bowlingTeam === match.team1.name ? match.team1.squad : match.team2.squad)}
+              />
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
