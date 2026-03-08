@@ -277,6 +277,25 @@ const LiveMatchTab = () => {
         </div>
       </div>
 
+      {/* Match Result Panel - shown inline when match completes */}
+      {currentMatch.isCompleted && !dismissedResult && (
+        <MatchResultPanel
+          match={currentMatch}
+          manOfTheMatch={currentMatch.manOfTheMatch || null}
+          topRunScorer={(() => {
+            const allPlayers = teams.flatMap(t => t.squad).filter(p => p.performanceHistory && p.performanceHistory.totalRuns > 0);
+            allPlayers.sort((a, b) => (b.performanceHistory?.totalRuns || 0) - (a.performanceHistory?.totalRuns || 0));
+            return allPlayers[0] || null;
+          })()}
+          topWicketTaker={(() => {
+            const allPlayers = teams.flatMap(t => t.squad).filter(p => p.performanceHistory && p.performanceHistory.totalWickets > 0);
+            allPlayers.sort((a, b) => (b.performanceHistory?.totalWickets || 0) - (a.performanceHistory?.totalWickets || 0));
+            return allPlayers[0] || null;
+          })()}
+          onClose={() => setDismissedResult(true)}
+        />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <LiveScoreboard match={currentMatch} conditions={conditions} />
