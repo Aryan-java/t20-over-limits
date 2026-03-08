@@ -305,11 +305,11 @@ const LiveMatchTab = () => {
             <BallByBallEngine match={currentMatch} />
           )}
           
-          {matchStarted && (
+          {matchStarted && !currentMatch.isCompleted && (
             <RunRateGraph match={currentMatch} />
           )}
           
-          {matchStarted && (
+          {matchStarted && !currentMatch.isCompleted && (
             <PartnershipAnalysis match={currentMatch} />
           )}
           
