@@ -26,7 +26,7 @@ async function upsertPlayerStats(player: Player, teamName: string, didBat: boole
 
   if (existing) {
     const ex = existing as any;
-    await supabase
+    const { error } = await supabase
       .from("player_all_time_stats")
       .update({
         player_name: player.name,
@@ -60,8 +60,12 @@ async function upsertPlayerStats(player: Player, teamName: string, didBat: boole
         maidens: ex.maidens + maidens,
       } as any)
       .eq("player_id", playerId);
+    if (error) {
+      console.error(`Failed to update stats for ${player.name}:`, error);
+      throw error;
+    }
   } else {
-    await supabase.from("player_all_time_stats").insert({
+    const { error } = await supabase.from("player_all_time_stats").insert({
       player_id: playerId,
       player_name: player.name,
       team_name: teamName,
@@ -83,6 +87,10 @@ async function upsertPlayerStats(player: Player, teamName: string, didBat: boole
       best_bowling_runs: runsConceded,
       maidens,
     } as any);
+    if (error) {
+      console.error(`Failed to insert stats for ${player.name}:`, error);
+      throw error;
+    }
   }
 }
 
