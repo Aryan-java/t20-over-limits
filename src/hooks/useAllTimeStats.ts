@@ -31,33 +31,16 @@ export function useAllTimeStats() {
   const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ["player-all-time-stats"],
     queryFn: async () => {
-      // Fetch top batting leaders
-      const { data: battingData, error: battingError } = await supabase
+      // Fetch a broad dataset first, then aggregate/sort in memory.
+      // Previous top-20 prefiltering could hide updates for players that
+      // weren't already in those top lists.
+      const { data, error } = await supabase
         .from("player_all_time_stats")
         .select("*")
-        .order("total_runs", { ascending: false })
-        .limit(20);
+        .limit(1000);
 
-      if (battingError) throw battingError;
-
-      // Fetch top bowling leaders separately
-      const { data: bowlingData, error: bowlingError } = await supabase
-        .from("player_all_time_stats")
-        .select("*")
-        .gt("matches_bowled", 0)
-        .order("total_wickets", { ascending: false })
-        .limit(20);
-
-      if (bowlingError) throw bowlingError;
-
-      // Merge and deduplicate by player_id
-      const merged = new Map<string, PlayerAllTimeStats>();
-      for (const p of [...(battingData || []), ...(bowlingData || [])]) {
-        if (!merged.has(p.player_id)) {
-          merged.set(p.player_id, p as unknown as PlayerAllTimeStats);
-        }
-      }
-      return Array.from(merged.values());
+      if (error) throw error;
+      return (data || []) as unknown as PlayerAllTimeStats[];
     },
     refetchOnWindowFocus: false,
     staleTime: 60000,
