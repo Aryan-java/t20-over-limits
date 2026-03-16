@@ -104,6 +104,9 @@ export async function saveAllTimeStats(match: Match): Promise<boolean> {
     const team1Players = team1Setup?.playingXI || match.team1.squad.filter((p) => p.isPlaying);
     const team2Players = team2Setup?.playingXI || match.team2.squad.filter((p) => p.isPlaying);
 
+    console.log(`[saveAllTimeStats] Saving stats for ${team1Players.length + team2Players.length} players`);
+    console.log(`[saveAllTimeStats] Team1 setup exists: ${!!team1Setup}, Team2 setup exists: ${!!team2Setup}`);
+
     team1Players.forEach((p) => allPlayers.push({ player: p, teamName: match.team1.name }));
     team2Players.forEach((p) => allPlayers.push({ player: p, teamName: match.team2.name }));
 
