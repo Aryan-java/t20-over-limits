@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MatchHistory } from "@/types/cricket";
@@ -14,6 +15,7 @@ interface MatchScorecardDialogProps {
 }
 
 const MatchScorecardDialog = ({ match, open, onOpenChange }: MatchScorecardDialogProps) => {
+  const queryClient = useQueryClient();
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
 
   if (!match) return null;
@@ -23,6 +25,7 @@ const MatchScorecardDialog = ({ match, open, onOpenChange }: MatchScorecardDialo
     try {
       const success = await saveAllTimeStats(match);
       if (success) {
+        await queryClient.invalidateQueries({ queryKey: ["player-all-time-stats"] });
         setSaveStatus("success");
         toast.success("Stats re-saved successfully!");
         setTimeout(() => setSaveStatus("idle"), 3000);

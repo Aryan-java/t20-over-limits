@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
 
 
 export default function TournamentTab() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { matchHistory, teams, fixtures, tournament, generateFixtures, resetTournament, startPlayoffs, regeneratePlayoffs, createMatch, setCurrentMatch } = useCricketStore();
   const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
@@ -37,6 +39,7 @@ export default function TournamentTab() {
     try {
       const success = await saveAllTimeStats(selectedMatch);
       if (success) {
+        await queryClient.invalidateQueries({ queryKey: ["player-all-time-stats"] });
         setSaveStatus("success");
         toast({ title: "Stats re-saved successfully!" });
         setTimeout(() => setSaveStatus("idle"), 3000);
