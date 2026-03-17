@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Match } from "@/types/cricket";
 import { MatchConditions } from "@/types/weather";
-import { User, Target, Zap, Flame, TrendingUp, Radio, Crosshair, Cloud, Sun, Droplets, Wind } from "lucide-react";
+import { User, Target, Zap, Flame, TrendingUp, Radio, Crosshair, Droplets } from "lucide-react";
 import OverProgress from "@/components/ui/OverProgress";
 import AnimatedScore from "@/components/ui/AnimatedScore";
 import { WEATHER_ICONS, PITCH_ICONS } from "@/types/weather";
@@ -65,79 +65,62 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
   };
 
   return (
-    <Card className="overflow-hidden scoreboard relative group">
-      {/* Animated gradient border for live matches */}
+    <Card className="overflow-hidden scoreboard relative">
+      {/* Live match glow border */}
       {match.isLive && (
-        <>
-          <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-primary via-cricket-ball to-cricket-gold opacity-75 blur-sm animate-pulse pointer-events-none" />
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/10 via-cricket-ball/10 to-primary/10 pointer-events-none" />
-        </>
+        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-primary via-cricket-ball to-cricket-gold opacity-50 blur-sm pointer-events-none" />
       )}
       
-      <CardHeader className="pb-4 relative overflow-hidden">
-        {/* Premium glassmorphism header background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-primary/5 to-cricket-gold/10 backdrop-blur-sm" />
-        
-        {/* Stadium floodlight effects */}
-        <div className="absolute -top-4 left-1/4 w-24 h-24 bg-cricket-gold/30 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -top-4 right-1/4 w-24 h-24 bg-primary/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
-        
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,transparent_0%,hsl(var(--primary)/0.05)_50%,transparent_100%)] pointer-events-none" />
+      <CardHeader className="pb-3 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-cricket-gold/5" />
         
         <CardTitle className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="relative group/icon">
-              {/* Animated glow ring */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary to-cricket-gold rounded-xl blur-lg opacity-50 group-hover/icon:opacity-75 transition-opacity" />
-              <div className="relative p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl border border-primary/30 backdrop-blur-sm">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-lg border border-primary/20">
+              <TrendingUp className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <span className="font-bold text-lg tracking-tight">Live Score</span>
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              <span className="font-bold text-base">Live Score</span>
+              <div className="text-xs text-muted-foreground font-medium tracking-wide">
                 Innings {match.currentInnings}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* Weather & Pitch Indicators */}
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
             {conditions && (
-              <div className="flex items-center gap-1.5 mr-1">
-                <Badge variant="outline" className="gap-1.5 text-xs bg-background/60 backdrop-blur-md border-border/50 shadow-sm">
+              <div className="flex items-center gap-1 mr-1">
+                <Badge variant="outline" className="gap-1 text-xs bg-background/60 backdrop-blur-sm border-border/40 px-2 py-0.5">
                   <span className="text-sm">{WEATHER_ICONS[conditions.weather]}</span>
-                  <span className="hidden sm:inline capitalize font-medium">{conditions.weather.replace('-', ' ')}</span>
+                  <span className="hidden sm:inline capitalize text-[11px]">{conditions.weather.replace('-', ' ')}</span>
                 </Badge>
-                <Badge variant="outline" className="gap-1.5 text-xs bg-background/60 backdrop-blur-md border-border/50 shadow-sm">
+                <Badge variant="outline" className="gap-1 text-xs bg-background/60 backdrop-blur-sm border-border/40 px-2 py-0.5">
                   <span className="text-sm">{PITCH_ICONS[conditions.pitch]}</span>
-                  <span className="hidden sm:inline capitalize font-medium">{conditions.pitch}</span>
+                  <span className="hidden sm:inline capitalize text-[11px]">{conditions.pitch}</span>
                 </Badge>
                 {conditions.dewFactor > 50 && (
-                  <Badge className="gap-1 text-xs bg-indigo-500/20 text-indigo-400 border-indigo-500/40 backdrop-blur-sm">
+                  <Badge className="gap-0.5 text-[11px] bg-indigo-500/15 text-indigo-400 border-indigo-500/30 px-1.5 py-0.5">
                     <Droplets className="h-3 w-3" />
-                    <span className="hidden sm:inline font-medium">Dew</span>
                   </Badge>
                 )}
               </div>
             )}
             {currentInnings && !currentInnings.isCompleted && inPowerplay && (
-              <Badge className="bg-gradient-to-r from-cricket-boundary to-blue-600 text-white text-xs gap-1.5 border-0 shadow-lg shadow-blue-500/30 animate-pulse font-semibold">
-                <Zap className="h-3.5 w-3.5" />
+              <Badge className="bg-cricket-boundary text-white text-xs gap-1 border-0 shadow-sm font-semibold px-2 py-0.5">
+                <Zap className="h-3 w-3" />
                 Powerplay
               </Badge>
             )}
             {currentInnings && !currentInnings.isCompleted && inDeathOvers && (
-              <Badge className="bg-gradient-to-r from-cricket-ball to-red-700 text-white text-xs gap-1.5 border-0 shadow-lg shadow-red-500/30 font-semibold">
-                <Flame className="h-3.5 w-3.5" />
-                Death Overs
+              <Badge className="bg-cricket-ball text-white text-xs gap-1 border-0 shadow-sm font-semibold px-2 py-0.5">
+                <Flame className="h-3 w-3" />
+                Death
               </Badge>
             )}
             {match.isLive && (
-              <Badge className="bg-gradient-to-r from-cricket-ball to-red-600 text-white gap-2 px-4 py-1.5 border-0 shadow-lg shadow-red-500/40 font-bold">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+              <Badge className="bg-cricket-ball text-white gap-1.5 px-3 py-1 border-0 shadow-md shadow-cricket-ball/20 font-bold text-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
                 </span>
                 LIVE
               </Badge>
@@ -146,46 +129,38 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-6 relative">
+      <CardContent className="space-y-5 relative">
         {/* Main Score Display */}
         {currentInnings && (
-          <div className="text-center space-y-5 py-8 relative">
-            {/* Team name with animated underline */}
-            <div className="relative inline-block group/team">
-              <div className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                {currentInnings.battingTeam}
-              </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full group-hover/team:w-28 transition-all duration-300" />
+          <div className="text-center space-y-4 py-6">
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">
+              {currentInnings.battingTeam}
             </div>
             
-            {/* Enhanced score display with layered glow */}
-            <div className="relative py-4">
-              {/* Multi-layer glow effect */}
-              <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full" />
-              <div className="absolute inset-x-10 inset-y-0 bg-cricket-gold/5 blur-2xl rounded-full" />
-              
-              <div className="relative flex items-baseline justify-center gap-3">
+            {/* Score */}
+            <div className="relative py-2">
+              <div className="flex items-baseline justify-center gap-2">
                 <AnimatedScore 
                   value={currentInnings.totalRuns} 
-                  className="text-7xl md:text-8xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-foreground via-foreground/90 to-foreground/60 drop-shadow-sm"
+                  className="text-6xl md:text-7xl font-black tracking-tighter text-foreground"
                 />
-                <span className="text-5xl text-muted-foreground/30 font-extralight">/</span>
-                <span className="text-5xl font-bold text-destructive drop-shadow-sm">
+                <span className="text-4xl text-muted-foreground/25 font-light">/</span>
+                <span className="text-4xl font-bold text-destructive">
                   {currentInnings.wickets}
                 </span>
               </div>
             </div>
             
-            {/* Enhanced overs and run rate pills */}
-            <div className="flex items-center justify-center gap-4 text-sm">
-              <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-muted/40 border border-border/60 backdrop-blur-sm shadow-sm">
-                <Radio className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground font-semibold">
-                  {formatOvers(currentInnings.ballsBowled)} overs
+            {/* Overs and run rate */}
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/30 border border-border/50">
+                <Radio className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-semibold">
+                  {formatOvers(currentInnings.ballsBowled)} ov
                 </span>
               </div>
-              <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/15 to-primary/10 border border-primary/30 backdrop-blur-sm shadow-sm shadow-primary/10">
-                <TrendingUp className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
                 <span className="text-primary font-bold">
                   CRR: {currentRunRate}
                 </span>
@@ -194,39 +169,36 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
           </div>
         )}
 
-        {/* Current Over Progress */}
+        {/* Current Over */}
         {currentInnings && !currentInnings.isCompleted && (
-          <div className="flex flex-col items-center gap-3 p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
-            <div className="flex items-center gap-2">
-              <Crosshair className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">This Over</span>
+          <div className="flex flex-col items-center gap-2 p-3 bg-muted/20 rounded-lg border border-border/40">
+            <div className="flex items-center gap-1.5">
+              <Crosshair className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">This Over</span>
             </div>
             <OverProgress balls={getCurrentOver()} size="md" />
           </div>
         )}
 
-        {/* Target Information */}
+        {/* Target Info */}
         {targetInfo && (
-          <div className="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/15 to-primary/10 p-5 rounded-xl border-2 border-primary/30">
-            {/* Animated background pulse */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent animate-pulse" />
-            
-            <div className="relative grid grid-cols-4 gap-4 text-center">
-              <div className="space-y-1.5">
-                <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Target</div>
-                <div className="text-2xl font-black text-primary">{targetInfo.target}</div>
+          <div className="bg-primary/8 p-4 rounded-lg border border-primary/20">
+            <div className="grid grid-cols-4 gap-3 text-center">
+              <div>
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Target</div>
+                <div className="text-xl font-black text-primary mt-0.5">{targetInfo.target}</div>
               </div>
-              <div className="space-y-1.5">
-                <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Need</div>
-                <div className="text-2xl font-black text-cricket-ball">{targetInfo.required}</div>
+              <div>
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Need</div>
+                <div className="text-xl font-black text-cricket-ball mt-0.5">{targetInfo.required}</div>
               </div>
-              <div className="space-y-1.5">
-                <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Balls</div>
-                <div className="text-xl font-bold">{targetInfo.ballsLeft}</div>
+              <div>
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Balls</div>
+                <div className="text-lg font-bold mt-0.5">{targetInfo.ballsLeft}</div>
               </div>
-              <div className="space-y-1.5">
-                <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">RRR</div>
-                <div className={`text-xl font-bold ${
+              <div>
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">RRR</div>
+                <div className={`text-lg font-bold mt-0.5 ${
                   parseFloat(targetInfo.runRate) > 12 
                     ? 'text-destructive' 
                     : parseFloat(targetInfo.runRate) > 9 
@@ -242,62 +214,59 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
 
         {/* Current Batsmen */}
         {currentInnings && currentInnings.currentBatsmen.striker && (
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wide">
-              <Target className="h-4 w-4 text-primary" />
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+              <Target className="h-3.5 w-3.5 text-primary" />
               At The Crease
             </h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {/* Striker */}
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl blur-sm group-hover:blur-md transition-all" />
-                <div className="relative flex items-center gap-3 p-4 bg-card/80 backdrop-blur-sm rounded-xl border-2 border-primary/30 shadow-lg">
-                  <Avatar className="h-14 w-14 border-2 border-primary/50 shadow-lg">
-                    <AvatarImage src={currentInnings.currentBatsmen.striker.imageUrl} alt={currentInnings.currentBatsmen.striker.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10">
-                      <User className="h-7 w-7 text-primary" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm truncate flex items-center gap-1.5">
-                      {currentInnings.currentBatsmen.striker.name}
-                      <span className="text-primary text-lg">*</span>
-                    </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xl font-black">{currentInnings.currentBatsmen.striker.runs}</span>
-                      <span className="text-muted-foreground text-xs">({currentInnings.currentBatsmen.striker.balls})</span>
-                    </div>
-                    <div className={`text-xs font-semibold mt-0.5 ${
-                      Number(getStrikeRate(currentInnings.currentBatsmen.striker.runs, currentInnings.currentBatsmen.striker.balls)) > 150 
-                        ? 'text-cricket-green' 
-                        : Number(getStrikeRate(currentInnings.currentBatsmen.striker.runs, currentInnings.currentBatsmen.striker.balls)) < 100 
-                          ? 'text-destructive' 
-                          : 'text-muted-foreground'
-                    }`}>
-                      SR: {getStrikeRate(currentInnings.currentBatsmen.striker.runs, currentInnings.currentBatsmen.striker.balls)}
-                    </div>
+              <div className="flex items-center gap-2.5 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Avatar className="h-11 w-11 border-2 border-primary/30">
+                  <AvatarImage src={currentInnings.currentBatsmen.striker.imageUrl} alt={currentInnings.currentBatsmen.striker.name} />
+                  <AvatarFallback className="bg-primary/10 text-sm">
+                    <User className="h-5 w-5 text-primary" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm truncate flex items-center gap-1">
+                    {currentInnings.currentBatsmen.striker.name}
+                    <span className="text-primary">*</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-lg font-black">{currentInnings.currentBatsmen.striker.runs}</span>
+                    <span className="text-muted-foreground text-xs">({currentInnings.currentBatsmen.striker.balls})</span>
+                  </div>
+                  <div className={`text-[11px] font-semibold ${
+                    Number(getStrikeRate(currentInnings.currentBatsmen.striker.runs, currentInnings.currentBatsmen.striker.balls)) > 150 
+                      ? 'text-cricket-green' 
+                      : Number(getStrikeRate(currentInnings.currentBatsmen.striker.runs, currentInnings.currentBatsmen.striker.balls)) < 100 
+                        ? 'text-destructive' 
+                        : 'text-muted-foreground'
+                  }`}>
+                    SR: {getStrikeRate(currentInnings.currentBatsmen.striker.runs, currentInnings.currentBatsmen.striker.balls)}
                   </div>
                 </div>
               </div>
 
               {/* Non-Striker */}
               {currentInnings.currentBatsmen.nonStriker && (
-                <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl border border-border/50">
-                  <Avatar className="h-14 w-14 border-2 border-muted">
+                <div className="flex items-center gap-2.5 p-3 bg-muted/20 rounded-lg border border-border/40">
+                  <Avatar className="h-11 w-11 border border-muted">
                     <AvatarImage src={currentInnings.currentBatsmen.nonStriker.imageUrl} alt={currentInnings.currentBatsmen.nonStriker.name} />
-                    <AvatarFallback className="bg-muted">
-                      <User className="h-7 w-7 text-muted-foreground" />
+                    <AvatarFallback className="bg-muted text-sm">
+                      <User className="h-5 w-5 text-muted-foreground" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate text-muted-foreground">
                       {currentInnings.currentBatsmen.nonStriker.name}
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xl font-bold">{currentInnings.currentBatsmen.nonStriker.runs}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-lg font-bold">{currentInnings.currentBatsmen.nonStriker.runs}</span>
                       <span className="text-muted-foreground text-xs">({currentInnings.currentBatsmen.nonStriker.balls})</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-[11px] text-muted-foreground">
                       SR: {getStrikeRate(currentInnings.currentBatsmen.nonStriker.runs, currentInnings.currentBatsmen.nonStriker.balls)}
                     </div>
                   </div>
@@ -307,17 +276,17 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
           </div>
         )}
 
-        {/* Previous Innings Summary */}
+        {/* Previous Innings */}
         {match.firstInnings && match.currentInnings === 2 && (
-          <div className="border-t border-border/50 pt-4">
-            <div className="flex items-center justify-between text-sm p-3 bg-muted/20 rounded-lg">
-              <span className="text-muted-foreground font-semibold">1st Innings</span>
-              <span className="font-bold">
+          <div className="border-t border-border/40 pt-3">
+            <div className="flex items-center justify-between text-sm p-2.5 bg-muted/15 rounded-lg">
+              <span className="text-muted-foreground font-medium text-xs">1st Innings</span>
+              <span className="font-bold text-sm">
                 {match.firstInnings.battingTeam}: 
                 <span className="text-primary ml-1">{match.firstInnings.totalRuns}</span>
-                <span className="text-muted-foreground">/</span>
+                <span className="text-muted-foreground/50">/</span>
                 <span className="text-destructive">{match.firstInnings.wickets}</span>
-                <span className="text-muted-foreground ml-2 text-xs">
+                <span className="text-muted-foreground ml-1.5 text-xs">
                   ({formatOvers(match.firstInnings.ballsBowled)})
                 </span>
               </span>
