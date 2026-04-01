@@ -183,16 +183,16 @@ All colors MUST be HSL.
   }
   
   .glass-premium {
-    @apply backdrop-blur-2xl bg-gradient-to-br from-white/80 to-white/60 border border-white/40 shadow-2xl dark:from-white/10 dark:to-white/5 dark:border-white/10;
+    @apply backdrop-blur-2xl bg-gradient-to-br from-white/8 to-white/3 border border-white/10 shadow-2xl;
   }
   
-  /* Enhanced Stadium card style */
+  /* CWC23 Stadium card style */
   .stadium-card {
-    @apply bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg rounded-xl transition-all duration-300 dark:bg-card/80 dark:border-primary/10 dark:shadow-xl dark:shadow-black/20;
+    @apply bg-card/90 backdrop-blur-sm border border-primary/15 shadow-lg rounded-xl transition-all duration-300;
   }
   
   .stadium-card:hover {
-    @apply shadow-xl -translate-y-0.5 border-primary/30 dark:border-primary/30;
+    @apply shadow-xl -translate-y-0.5 border-primary/40;
   }
   
   /* Enhanced Scoreboard style with glassmorphism */

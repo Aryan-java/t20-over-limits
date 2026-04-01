@@ -26,10 +26,10 @@ const TabNavigation = ({ activeTab, onTabChange, children }: TabNavigationProps)
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <div className="relative mb-8">
-        {/* Subtle glow behind tabs */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-primary/10 to-transparent blur-xl rounded-2xl opacity-60" />
+        {/* CWC23 magenta glow behind tabs */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-primary/15 to-transparent blur-xl rounded-2xl opacity-60" />
         
-        <TabsList className="relative grid w-full grid-cols-5 h-14 p-1.5 bg-card/95 backdrop-blur-xl border border-border/50 shadow-lg rounded-xl dark:bg-card/80 dark:border-primary/15 overflow-hidden">
+        <TabsList className="relative grid w-full grid-cols-5 h-14 p-1.5 bg-card/90 backdrop-blur-xl border border-primary/20 shadow-lg rounded-xl overflow-hidden">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.value;
