@@ -7,19 +7,21 @@ const CricketHeader = () => {
   const { currentMatch } = useCricketStore();
 
   return (
-    <header className="relative overflow-hidden border-b border-primary/10">
-      {/* Stadium atmosphere background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cricket-green via-cricket-green/95 to-cricket-grass dark:from-background dark:via-background dark:to-cricket-green/20" />
-      <div className="absolute inset-0 bg-pitch-pattern opacity-10 dark:opacity-5" />
+    <header className="relative overflow-hidden border-b border-primary/20">
+      {/* CWC23 deep purple gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(260,65%,22%)] via-[hsl(270,55%,18%)] to-[hsl(260,60%,14%)]" />
       
-      {/* Stadium lights - subtler */}
-      <div className="absolute top-0 left-1/4 w-40 h-40 bg-cricket-gold/15 rounded-full blur-3xl" />
-      <div className="absolute top-0 right-1/4 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+      {/* Decorative pattern band */}
+      <div className="absolute bottom-8 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary opacity-60" />
       
-      {/* Cricket ball - refined */}
-      <div className="absolute right-12 top-1/2 -translate-y-1/2 opacity-[0.07] dark:opacity-[0.04]">
-        <div className="relative w-20 h-20 rounded-full bg-cricket-ball">
-          <div className="absolute inset-2 border-2 border-white/30 rounded-full" />
+      {/* Stadium floodlights */}
+      <div className="absolute top-0 left-1/4 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute top-0 right-1/4 w-48 h-48 bg-accent/8 rounded-full blur-3xl" />
+      
+      {/* Cricket ball accent */}
+      <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-[0.06]">
+        <div className="relative w-24 h-24 rounded-full bg-cricket-ball">
+          <div className="absolute inset-3 border-2 border-white/30 rounded-full" />
           <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/40 -rotate-12" />
         </div>
       </div>
@@ -29,17 +31,17 @@ const CricketHeader = () => {
           {/* Logo and Title */}
           <div className="flex items-center gap-3.5">
             <div className="relative group">
-              <div className="absolute inset-0 bg-cricket-gold/30 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative p-3 bg-white/15 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg group-hover:scale-105 transition-transform duration-300">
-                <Trophy className="h-7 w-7 text-white drop-shadow-md" />
+              <div className="absolute inset-0 bg-accent/30 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative p-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 shadow-lg group-hover:scale-105 transition-transform duration-300">
+                <Trophy className="h-7 w-7 text-accent drop-shadow-md" />
               </div>
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight drop-shadow-md flex items-center gap-2">
                 Cricket Simulator
-                <Circle className="h-1.5 w-1.5 fill-cricket-gold text-cricket-gold" />
+                <Circle className="h-1.5 w-1.5 fill-primary text-primary" />
               </h1>
-              <p className="text-white/60 text-xs font-medium tracking-[0.25em] uppercase mt-0.5">
+              <p className="text-primary/80 text-xs font-bold tracking-[0.25em] uppercase mt-0.5">
                 T20 Tournament Experience
               </p>
             </div>
@@ -59,15 +61,15 @@ const CricketHeader = () => {
             
             <Badge 
               variant="secondary" 
-              className="hidden sm:flex bg-white/10 text-white/90 border-white/15 backdrop-blur-sm px-3 py-1 text-xs hover:bg-white/20 transition-colors"
+              className="hidden sm:flex bg-white/8 text-white/90 border-white/10 backdrop-blur-sm px-3 py-1 text-xs hover:bg-white/15 transition-colors"
             >
-              <Zap className="h-3.5 w-3.5 mr-1.5 text-cricket-gold" />
+              <Zap className="h-3.5 w-3.5 mr-1.5 text-accent" />
               T20
             </Badge>
             
             <Badge 
               variant="secondary" 
-              className="hidden md:flex bg-white/10 text-white/90 border-white/15 backdrop-blur-sm px-3 py-1 text-xs hover:bg-white/20 transition-colors"
+              className="hidden md:flex bg-white/8 text-white/90 border-white/10 backdrop-blur-sm px-3 py-1 text-xs hover:bg-white/15 transition-colors"
             >
               <Users className="h-3.5 w-3.5 mr-1.5" />
               8 Teams
@@ -78,8 +80,10 @@ const CricketHeader = () => {
         </div>
       </div>
 
-      {/* Bottom accent - single clean line */}
-      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cricket-gold/60 to-transparent" />
+      {/* Bottom accent band - CWC23 style decorative stripe */}
+      <div className="relative h-1.5">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary" />
+      </div>
     </header>
   );
 };

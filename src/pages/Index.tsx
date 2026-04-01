@@ -14,12 +14,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
-      {/* Subtle stadium atmosphere background */}
+      {/* CWC23-inspired deep purple atmosphere */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-cricket-pitch/50 via-background to-background dark:from-cricket-sky/10 dark:via-background dark:to-background" />
-        <div className="absolute inset-0 bg-pitch-pattern opacity-[0.02] dark:opacity-[0.01]" />
-        <div className="absolute top-0 left-1/4 w-80 h-80 bg-primary/3 rounded-full blur-3xl dark:bg-primary/5" />
-        <div className="absolute top-0 right-1/3 w-60 h-60 bg-cricket-gold/3 rounded-full blur-3xl dark:bg-cricket-gold/5" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(260,55%,18%)] via-background to-background" />
+        <div className="absolute inset-0 bg-pitch-pattern opacity-[0.015]" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute top-20 right-1/3 w-72 h-72 bg-accent/4 rounded-full blur-3xl" />
       </div>
       
       <div className="relative z-10">
