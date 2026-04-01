@@ -8,82 +8,82 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 125 45% 96%;
-    --foreground: 140 10% 15%;
+    --background: 260 60% 16%;
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 140 10% 15%;
+    --card: 260 55% 20%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 140 10% 15%;
+    --popover: 260 55% 18%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 142 76% 36%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 330 85% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 125 25% 90%;
-    --secondary-foreground: 140 10% 15%;
+    --secondary: 260 45% 25%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 125 25% 90%;
-    --muted-foreground: 140 5% 50%;
+    --muted: 260 40% 22%;
+    --muted-foreground: 260 20% 65%;
 
-    --accent: 40 96% 50%;
-    --accent-foreground: 140 10% 15%;
+    --accent: 45 95% 55%;
+    --accent-foreground: 260 60% 16%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 125 25% 82%;
-    --input: 125 25% 82%;
-    --ring: 142 76% 36%;
+    --border: 260 40% 28%;
+    --input: 260 40% 25%;
+    --ring: 330 85% 55%;
 
     /* Cricket-specific colors */
     --cricket-green: 142 76% 36%;
-    --cricket-pitch: 125 45% 96%;
-    --cricket-ball: 0 65% 45%;
+    --cricket-pitch: 260 50% 18%;
+    --cricket-ball: 0 65% 50%;
     --cricket-stumps: 35 100% 74%;
-    --cricket-boundary: 220 100% 50%;
+    --cricket-boundary: 220 100% 60%;
     
     /* Extended cricket palette */
-    --cricket-gold: 45 93% 47%;
+    --cricket-gold: 45 95% 55%;
     --cricket-purple: 270 70% 55%;
-    --cricket-sky: 200 100% 85%;
-    --cricket-grass: 120 60% 40%;
+    --cricket-sky: 260 60% 22%;
+    --cricket-grass: 142 60% 40%;
     
     /* Score event colors */
-    --score-four: 142 76% 36%;
-    --score-six: 270 70% 55%;
+    --score-four: 142 76% 45%;
+    --score-six: 270 70% 60%;
     --score-wicket: 0 84% 60%;
-    --score-dot: 200 10% 60%;
-    --score-single: 40 80% 50%;
+    --score-dot: 260 20% 45%;
+    --score-single: 45 80% 55%;
     
     /* Gradients */
-    --gradient-pitch: linear-gradient(135deg, hsl(var(--cricket-green)), hsl(125 60% 45%));
-    --gradient-sky: linear-gradient(180deg, hsl(200 100% 85%), hsl(var(--background)));
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(142 76% 45%));
-    --gradient-gold: linear-gradient(135deg, hsl(45 93% 47%), hsl(35 90% 55%));
-    --gradient-stadium: linear-gradient(180deg, hsl(200 80% 75%), hsl(200 60% 85%), hsl(var(--background)));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(125 20% 98%));
-    --gradient-glass: linear-gradient(135deg, hsla(0 0% 100% / 0.9), hsla(0 0% 100% / 0.7));
+    --gradient-pitch: linear-gradient(135deg, hsl(260 60% 18%), hsl(270 55% 22%));
+    --gradient-sky: linear-gradient(180deg, hsl(260 55% 20%), hsl(var(--background)));
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(330 80% 65%));
+    --gradient-gold: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
+    --gradient-stadium: linear-gradient(180deg, hsl(260 65% 22%), hsl(260 55% 18%), hsl(var(--background)));
+    --gradient-card: linear-gradient(145deg, hsl(260 55% 22%), hsl(260 50% 18%));
+    --gradient-glass: linear-gradient(135deg, hsla(260 55% 25% / 0.9), hsla(260 50% 20% / 0.7));
     
     /* Shadows */
-    --shadow-pitch: 0 4px 20px hsl(var(--cricket-green) / 0.15);
-    --shadow-card: 0 2px 10px hsl(140 10% 15% / 0.1);
-    --shadow-glow: 0 0 30px hsl(var(--accent) / 0.3);
-    --shadow-elevated: 0 8px 30px hsl(140 10% 15% / 0.12);
+    --shadow-pitch: 0 4px 20px hsl(260 60% 10% / 0.4);
+    --shadow-card: 0 2px 10px hsl(260 60% 8% / 0.3);
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.3);
+    --shadow-elevated: 0 8px 30px hsl(260 60% 8% / 0.4);
     --shadow-boundary: 0 0 20px hsl(var(--score-four) / 0.5);
     --shadow-six: 0 0 25px hsl(var(--score-six) / 0.5);
     --shadow-wicket: 0 0 15px hsl(var(--score-wicket) / 0.4);
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 260 55% 14%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 330 85% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 45% 22%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 260 40% 25%;
+    --sidebar-ring: 330 85% 55%;
   }
 
   .dark {
