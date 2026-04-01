@@ -173,13 +173,13 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
-  /* Enhanced Glass morphism effects */
+  /* Enhanced Glass morphism effects - CWC23 purple tint */
   .glass {
-    @apply backdrop-blur-xl bg-white/70 border border-white/30 shadow-lg dark:bg-white/5 dark:border-white/10;
+    @apply backdrop-blur-xl bg-white/5 border border-white/10 shadow-lg;
   }
   
   .glass-dark {
-    @apply backdrop-blur-xl bg-black/30 border border-white/10 shadow-xl dark:bg-black/50 dark:border-white/5;
+    @apply backdrop-blur-xl bg-black/30 border border-white/10 shadow-xl;
   }
   
   .glass-premium {
