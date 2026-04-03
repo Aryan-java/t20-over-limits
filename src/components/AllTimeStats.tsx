@@ -161,12 +161,25 @@ export default function AllTimeStats() {
     switch (batCat) {
       case "most-runs": return list.sort((a, b) => b.total_runs - a.total_runs);
       case "highest-score": return list.sort((a, b) => b.highest_score - a.highest_score);
-      case "highest-sr": return list.filter(p => p.balls_faced >= 10).sort((a, b) => parseFloat(calcSR(b.total_runs, b.balls_faced)) - parseFloat(calcSR(a.total_runs, a.balls_faced)));
+      case "highest-sr-tournament": return list.filter(p => p.balls_faced >= 10).sort((a, b) => parseFloat(calcSR(b.total_runs, b.balls_faced)) - parseFloat(calcSR(a.total_runs, a.balls_faced)));
       case "highest-avg": return list.filter(p => p.matches_batted >= 2).sort((a, b) => parseFloat(calcBatAvg(b.total_runs, b.matches_batted, b.not_outs)) - parseFloat(calcBatAvg(a.total_runs, a.matches_batted, a.not_outs)));
       case "most-sixes": return list.sort((a, b) => b.sixes - a.sixes);
       case "most-fours": return list.sort((a, b) => b.fours - a.fours);
-      case "most-fifties": return list.sort((a, b) => b.fifties - a.fifties);
-      case "most-centuries": return list.sort((a, b) => b.hundreds - a.hundreds);
+      case "most-fifties": return list.filter(p => p.fifties > 0).sort((a, b) => b.fifties - a.fifties);
+      case "most-centuries": return list.filter(p => p.hundreds > 0).sort((a, b) => b.hundreds - a.hundreds);
+      case "fastest-fifties": return list.filter(p => p.fifties > 0).sort((a, b) => {
+        const srA = parseFloat(calcSR(a.total_runs, a.balls_faced));
+        const srB = parseFloat(calcSR(b.total_runs, b.balls_faced));
+        return srB - srA;
+      });
+      case "fastest-centuries": return list.filter(p => p.hundreds > 0).sort((a, b) => {
+        const srA = parseFloat(calcSR(a.total_runs, a.balls_faced));
+        const srB = parseFloat(calcSR(b.total_runs, b.balls_faced));
+        return srB - srA;
+      });
+      case "most-not-outs": return list.sort((a, b) => b.not_outs - a.not_outs);
+      case "most-balls-faced": return list.sort((a, b) => b.balls_faced - a.balls_faced);
+      case "most-boundaries": return list.sort((a, b) => (b.fours + b.sixes) - (a.fours + a.sixes));
       default: return list;
     }
   }, [battingLeaderboard, batCat]);
@@ -178,7 +191,10 @@ export default function AllTimeStats() {
       case "best-avg": return list.filter(p => p.total_wickets > 0).sort((a, b) => parseFloat(calcBowlAvg(a.runs_conceded, a.total_wickets) === "-" ? "999" : calcBowlAvg(a.runs_conceded, a.total_wickets)) - parseFloat(calcBowlAvg(b.runs_conceded, b.total_wickets) === "-" ? "999" : calcBowlAvg(b.runs_conceded, b.total_wickets)));
       case "best-economy": return list.filter(p => p.balls_bowled >= 12).sort((a, b) => parseFloat(calcEcon(a.runs_conceded, a.balls_bowled)) - parseFloat(calcEcon(b.runs_conceded, b.balls_bowled)));
       case "best-sr": return list.filter(p => p.total_wickets > 0).sort((a, b) => parseFloat(calcBowlSR(a.balls_bowled, a.total_wickets) === "-" ? "999" : calcBowlSR(a.balls_bowled, a.total_wickets)) - parseFloat(calcBowlSR(b.balls_bowled, b.total_wickets) === "-" ? "999" : calcBowlSR(b.balls_bowled, b.total_wickets)));
+      case "most-runs-conceded": return list.sort((a, b) => b.runs_conceded - a.runs_conceded);
+      case "most-dot-balls": return list.sort((a, b) => b.maidens - a.maidens); // using maidens as proxy for dot ball dominance
       case "most-maidens": return list.sort((a, b) => b.maidens - a.maidens);
+      case "most-balls-bowled": return list.sort((a, b) => b.balls_bowled - a.balls_bowled);
       default: return list;
     }
   }, [bowlingLeaderboard, bowlCat]);
