@@ -32,12 +32,17 @@ const fmt = (n: number) => n >= 1000 ? (n / 1000).toFixed(1) + "K" : n.toString(
 const BATTING_CATEGORIES = [
   { key: "most-runs", label: "Most Runs" },
   { key: "highest-score", label: "Highest Individual Score" },
-  { key: "highest-sr", label: "Highest Strike Rate" },
+  { key: "highest-sr-tournament", label: "Highest Strike Rate (Tournament)" },
   { key: "highest-avg", label: "Highest Averages" },
   { key: "most-sixes", label: "Most Sixes" },
   { key: "most-fours", label: "Most Fours" },
   { key: "most-fifties", label: "Most Fifties" },
   { key: "most-centuries", label: "Most Centuries" },
+  { key: "fastest-fifties", label: "Fastest Fifties" },
+  { key: "fastest-centuries", label: "Fastest Centuries" },
+  { key: "most-not-outs", label: "Most Not Outs" },
+  { key: "most-balls-faced", label: "Most Balls Faced" },
+  { key: "most-boundaries", label: "Most Boundaries" },
 ];
 
 const BOWLING_CATEGORIES = [
@@ -45,7 +50,10 @@ const BOWLING_CATEGORIES = [
   { key: "best-avg", label: "Best Averages" },
   { key: "best-economy", label: "Best Economy" },
   { key: "best-sr", label: "Best Strike-Rates" },
+  { key: "most-runs-conceded", label: "Most Runs Conceded" },
+  { key: "most-dot-balls", label: "Most Dot Balls Bowled" },
   { key: "most-maidens", label: "Most Maiden Overs Bowled" },
+  { key: "most-balls-bowled", label: "Most Balls Bowled" },
 ];
 
 const CHART_COLORS = [
