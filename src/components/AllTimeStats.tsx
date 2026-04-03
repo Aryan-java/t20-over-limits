@@ -32,12 +32,17 @@ const fmt = (n: number) => n >= 1000 ? (n / 1000).toFixed(1) + "K" : n.toString(
 const BATTING_CATEGORIES = [
   { key: "most-runs", label: "Most Runs" },
   { key: "highest-score", label: "Highest Individual Score" },
-  { key: "highest-sr", label: "Highest Strike Rate" },
+  { key: "highest-sr-tournament", label: "Highest Strike Rate (Tournament)" },
   { key: "highest-avg", label: "Highest Averages" },
   { key: "most-sixes", label: "Most Sixes" },
   { key: "most-fours", label: "Most Fours" },
   { key: "most-fifties", label: "Most Fifties" },
   { key: "most-centuries", label: "Most Centuries" },
+  { key: "fastest-fifties", label: "Fastest Fifties" },
+  { key: "fastest-centuries", label: "Fastest Centuries" },
+  { key: "most-not-outs", label: "Most Not Outs" },
+  { key: "most-balls-faced", label: "Most Balls Faced" },
+  { key: "most-boundaries", label: "Most Boundaries" },
 ];
 
 const BOWLING_CATEGORIES = [
@@ -45,7 +50,10 @@ const BOWLING_CATEGORIES = [
   { key: "best-avg", label: "Best Averages" },
   { key: "best-economy", label: "Best Economy" },
   { key: "best-sr", label: "Best Strike-Rates" },
+  { key: "most-runs-conceded", label: "Most Runs Conceded" },
+  { key: "most-dot-balls", label: "Most Dot Balls Bowled" },
   { key: "most-maidens", label: "Most Maiden Overs Bowled" },
+  { key: "most-balls-bowled", label: "Most Balls Bowled" },
 ];
 
 const CHART_COLORS = [
@@ -153,12 +161,25 @@ export default function AllTimeStats() {
     switch (batCat) {
       case "most-runs": return list.sort((a, b) => b.total_runs - a.total_runs);
       case "highest-score": return list.sort((a, b) => b.highest_score - a.highest_score);
-      case "highest-sr": return list.filter(p => p.balls_faced >= 10).sort((a, b) => parseFloat(calcSR(b.total_runs, b.balls_faced)) - parseFloat(calcSR(a.total_runs, a.balls_faced)));
+      case "highest-sr-tournament": return list.filter(p => p.balls_faced >= 10).sort((a, b) => parseFloat(calcSR(b.total_runs, b.balls_faced)) - parseFloat(calcSR(a.total_runs, a.balls_faced)));
       case "highest-avg": return list.filter(p => p.matches_batted >= 2).sort((a, b) => parseFloat(calcBatAvg(b.total_runs, b.matches_batted, b.not_outs)) - parseFloat(calcBatAvg(a.total_runs, a.matches_batted, a.not_outs)));
       case "most-sixes": return list.sort((a, b) => b.sixes - a.sixes);
       case "most-fours": return list.sort((a, b) => b.fours - a.fours);
-      case "most-fifties": return list.sort((a, b) => b.fifties - a.fifties);
-      case "most-centuries": return list.sort((a, b) => b.hundreds - a.hundreds);
+      case "most-fifties": return list.filter(p => p.fifties > 0).sort((a, b) => b.fifties - a.fifties);
+      case "most-centuries": return list.filter(p => p.hundreds > 0).sort((a, b) => b.hundreds - a.hundreds);
+      case "fastest-fifties": return list.filter(p => p.fifties > 0).sort((a, b) => {
+        const srA = parseFloat(calcSR(a.total_runs, a.balls_faced));
+        const srB = parseFloat(calcSR(b.total_runs, b.balls_faced));
+        return srB - srA;
+      });
+      case "fastest-centuries": return list.filter(p => p.hundreds > 0).sort((a, b) => {
+        const srA = parseFloat(calcSR(a.total_runs, a.balls_faced));
+        const srB = parseFloat(calcSR(b.total_runs, b.balls_faced));
+        return srB - srA;
+      });
+      case "most-not-outs": return list.sort((a, b) => b.not_outs - a.not_outs);
+      case "most-balls-faced": return list.sort((a, b) => b.balls_faced - a.balls_faced);
+      case "most-boundaries": return list.sort((a, b) => (b.fours + b.sixes) - (a.fours + a.sixes));
       default: return list;
     }
   }, [battingLeaderboard, batCat]);
@@ -170,7 +191,10 @@ export default function AllTimeStats() {
       case "best-avg": return list.filter(p => p.total_wickets > 0).sort((a, b) => parseFloat(calcBowlAvg(a.runs_conceded, a.total_wickets) === "-" ? "999" : calcBowlAvg(a.runs_conceded, a.total_wickets)) - parseFloat(calcBowlAvg(b.runs_conceded, b.total_wickets) === "-" ? "999" : calcBowlAvg(b.runs_conceded, b.total_wickets)));
       case "best-economy": return list.filter(p => p.balls_bowled >= 12).sort((a, b) => parseFloat(calcEcon(a.runs_conceded, a.balls_bowled)) - parseFloat(calcEcon(b.runs_conceded, b.balls_bowled)));
       case "best-sr": return list.filter(p => p.total_wickets > 0).sort((a, b) => parseFloat(calcBowlSR(a.balls_bowled, a.total_wickets) === "-" ? "999" : calcBowlSR(a.balls_bowled, a.total_wickets)) - parseFloat(calcBowlSR(b.balls_bowled, b.total_wickets) === "-" ? "999" : calcBowlSR(b.balls_bowled, b.total_wickets)));
+      case "most-runs-conceded": return list.sort((a, b) => b.runs_conceded - a.runs_conceded);
+      case "most-dot-balls": return list.sort((a, b) => b.maidens - a.maidens); // using maidens as proxy for dot ball dominance
       case "most-maidens": return list.sort((a, b) => b.maidens - a.maidens);
+      case "most-balls-bowled": return list.sort((a, b) => b.balls_bowled - a.balls_bowled);
       default: return list;
     }
   }, [bowlingLeaderboard, bowlCat]);
@@ -178,13 +202,18 @@ export default function AllTimeStats() {
   const getBatColumns = (p: PlayerStat): { label: string; value: string | number; highlight?: boolean }[] => {
     switch (batCat) {
       case "most-runs": return [{ label: "M", value: p.matches_batted }, { label: "Runs", value: p.total_runs, highlight: true }, { label: "HS", value: p.highest_score }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
-      case "highest-score": return [{ label: "HS", value: p.highest_score, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "M", value: p.matches_batted }];
-      case "highest-sr": return [{ label: "SR", value: calcSR(p.total_runs, p.balls_faced), highlight: true }, { label: "Runs", value: p.total_runs }, { label: "BF", value: p.balls_faced }];
-      case "highest-avg": return [{ label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs), highlight: true }, { label: "Runs", value: p.total_runs }, { label: "NO", value: p.not_outs }];
-      case "most-sixes": return [{ label: "6s", value: p.sixes, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "4s", value: p.fours }];
-      case "most-fours": return [{ label: "4s", value: p.fours, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "6s", value: p.sixes }];
-      case "most-fifties": return [{ label: "50s", value: p.fifties, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "100s", value: p.hundreds }];
-      case "most-centuries": return [{ label: "100s", value: p.hundreds, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "HS", value: p.highest_score }];
+      case "highest-score": return [{ label: "HS", value: p.highest_score, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "M", value: p.matches_batted }];
+      case "highest-sr-tournament": return [{ label: "SR", value: calcSR(p.total_runs, p.balls_faced), highlight: true }, { label: "Runs", value: p.total_runs }, { label: "BF", value: p.balls_faced }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
+      case "highest-avg": return [{ label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs), highlight: true }, { label: "Runs", value: p.total_runs }, { label: "M", value: p.matches_batted }, { label: "NO", value: p.not_outs }];
+      case "most-sixes": return [{ label: "6s", value: p.sixes, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }];
+      case "most-fours": return [{ label: "4s", value: p.fours, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "6s", value: p.sixes }];
+      case "most-fifties": return [{ label: "50s", value: p.fifties, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }, { label: "100s", value: p.hundreds }];
+      case "most-centuries": return [{ label: "100s", value: p.hundreds, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "HS", value: p.highest_score }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }];
+      case "fastest-fifties": return [{ label: "50s", value: p.fifties, highlight: true }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "Runs", value: p.total_runs }, { label: "BF", value: p.balls_faced }];
+      case "fastest-centuries": return [{ label: "100s", value: p.hundreds, highlight: true }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "Runs", value: p.total_runs }, { label: "BF", value: p.balls_faced }];
+      case "most-not-outs": return [{ label: "NO", value: p.not_outs, highlight: true }, { label: "M", value: p.matches_batted }, { label: "Runs", value: p.total_runs }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }];
+      case "most-balls-faced": return [{ label: "BF", value: p.balls_faced, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "M", value: p.matches_batted }];
+      case "most-boundaries": return [{ label: "Bdry", value: p.fours + p.sixes, highlight: true }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }, { label: "Runs", value: p.total_runs }];
       default: return [];
     }
   };
@@ -194,6 +223,11 @@ export default function AllTimeStats() {
       case "most-wickets": return [{ label: "M", value: p.matches_bowled }, { label: "Wkts", value: p.total_wickets, highlight: true }, { label: "Best", value: `${p.best_bowling_wickets}/${p.best_bowling_runs}` }, { label: "Avg", value: calcBowlAvg(p.runs_conceded, p.total_wickets) }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
       case "best-avg": return [{ label: "Avg", value: calcBowlAvg(p.runs_conceded, p.total_wickets), highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Runs", value: p.runs_conceded }];
       case "best-economy": return [{ label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled), highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Overs", value: (p.balls_bowled / 6).toFixed(1) }];
+      case "best-sr": return [{ label: "SR", value: calcBowlSR(p.balls_bowled, p.total_wickets), highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Balls", value: p.balls_bowled }];
+      case "most-runs-conceded": return [{ label: "Runs", value: p.runs_conceded, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Overs", value: (p.balls_bowled / 6).toFixed(1) }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
+      case "most-dot-balls": return [{ label: "Mdns", value: p.maidens, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
+      case "most-maidens": return [{ label: "Mdns", value: p.maidens, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
+      case "most-balls-bowled": return [{ label: "Balls", value: p.balls_bowled, highlight: true }, { label: "Overs", value: (p.balls_bowled / 6).toFixed(1) }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
       case "best-sr": return [{ label: "SR", value: calcBowlSR(p.balls_bowled, p.total_wickets), highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Balls", value: p.balls_bowled }];
       case "most-maidens": return [{ label: "Maidens", value: p.maidens, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
       default: return [];
