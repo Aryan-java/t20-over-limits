@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
+import { supabase } from "@/integrations/supabase/client";
 import {
   User, TrendingUp, Target, Loader2, RefreshCw,
   Trophy, Crown, Medal, Star, Sparkles,
@@ -140,6 +141,14 @@ export default function AllTimeStats() {
   const [batCat, setBatCat] = useState("most-runs");
   const [bowlCat, setBowlCat] = useState("most-wickets");
 
+  // Fetch per-innings data for fastest 50/100 categories
+  const [inningsData, setInningsData] = useState<any[]>([]);
+  useEffect(() => {
+    supabase.from("player_innings").select("*").limit(1000).then(({ data }) => {
+      if (data) setInningsData(data);
+    });
+  }, [isRefreshing]);
+
   const handleRefresh = async () => { setIsRefreshing(true); await refetch(); setIsRefreshing(false); };
 
   const agg = useMemo(() => {
@@ -167,22 +176,43 @@ export default function AllTimeStats() {
       case "most-fours": return list.sort((a, b) => b.fours - a.fours);
       case "most-fifties": return list.filter(p => p.fifties > 0).sort((a, b) => b.fifties - a.fifties);
       case "most-centuries": return list.filter(p => p.hundreds > 0).sort((a, b) => b.hundreds - a.hundreds);
-      case "fastest-fifties": return list.filter(p => p.fifties > 0).sort((a, b) => {
-        const srA = parseFloat(calcSR(a.total_runs, a.balls_faced));
-        const srB = parseFloat(calcSR(b.total_runs, b.balls_faced));
-        return srB - srA;
-      });
-      case "fastest-centuries": return list.filter(p => p.hundreds > 0).sort((a, b) => {
-        const srA = parseFloat(calcSR(a.total_runs, a.balls_faced));
-        const srB = parseFloat(calcSR(b.total_runs, b.balls_faced));
-        return srB - srA;
-      });
+      case "fastest-fifties": {
+        // Use per-innings data: show each innings where player scored 50+, sorted by fewest balls
+        const fiftyInnings = inningsData
+          .filter((inn: any) => inn.runs >= 50 && inn.runs < 100)
+          .sort((a: any, b: any) => a.balls_faced - b.balls_faced)
+          .slice(0, 20)
+          .map((inn: any) => ({
+            id: inn.id, player_id: inn.player_id, player_name: inn.player_name,
+            team_name: inn.team_name, image_url: inn.image_url,
+            total_runs: inn.runs, balls_faced: inn.balls_faced, fours: inn.fours, sixes: inn.sixes,
+            matches_batted: 0, highest_score: inn.runs, fifties: 1, hundreds: 0, not_outs: inn.dismissed ? 0 : 1,
+            matches_bowled: 0, total_wickets: 0, balls_bowled: 0, runs_conceded: 0,
+            best_bowling_wickets: 0, best_bowling_runs: 0, maidens: 0,
+          } as PlayerStat));
+        return fiftyInnings.length > 0 ? fiftyInnings : list.filter(p => p.fifties > 0).sort((a, b) => a.balls_faced - b.balls_faced);
+      }
+      case "fastest-centuries": {
+        const centuryInnings = inningsData
+          .filter((inn: any) => inn.runs >= 100)
+          .sort((a: any, b: any) => a.balls_faced - b.balls_faced)
+          .slice(0, 20)
+          .map((inn: any) => ({
+            id: inn.id, player_id: inn.player_id, player_name: inn.player_name,
+            team_name: inn.team_name, image_url: inn.image_url,
+            total_runs: inn.runs, balls_faced: inn.balls_faced, fours: inn.fours, sixes: inn.sixes,
+            matches_batted: 0, highest_score: inn.runs, fifties: 0, hundreds: 1, not_outs: inn.dismissed ? 0 : 1,
+            matches_bowled: 0, total_wickets: 0, balls_bowled: 0, runs_conceded: 0,
+            best_bowling_wickets: 0, best_bowling_runs: 0, maidens: 0,
+          } as PlayerStat));
+        return centuryInnings.length > 0 ? centuryInnings : list.filter(p => p.hundreds > 0).sort((a, b) => a.balls_faced - b.balls_faced);
+      }
       case "most-not-outs": return list.sort((a, b) => b.not_outs - a.not_outs);
       case "most-balls-faced": return list.sort((a, b) => b.balls_faced - a.balls_faced);
       case "most-boundaries": return list.sort((a, b) => (b.fours + b.sixes) - (a.fours + a.sixes));
       default: return list;
     }
-  }, [battingLeaderboard, batCat]);
+  }, [battingLeaderboard, batCat, inningsData]);
 
   const sortedBowlers = useMemo(() => {
     const list = [...bowlingLeaderboard];
@@ -209,8 +239,8 @@ export default function AllTimeStats() {
       case "most-fours": return [{ label: "4s", value: p.fours, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "6s", value: p.sixes }];
       case "most-fifties": return [{ label: "50s", value: p.fifties, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }, { label: "100s", value: p.hundreds }];
       case "most-centuries": return [{ label: "100s", value: p.hundreds, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "HS", value: p.highest_score }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }];
-      case "fastest-fifties": return [{ label: "50s", value: p.fifties, highlight: true }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "Runs", value: p.total_runs }, { label: "BF", value: p.balls_faced }];
-      case "fastest-centuries": return [{ label: "100s", value: p.hundreds, highlight: true }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "Runs", value: p.total_runs }, { label: "BF", value: p.balls_faced }];
+      case "fastest-fifties": return [{ label: "Runs", value: p.total_runs, highlight: true }, { label: "BF", value: p.balls_faced }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
+      case "fastest-centuries": return [{ label: "Runs", value: p.total_runs, highlight: true }, { label: "BF", value: p.balls_faced }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
       case "most-not-outs": return [{ label: "NO", value: p.not_outs, highlight: true }, { label: "M", value: p.matches_batted }, { label: "Runs", value: p.total_runs }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }];
       case "most-balls-faced": return [{ label: "BF", value: p.balls_faced, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "M", value: p.matches_batted }];
       case "most-boundaries": return [{ label: "Bdry", value: p.fours + p.sixes, highlight: true }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }, { label: "Runs", value: p.total_runs }];
