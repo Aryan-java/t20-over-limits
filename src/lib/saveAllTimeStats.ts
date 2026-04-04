@@ -123,6 +123,35 @@ export async function saveAllTimeStats(match: Match): Promise<boolean> {
       if (i + batchSize < allPlayers.length) await delay(200);
     }
 
+    // Save individual innings records for players who batted
+    const inningsRecords = allPlayers
+      .filter(({ player }) => (player.balls || 0) > 0 || (player.runs || 0) > 0 || player.dismissed)
+      .map(({ player, teamName }) => ({
+        player_id: player.id,
+        player_name: player.name,
+        team_name: teamName,
+        image_url: player.imageUrl || null,
+        match_id: match.id,
+        runs: player.runs || 0,
+        balls_faced: player.balls || 0,
+        fours: player.fours || 0,
+        sixes: player.sixes || 0,
+        dismissed: !!player.dismissed,
+      }));
+
+    if (inningsRecords.length > 0) {
+      // Delete existing innings for this match to avoid duplicates on re-save
+      await supabase.from("player_innings").delete().eq("match_id", match.id);
+      await delay(100);
+
+      for (let i = 0; i < inningsRecords.length; i += batchSize) {
+        const batch = inningsRecords.slice(i, i + batchSize);
+        const { error } = await supabase.from("player_innings").insert(batch as any);
+        if (error) console.error("Failed to insert innings batch:", error);
+        if (i + batchSize < inningsRecords.length) await delay(200);
+      }
+    }
+
     return true;
   } catch (err) {
     console.error("Failed to save all-time stats:", err);
