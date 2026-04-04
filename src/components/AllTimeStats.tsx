@@ -141,6 +141,14 @@ export default function AllTimeStats() {
   const [batCat, setBatCat] = useState("most-runs");
   const [bowlCat, setBowlCat] = useState("most-wickets");
 
+  // Fetch per-innings data for fastest 50/100 categories
+  const [inningsData, setInningsData] = useState<any[]>([]);
+  useEffect(() => {
+    supabase.from("player_innings").select("*").limit(1000).then(({ data }) => {
+      if (data) setInningsData(data);
+    });
+  }, [isRefreshing]);
+
   const handleRefresh = async () => { setIsRefreshing(true); await refetch(); setIsRefreshing(false); };
 
   const agg = useMemo(() => {
