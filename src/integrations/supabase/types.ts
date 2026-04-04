@@ -157,6 +157,51 @@ export type Database = {
         }
         Relationships: []
       }
+      player_innings: {
+        Row: {
+          balls_faced: number
+          created_at: string
+          dismissed: boolean
+          fours: number
+          id: string
+          image_url: string | null
+          match_id: string | null
+          player_id: string
+          player_name: string
+          runs: number
+          sixes: number
+          team_name: string | null
+        }
+        Insert: {
+          balls_faced?: number
+          created_at?: string
+          dismissed?: boolean
+          fours?: number
+          id?: string
+          image_url?: string | null
+          match_id?: string | null
+          player_id: string
+          player_name: string
+          runs?: number
+          sixes?: number
+          team_name?: string | null
+        }
+        Update: {
+          balls_faced?: number
+          created_at?: string
+          dismissed?: boolean
+          fours?: number
+          id?: string
+          image_url?: string | null
+          match_id?: string | null
+          player_id?: string
+          player_name?: string
+          runs?: number
+          sixes?: number
+          team_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
