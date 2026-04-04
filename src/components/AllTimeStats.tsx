@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
+import { supabase } from "@/integrations/supabase/client";
 import {
   User, TrendingUp, Target, Loader2, RefreshCw,
   Trophy, Crown, Medal, Star, Sparkles,
