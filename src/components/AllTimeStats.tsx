@@ -212,7 +212,7 @@ export default function AllTimeStats() {
       case "most-boundaries": return list.sort((a, b) => (b.fours + b.sixes) - (a.fours + a.sixes));
       default: return list;
     }
-  }, [battingLeaderboard, batCat]);
+  }, [battingLeaderboard, batCat, inningsData]);
 
   const sortedBowlers = useMemo(() => {
     const list = [...bowlingLeaderboard];
