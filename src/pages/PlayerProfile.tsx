@@ -131,10 +131,18 @@ const PlayerProfile = () => {
   const bowlAvg = s.total_wickets > 0 ? (s.runs_conceded / s.total_wickets).toFixed(1) : "—";
 
   const getRole = () => {
-    const diff = batSkill - bowlSkill;
-    if (diff > 20) return { role: "Batsman", color: "text-orange-500", icon: TrendingUp };
-    if (diff < -20) return { role: "Bowler", color: "text-purple-500", icon: Target };
-    return { role: "All-Rounder", color: "text-primary", icon: Zap };
+    if (localPlayer) {
+      const diff = batSkill - bowlSkill;
+      if (diff > 20) return { role: "Batsman", color: "text-orange-500", icon: TrendingUp };
+      if (diff < -20) return { role: "Bowler", color: "text-purple-500", icon: Target };
+      return { role: "All-Rounder", color: "text-primary", icon: Zap };
+    }
+    // Infer from stats
+    const hasBat = s.total_runs > 50 || s.matches_batted > 3;
+    const hasBowl = s.total_wickets > 5 || s.matches_bowled > 3;
+    if (hasBat && hasBowl) return { role: "All-Rounder", color: "text-primary", icon: Zap };
+    if (hasBowl) return { role: "Bowler", color: "text-purple-500", icon: Target };
+    return { role: "Batsman", color: "text-orange-500", icon: TrendingUp };
   };
   const role = getRole();
 
@@ -198,7 +206,6 @@ const PlayerProfile = () => {
               <div className="flex-1 pt-4 md:pt-6">
                 <h1 className="text-2xl md:text-3xl font-bold">{name}</h1>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-muted-foreground">{teamName}</span>
                   <Badge variant="outline" className={cn("text-xs", role.color)}>
                     <role.icon className="h-3 w-3 mr-1" />{role.role}
                   </Badge>
