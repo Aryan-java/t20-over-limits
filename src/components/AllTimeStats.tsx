@@ -266,8 +266,14 @@ export default function AllTimeStats() {
       case "most-fours": return [{ label: "4s", value: p.fours, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "6s", value: p.sixes }];
       case "most-fifties": return [{ label: "50s", value: p.fifties, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }, { label: "100s", value: p.hundreds }];
       case "most-centuries": return [{ label: "100s", value: p.hundreds, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "HS", value: p.highest_score }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }];
-      case "fastest-fifties": return [{ label: "Score", value: p.total_runs, highlight: true }, { label: "Balls", value: p.balls_faced }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
-      case "fastest-centuries": return [{ label: "Score", value: p.total_runs, highlight: true }, { label: "Balls", value: p.balls_faced }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
+      case "fastest-fifties": {
+        const estBallsTo50 = p.balls_faced > 0 ? Math.round(50 / (p.total_runs / p.balls_faced)) : p.balls_faced;
+        return [{ label: "Balls to 50", value: Math.min(estBallsTo50, p.balls_faced), highlight: true }, { label: "Score", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
+      }
+      case "fastest-centuries": {
+        const estBallsTo100 = p.balls_faced > 0 ? Math.round(100 / (p.total_runs / p.balls_faced)) : p.balls_faced;
+        return [{ label: "Balls to 100", value: Math.min(estBallsTo100, p.balls_faced), highlight: true }, { label: "Score", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }];
+      }
       case "most-not-outs": return [{ label: "NO", value: p.not_outs, highlight: true }, { label: "M", value: p.matches_batted }, { label: "Runs", value: p.total_runs }, { label: "Avg", value: calcBatAvg(p.total_runs, p.matches_batted, p.not_outs) }];
       case "most-balls-faced": return [{ label: "BF", value: p.balls_faced, highlight: true }, { label: "Runs", value: p.total_runs }, { label: "SR", value: calcSR(p.total_runs, p.balls_faced) }, { label: "M", value: p.matches_batted }];
       case "most-boundaries": return [{ label: "Bdry", value: p.fours + p.sixes, highlight: true }, { label: "4s", value: p.fours }, { label: "6s", value: p.sixes }, { label: "Runs", value: p.total_runs }];
