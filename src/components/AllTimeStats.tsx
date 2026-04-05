@@ -179,7 +179,11 @@ export default function AllTimeStats() {
       case "fastest-fifties": {
         return inningsData
           .filter((inn: any) => inn.runs >= 50 && inn.runs < 100)
-          .sort((a: any, b: any) => a.balls_faced - b.balls_faced)
+          .sort((a: any, b: any) => {
+            const aBalls = a.balls_faced > 0 ? Math.round(50 / (a.runs / a.balls_faced)) : a.balls_faced;
+            const bBalls = b.balls_faced > 0 ? Math.round(50 / (b.runs / b.balls_faced)) : b.balls_faced;
+            return Math.min(aBalls, a.balls_faced) - Math.min(bBalls, b.balls_faced);
+          })
           .slice(0, 20)
           .map((inn: any) => ({
             id: inn.id,
@@ -208,7 +212,11 @@ export default function AllTimeStats() {
       case "fastest-centuries": {
         return inningsData
           .filter((inn: any) => inn.runs >= 100)
-          .sort((a: any, b: any) => a.balls_faced - b.balls_faced)
+          .sort((a: any, b: any) => {
+            const aBalls = a.balls_faced > 0 ? Math.round(100 / (a.runs / a.balls_faced)) : a.balls_faced;
+            const bBalls = b.balls_faced > 0 ? Math.round(100 / (b.runs / b.balls_faced)) : b.balls_faced;
+            return Math.min(aBalls, a.balls_faced) - Math.min(bBalls, b.balls_faced);
+          })
           .slice(0, 20)
           .map((inn: any) => ({
             id: inn.id,
