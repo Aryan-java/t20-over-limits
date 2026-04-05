@@ -1,50 +1,117 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useCricketStore } from "@/hooks/useCricketStore";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, TrendingUp, Trophy, Target, Award, User, Calendar, Star, Globe, Zap } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
+import { ArrowLeft, TrendingUp, Trophy, Target, Award, User, Calendar, Star, Globe, Zap, Loader2, Swords, Shield } from "lucide-react";
 import CricketHeader from "@/components/CricketHeader";
 import { SkillRadarChart } from "@/components/ui/SkillRadarChart";
-import { MilestoneBadge } from "@/components/ui/MilestoneBadge";
 import { StatProgressBar } from "@/components/ui/CareerStatsGraph";
 import { cn } from "@/lib/utils";
+
+interface DbStats {
+  player_id: string;
+  player_name: string;
+  team_name: string | null;
+  image_url: string | null;
+  matches_batted: number;
+  total_runs: number;
+  balls_faced: number;
+  highest_score: number;
+  fifties: number;
+  hundreds: number;
+  fours: number;
+  sixes: number;
+  not_outs: number;
+  matches_bowled: number;
+  total_wickets: number;
+  balls_bowled: number;
+  runs_conceded: number;
+  best_bowling_wickets: number;
+  best_bowling_runs: number;
+  maidens: number;
+}
+
+interface InningsRecord {
+  id: string;
+  player_name: string;
+  team_name: string | null;
+  match_id: string | null;
+  runs: number;
+  balls_faced: number;
+  fours: number;
+  sixes: number;
+  dismissed: boolean;
+  created_at: string;
+}
+
+const DONUT_COLORS = ["hsl(var(--primary))", "hsl(45, 93%, 47%)", "hsl(262, 83%, 58%)", "hsl(var(--muted))"];
 
 const PlayerProfile = () => {
   const { playerId } = useParams();
   const navigate = useNavigate();
-  const { teams, matchHistory } = useCricketStore();
+  const { teams } = useCricketStore();
 
-  // Find the player across all teams
-  let player = null;
-  let team = null;
-  
+  const [dbStats, setDbStats] = useState<DbStats | null>(null);
+  const [innings, setInnings] = useState<InningsRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Try to find local player for skills info
+  let localPlayer: any = null;
+  let localTeam: any = null;
   for (const t of teams) {
-    const foundPlayer = t.squad.find(p => p.id === playerId);
-    if (foundPlayer) {
-      player = foundPlayer;
-      team = t;
-      break;
-    }
+    const p = t.squad.find((p: any) => p.id === playerId);
+    if (p) { localPlayer = p; localTeam = t; break; }
   }
 
-  if (!player || !team) {
+  useEffect(() => {
+    if (!playerId) return;
+    const fetch = async () => {
+      setLoading(true);
+      const [statsRes, inningsRes] = await Promise.all([
+        supabase.from("player_all_time_stats").select("*").eq("player_id", playerId).maybeSingle(),
+        supabase.from("player_innings").select("*").eq("player_id", playerId).order("created_at", { ascending: false }).limit(5),
+      ]);
+      if (statsRes.data) setDbStats(statsRes.data as unknown as DbStats);
+      if (inningsRes.data) setInnings(inningsRes.data as unknown as InningsRecord[]);
+      setLoading(false);
+    };
+    fetch();
+  }, [playerId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <CricketHeader />
+        <main className="container mx-auto px-4 py-16 flex justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
+
+  const name = dbStats?.player_name || localPlayer?.name || "Unknown Player";
+  const imageUrl = dbStats?.image_url || localPlayer?.imageUrl;
+  const teamName = dbStats?.team_name || localTeam?.name || "—";
+  const batSkill = localPlayer?.batSkill ?? 50;
+  const bowlSkill = localPlayer?.bowlSkill ?? 50;
+  const isOverseas = localPlayer?.isOverseas ?? false;
+
+  if (!dbStats && !localPlayer) {
     return (
       <div className="min-h-screen bg-background">
         <CricketHeader />
         <main className="container mx-auto px-4 py-8">
-          <Card className="stadium-card">
+          <Card>
             <CardContent className="p-8 text-center">
               <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
               <p className="text-lg text-muted-foreground">Player not found</p>
-              <Button onClick={() => navigate("/")} className="mt-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
+              <Button onClick={() => navigate("/")} className="mt-4"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
             </CardContent>
           </Card>
         </main>
@@ -52,434 +119,296 @@ const PlayerProfile = () => {
     );
   }
 
-  const getPlayerRole = () => {
-    const diff = player.batSkill - player.bowlSkill;
-    if (diff > 20) return { role: "Batsman", color: "text-cricket-gold", bgColor: "bg-cricket-gold/10", icon: TrendingUp };
-    if (diff < -20) return { role: "Bowler", color: "text-cricket-purple", bgColor: "bg-cricket-purple/10", icon: Target };
-    return { role: "All-Rounder", color: "text-primary", bgColor: "bg-primary/10", icon: Zap };
+  const s = dbStats || {
+    matches_batted: 0, total_runs: 0, balls_faced: 0, highest_score: 0,
+    fifties: 0, hundreds: 0, fours: 0, sixes: 0, not_outs: 0,
+    matches_bowled: 0, total_wickets: 0, balls_bowled: 0, runs_conceded: 0,
+    best_bowling_wickets: 0, best_bowling_runs: 0, maidens: 0,
   };
 
-  const role = getPlayerRole();
-  const RoleIcon = role.icon;
+  const batAvg = (s.matches_batted - s.not_outs) > 0 ? (s.total_runs / (s.matches_batted - s.not_outs)).toFixed(1) : "—";
+  const sr = s.balls_faced > 0 ? ((s.total_runs / s.balls_faced) * 100).toFixed(1) : "—";
+  const econ = s.balls_bowled > 0 ? ((s.runs_conceded / s.balls_bowled) * 6).toFixed(2) : "—";
+  const bowlAvg = s.total_wickets > 0 ? (s.runs_conceded / s.total_wickets).toFixed(1) : "—";
 
-  const performanceHistory = player.performanceHistory || {
-    totalMatches: 0,
-    totalRuns: 0,
-    totalWickets: 0,
-    averageRuns: 0,
-    averageWickets: 0,
-    formRating: 50,
+  const getRole = () => {
+    const diff = batSkill - bowlSkill;
+    if (diff > 20) return { role: "Batsman", color: "text-orange-500", icon: TrendingUp };
+    if (diff < -20) return { role: "Bowler", color: "text-purple-500", icon: Target };
+    return { role: "All-Rounder", color: "text-primary", icon: Zap };
   };
+  const role = getRole();
 
-  // Get match-by-match performance
-  const playerMatchPerformance = matchHistory
-    .filter(match => {
-      const team1Players = match.team1Setup?.playingXI || [];
-      const team2Players = match.team2Setup?.playingXI || [];
-      return [...team1Players, ...team2Players].some(p => p.id === playerId);
-    })
-    .map((match, index) => {
-      const team1Players = match.team1Setup?.playingXI || [];
-      const team2Players = match.team2Setup?.playingXI || [];
-      const allPlayers = [...team1Players, ...team2Players];
-      const playerInMatch = allPlayers.find(p => p.id === playerId);
-      
-      return {
-        matchNumber: index + 1,
-        opponent: match.team1.id === team.id ? match.team2.name : match.team1.name,
-        runs: playerInMatch?.runs || 0,
-        wickets: playerInMatch?.wickets || 0,
-        balls: playerInMatch?.balls || 0,
-        date: new Date(match.completedAt).toLocaleDateString(),
-        strikeRate: playerInMatch?.balls ? ((playerInMatch.runs / playerInMatch.balls) * 100).toFixed(1) : "0.0",
-      };
-    });
+  // Generate about points
+  const aboutPoints: string[] = [];
+  if (s.hundreds > 0) aboutPoints.push(`Has scored ${s.hundreds} centuries in competitive matches`);
+  else if (s.fifties > 0) aboutPoints.push(`Consistent performer with ${s.fifties} half-centuries`);
+  else if (s.total_runs > 100) aboutPoints.push(`Has accumulated ${s.total_runs} runs across ${s.matches_batted} innings`);
 
-  // Calculate cumulative stats for graphs
-  let cumulativeRuns = 0;
-  let cumulativeWickets = 0;
-  const cumulativeData = playerMatchPerformance.map((match) => {
-    cumulativeRuns += match.runs;
-    cumulativeWickets += match.wickets;
-    return {
-      matchNumber: match.matchNumber,
-      cumulativeRuns,
-      cumulativeWickets,
-    };
-  });
+  if (s.total_wickets >= 10) aboutPoints.push(`Claimed ${s.total_wickets} wickets with best figures of ${s.best_bowling_wickets}/${s.best_bowling_runs}`);
+  else if (s.total_wickets > 0) aboutPoints.push(`Has picked up ${s.total_wickets} wickets in ${s.matches_bowled} bowling outings`);
 
-  // Calculate milestones
-  const getMilestones = () => {
-    return [];
-  };
+  if (s.sixes > 10) aboutPoints.push(`Power hitter with ${s.sixes} sixes and ${s.fours} fours in total`);
+  else if (s.fours > 10) aboutPoints.push(`Elegant stroke-player with ${s.fours} fours across ${s.matches_batted} innings`);
 
-  const milestones = getMilestones();
+  if (aboutPoints.length === 0) aboutPoints.push("Emerging talent looking to make a mark");
+
+  // Pie chart: run scoring breakdown
+  const singles = Math.max(0, s.total_runs - (s.fours * 4) - (s.sixes * 6));
+  const runBreakdown = [
+    { name: "1s & 2s & 3s", value: singles },
+    { name: "Fours", value: s.fours * 4 },
+    { name: "Sixes", value: s.sixes * 6 },
+  ].filter(d => d.value > 0);
+
+  // Last 5 innings bar data
+  const last5Data = [...innings].reverse().map((inn, i) => ({
+    label: `Inn ${i + 1}`,
+    runs: inn.runs,
+    balls: inn.balls_faced,
+    sr: inn.balls_faced > 0 ? ((inn.runs / inn.balls_faced) * 100).toFixed(0) : "0",
+    dismissed: inn.dismissed,
+  }));
 
   return (
     <div className="min-h-screen bg-background">
       <CricketHeader />
-      
-      <main className="container mx-auto px-4 py-8">
-        <Button
-          onClick={() => navigate("/")}
-          variant="ghost"
-          className="mb-6 gap-2 hover:bg-primary/10"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Tournament
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        <Button onClick={() => navigate("/")} variant="ghost" className="mb-4 gap-2">
+          <ArrowLeft className="h-4 w-4" />Back
         </Button>
 
-        {/* Enhanced Player Header Card */}
-        <Card className="mb-6 overflow-hidden border-2">
-          {/* Hero gradient header */}
-          <div className="relative h-32 bg-gradient-to-br from-primary via-primary/80 to-cricket-purple overflow-hidden">
-            <div className="absolute inset-0 bg-pitch-pattern opacity-20" />
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            
-            {player.isOverseas && (
-              <Badge className="absolute top-4 right-4 bg-white/20 text-white border-white/30 backdrop-blur-sm">
-                <Globe className="h-3 w-3 mr-1" />
-                Overseas Player
+        {/* Hero Card */}
+        <Card className="mb-6 overflow-hidden border-2 border-primary/20">
+          <div className="relative h-28 bg-gradient-to-br from-primary via-primary/80 to-purple-600 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.15),transparent)]" />
+            {isOverseas && (
+              <Badge className="absolute top-3 right-3 bg-white/20 text-white border-white/30 backdrop-blur-sm text-xs">
+                <Globe className="h-3 w-3 mr-1" />Overseas
               </Badge>
             )}
-            
-            <Badge className={cn("absolute top-4 left-4 border-0", role.bgColor, role.color)}>
-              <RoleIcon className="h-3 w-3 mr-1" />
-              {role.role}
-            </Badge>
           </div>
-          
-          <CardContent className="p-6 -mt-16 relative">
-            <div className="flex flex-col md:flex-row items-start gap-6">
-              {/* Large Avatar */}
-              <Avatar className="h-32 w-32 ring-4 ring-background shadow-2xl">
-                <AvatarImage src={player.imageUrl} alt={player.name} />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-cricket-purple text-white font-bold text-4xl">
-                  {player.name.substring(0, 2).toUpperCase()}
+          <CardContent className="p-6 -mt-14 relative">
+            <div className="flex flex-col md:flex-row items-start gap-5">
+              <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
+                <AvatarImage src={imageUrl} alt={name} />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white font-bold text-3xl">
+                  {name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              
-              <div className="flex-1 pt-4 md:pt-8">
-                <h1 className="text-3xl font-bold">{player.name}</h1>
-                <p className="text-lg text-muted-foreground">{team.name}</p>
-                
-                {/* Milestones */}
-                {milestones.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {milestones.map((m, i) => (
-                      <MilestoneBadge key={i} type={m.type} count={m.count} size="md" />
-                    ))}
-                  </div>
-                )}
+              <div className="flex-1 pt-4 md:pt-6">
+                <h1 className="text-2xl md:text-3xl font-bold">{name}</h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-muted-foreground">{teamName}</span>
+                  <Badge variant="outline" className={cn("text-xs", role.color)}>
+                    <role.icon className="h-3 w-3 mr-1" />{role.role}
+                  </Badge>
+                </div>
+                {/* About Points */}
+                <ul className="mt-3 space-y-1">
+                  {aboutPoints.map((pt, i) => (
+                    <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <Star className="h-3.5 w-3.5 mt-0.5 text-yellow-500 shrink-0" />
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              
-              {/* Skill Radar */}
-              <div className="hidden md:block">
-                <SkillRadarChart
-                  batting={player.batSkill}
-                  bowling={player.bowlSkill}
-                  size={160}
-                />
-              </div>
-            </div>
-            
-            {/* Skill Bars */}
-            <div className="grid md:grid-cols-2 gap-6 mt-6 pt-6 border-t">
-              <StatProgressBar 
-                label="Batting Skill" 
-                value={player.batSkill} 
-                maxValue={100} 
-                color="gold" 
-              />
-              <StatProgressBar 
-                label="Bowling Skill" 
-                value={player.bowlSkill} 
-                maxValue={100} 
-                color="purple" 
-              />
+              {localPlayer && (
+                <div className="hidden md:block">
+                  <SkillRadarChart batting={batSkill} bowling={bowlSkill} size={140} />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Career Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: "Matches", value: Math.max(s.matches_batted, s.matches_bowled), icon: Calendar },
+            { label: "Runs", value: s.total_runs, icon: Award, accent: "text-orange-500" },
+            { label: "Wickets", value: s.total_wickets, icon: Trophy, accent: "text-purple-500" },
+            { label: "Highest", value: s.highest_score, icon: TrendingUp },
+          ].map((stat) => (
+            <Card key={stat.label} className="border">
+              <CardContent className="p-4 text-center">
+                <stat.icon className={cn("h-5 w-5 mx-auto mb-1", stat.accent || "text-muted-foreground")} />
+                <div className={cn("text-2xl font-bold", stat.accent)}>{stat.value}</div>
+                <div className="text-xs text-muted-foreground">{stat.label}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Batting Card */}
           <Card>
-            <CardContent className="p-4 text-center">
-              <Calendar className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <div className="text-2xl font-bold">{performanceHistory.totalMatches}</div>
-              <div className="text-sm text-muted-foreground">Matches</div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Swords className="h-4 w-4 text-orange-500" />Batting Records
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                {[
+                  { l: "Innings", v: s.matches_batted },
+                  { l: "Average", v: batAvg },
+                  { l: "SR", v: sr },
+                  { l: "50s", v: s.fifties },
+                  { l: "100s", v: s.hundreds },
+                  { l: "Not Outs", v: s.not_outs },
+                  { l: "Fours", v: s.fours },
+                  { l: "Sixes", v: s.sixes },
+                  { l: "BF", v: s.balls_faced },
+                ].map((item) => (
+                  <div key={item.l} className="p-2 rounded-lg bg-muted/30">
+                    <div className="text-lg font-bold">{item.v}</div>
+                    <div className="text-[11px] text-muted-foreground">{item.l}</div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
-          
-          <Card className="border-orange-200 bg-orange-500/5">
-            <CardContent className="p-4 text-center">
-              <Award className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-              <div className="text-2xl font-bold text-orange-600">{performanceHistory.totalRuns}</div>
-              <div className="text-sm text-muted-foreground">Total Runs</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-purple-200 bg-purple-500/5">
-            <CardContent className="p-4 text-center">
-              <Trophy className="h-6 w-6 mx-auto mb-2 text-purple-500" />
-              <div className="text-2xl font-bold text-purple-600">{performanceHistory.totalWickets}</div>
-              <div className="text-sm text-muted-foreground">Total Wickets</div>
-            </CardContent>
-          </Card>
-          
+
+          {/* Bowling Card */}
           <Card>
-            <CardContent className="p-4 text-center">
-              <TrendingUp className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <div className="text-2xl font-bold">{performanceHistory.averageRuns.toFixed(1)}</div>
-              <div className="text-sm text-muted-foreground">Avg Runs</div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4 text-purple-500" />Bowling Records
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                {[
+                  { l: "Innings", v: s.matches_bowled },
+                  { l: "Wickets", v: s.total_wickets },
+                  { l: "Economy", v: econ },
+                  { l: "Average", v: bowlAvg },
+                  { l: "Best", v: `${s.best_bowling_wickets}/${s.best_bowling_runs}` },
+                  { l: "Maidens", v: s.maidens },
+                  { l: "Runs Given", v: s.runs_conceded },
+                  { l: "Balls", v: s.balls_bowled },
+                  { l: "BPW", v: s.total_wickets > 0 ? (s.balls_bowled / s.total_wickets).toFixed(1) : "—" },
+                ].map((item) => (
+                  <div key={item.l} className="p-2 rounded-lg bg-muted/30">
+                    <div className="text-lg font-bold">{item.v}</div>
+                    <div className="text-[11px] text-muted-foreground">{item.l}</div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Detailed Stats & Graphs */}
-        <Tabs defaultValue="graphs" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="graphs">Career Graphs</TabsTrigger>
-            <TabsTrigger value="matches">Match History</TabsTrigger>
-            <TabsTrigger value="stats">Detailed Stats</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="graphs" className="space-y-4">
-            {playerMatchPerformance.length > 0 ? (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Cumulative Runs</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={cumulativeData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="matchNumber" 
-                          label={{ value: 'Match Number', position: 'insideBottom', offset: -5 }}
-                        />
-                        <YAxis label={{ value: 'Runs', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip />
-                        <Line 
-                          type="monotone" 
-                          dataKey="cumulativeRuns" 
-                          stroke="hsl(var(--primary))" 
-                          strokeWidth={2}
-                          name="Total Runs"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Cumulative Wickets</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={cumulativeData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="matchNumber" 
-                          label={{ value: 'Match Number', position: 'insideBottom', offset: -5 }}
-                        />
-                        <YAxis label={{ value: 'Wickets', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip />
-                        <Line 
-                          type="monotone" 
-                          dataKey="cumulativeWickets" 
-                          stroke="hsl(var(--purple-500))" 
-                          strokeWidth={2}
-                          name="Total Wickets"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Match-by-Match Performance</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={playerMatchPerformance}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="matchNumber" 
-                          label={{ value: 'Match Number', position: 'insideBottom', offset: -5 }}
-                        />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="runs" fill="hsl(var(--primary))" name="Runs" />
-                        <Bar dataKey="wickets" fill="hsl(var(--purple-500))" name="Wickets" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
-                  <p className="text-muted-foreground">No match data available yet</p>
-                  <p className="text-sm text-muted-foreground mt-2">Stats will appear once the player completes matches</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="matches">
+        {/* Run Scoring Breakdown + Last 5 Innings */}
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Donut Chart */}
+          {runBreakdown.length > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle>Match-by-Match Performance</CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Run Scoring Breakdown</CardTitle>
               </CardHeader>
               <CardContent>
-                {playerMatchPerformance.length > 0 ? (
-                  <div className="space-y-3">
-                    {playerMatchPerformance.map((match) => (
-                      <Card key={match.matchNumber} className="border">
-                        <CardContent className="p-4">
-                          <div className="flex flex-col md:flex-row justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline">Match {match.matchNumber}</Badge>
-                                <span className="text-sm text-muted-foreground">{match.date}</span>
-                              </div>
-                              <p className="font-semibold">vs {match.opponent}</p>
-                            </div>
-                            <div className="flex gap-6 text-sm">
-                              <div>
-                                <p className="text-muted-foreground">Runs</p>
-                                <p className="text-lg font-bold text-orange-600">{match.runs}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">Balls</p>
-                                <p className="text-lg font-bold">{match.balls}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">SR</p>
-                                <p className="text-lg font-bold">{match.strikeRate}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">Wickets</p>
-                                <p className="text-lg font-bold text-purple-600">{match.wickets}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                    <p>No match history available</p>
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={runBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {runBreakdown.map((_, i) => (
+                        <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => `${v} runs`} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center gap-4 mt-2">
+                  {runBreakdown.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                      {d.name}
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="stats">
-            <div className="grid gap-4">
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-orange-600">
-                    <Award className="h-5 w-5" />
-                    Batting Statistics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Total Runs</div>
-                      <div className="text-2xl font-bold">{performanceHistory.totalRuns}</div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Matches Batted</div>
-                      <div className="text-2xl font-bold">{performanceHistory.totalMatches}</div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Strike Rate</div>
-                      <div className="text-2xl font-bold">
-                        {"N/A"}
+          {/* Last 5 Innings */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Last 5 Innings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {last5Data.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={last5Data}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const d = payload[0].payload;
+                          return (
+                            <div className="bg-popover border rounded-lg p-2 shadow text-xs">
+                              <p className="font-bold">{d.runs} ({d.balls}b)</p>
+                              <p>SR: {d.sr} {d.dismissed ? "" : "• Not Out"}</p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Bar dataKey="runs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="mt-3 space-y-1.5">
+                    {innings.map((inn, i) => (
+                      <div key={inn.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-muted/20">
+                        <span className="font-medium">
+                          {inn.runs}{!inn.dismissed && <span className="text-primary">*</span>}
+                          <span className="text-muted-foreground ml-1">({inn.balls_faced}b)</span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {inn.fours > 0 && `${inn.fours}×4 `}{inn.sixes > 0 && `${inn.sixes}×6`}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          SR {inn.balls_faced > 0 ? ((inn.runs / inn.balls_faced) * 100).toFixed(0) : "—"}
+                        </span>
                       </div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Bat Skill</div>
-                      <div className="text-2xl font-bold">{player.batSkill}</div>
-                    </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
+                </>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No innings data yet</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-purple-600">
-                    <Trophy className="h-5 w-5" />
-                    Bowling Statistics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Total Wickets</div>
-                      <div className="text-2xl font-bold">{performanceHistory.totalWickets}</div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Matches Bowled</div>
-                      <div className="text-2xl font-bold">{performanceHistory.totalMatches}</div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Economy</div>
-                      <div className="text-2xl font-bold">
-                        {"N/A"}
-                      </div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Bowl Skill</div>
-                      <div className="text-2xl font-bold">{player.bowlSkill}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Overall Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Matches Played</div>
-                      <div className="text-2xl font-bold">{performanceHistory.totalMatches}</div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Form Rating</div>
-                      <div className="text-2xl font-bold">{performanceHistory.formRating.toFixed(0)}</div>
-                    </div>
-                    <div className="p-3 bg-muted/20 rounded-lg">
-                      <div className="text-sm text-muted-foreground">Player Type</div>
-                      <div className="text-lg font-bold">
-                        {player.batSkill > 70 && player.bowlSkill > 70 ? "All-rounder" :
-                         player.batSkill > 70 ? "Batsman" :
-                         player.bowlSkill > 70 ? "Bowler" : "Specialist"}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+        {/* Skill Bars (if local player data exists) */}
+        {localPlayer && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Skill Ratings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <StatProgressBar label="Batting Skill" value={batSkill} maxValue={100} color="gold" />
+                <StatProgressBar label="Bowling Skill" value={bowlSkill} maxValue={100} color="purple" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
