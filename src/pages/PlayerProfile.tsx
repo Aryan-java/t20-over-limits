@@ -97,7 +97,6 @@ const PlayerProfile = () => {
 
   const name = dbStats?.player_name || localPlayer?.name || "Unknown Player";
   const imageUrl = dbStats?.image_url || localPlayer?.imageUrl;
-  const teamName = dbStats?.team_name || localTeam?.name || "—";
   const batSkill = localPlayer?.batSkill ?? 50;
   const bowlSkill = localPlayer?.bowlSkill ?? 50;
   const isOverseas = localPlayer?.isOverseas ?? false;
