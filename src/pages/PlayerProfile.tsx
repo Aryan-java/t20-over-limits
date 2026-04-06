@@ -71,17 +71,62 @@ const PlayerProfile = () => {
 
   useEffect(() => {
     if (!playerId) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
+
+      // First get the player name from any row with this player_id
+      const { data: seedRow } = await supabase
+        .from("player_all_time_stats")
+        .select("player_name")
+        .eq("player_id", playerId)
+        .maybeSingle();
+
+      const playerName = seedRow?.player_name || localPlayer?.name;
+
+      if (!playerName) {
+        setLoading(false);
+        return;
+      }
+
+      // Fetch ALL rows with this player name (may have multiple player_ids)
       const [statsRes, inningsRes] = await Promise.all([
-        supabase.from("player_all_time_stats").select("*").eq("player_id", playerId).maybeSingle(),
-        supabase.from("player_innings").select("*").eq("player_id", playerId).order("created_at", { ascending: false }).limit(5),
+        supabase.from("player_all_time_stats").select("*").ilike("player_name", playerName),
+        supabase.from("player_innings").select("*").ilike("player_name", playerName).order("created_at", { ascending: false }).limit(5),
       ]);
-      if (statsRes.data) setDbStats(statsRes.data as unknown as DbStats);
+
+      // Aggregate all rows into one combined stats object
+      if (statsRes.data && statsRes.data.length > 0) {
+        const rows = statsRes.data as unknown as DbStats[];
+        const agg: DbStats = { ...rows[0] };
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          agg.matches_batted += r.matches_batted;
+          agg.total_runs += r.total_runs;
+          agg.balls_faced += r.balls_faced;
+          agg.highest_score = Math.max(agg.highest_score, r.highest_score);
+          agg.fifties += r.fifties;
+          agg.hundreds += r.hundreds;
+          agg.fours += r.fours;
+          agg.sixes += r.sixes;
+          agg.not_outs += r.not_outs;
+          agg.matches_bowled += r.matches_bowled;
+          agg.total_wickets += r.total_wickets;
+          agg.balls_bowled += r.balls_bowled;
+          agg.runs_conceded += r.runs_conceded;
+          agg.maidens += r.maidens;
+          if (r.best_bowling_wickets > agg.best_bowling_wickets ||
+              (r.best_bowling_wickets === agg.best_bowling_wickets && r.best_bowling_runs < agg.best_bowling_runs)) {
+            agg.best_bowling_wickets = r.best_bowling_wickets;
+            agg.best_bowling_runs = r.best_bowling_runs;
+          }
+          agg.image_url = agg.image_url || r.image_url;
+        }
+        setDbStats(agg);
+      }
       if (inningsRes.data) setInnings(inningsRes.data as unknown as InningsRecord[]);
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [playerId]);
 
   if (loading) {
