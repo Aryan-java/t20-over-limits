@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import BestXISection from "@/components/BestXISection";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -499,8 +498,6 @@ export default function AllTimeStats() {
         )}
       </div>
 
-      {/* Best XI */}
-      <BestXISection battingLeaderboard={battingLeaderboard} bowlingLeaderboard={bowlingLeaderboard} />
 
       {/* Batting Stats with Sidebar */}
       <Card className="stadium-card overflow-hidden">

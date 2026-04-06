@@ -7,6 +7,7 @@ import LiveMatchTab from "@/components/LiveMatchTab";
 import TournamentTab from "@/components/TournamentTab";
 import StatsTab from "@/components/StatsTab";
 import AllTimeStats from "@/components/AllTimeStats";
+import BestXITab from "@/components/BestXISection";
 import { TabsContent } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -41,6 +42,10 @@ const Index = () => {
 
             <TabsContent value="records" className="animate-fade-slide-up">
               <AllTimeStats />
+            </TabsContent>
+
+            <TabsContent value="bestxi" className="animate-fade-slide-up">
+              <BestXITab />
             </TabsContent>
 
             <TabsContent value="stats" className="animate-fade-slide-up">
