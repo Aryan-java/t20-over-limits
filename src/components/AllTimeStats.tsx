@@ -499,6 +499,9 @@ export default function AllTimeStats() {
         )}
       </div>
 
+      {/* Best XI */}
+      <BestXISection battingLeaderboard={battingLeaderboard} bowlingLeaderboard={bowlingLeaderboard} />
+
       {/* Batting Stats with Sidebar */}
       <Card className="stadium-card overflow-hidden">
         <CardContent className="p-0">
