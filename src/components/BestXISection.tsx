@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
-import { playerDatabase } from "@/data/playerDatabase";
+import { PLAYER_DATABASE } from "@/data/playerDatabase";
 import { User, Trophy, Shield, Swords, Star, Crown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +43,7 @@ interface RankedPlayer extends PlayerStat {
 
 // Build a lookup from playerDatabase for role/skills
 const DB_LOOKUP = new Map<string, { role: string; batSkill: number; bowlSkill: number }>();
-playerDatabase.forEach((p) => {
+PLAYER_DATABASE.forEach((p) => {
   DB_LOOKUP.set(p.name.toLowerCase().trim(), { role: p.role, batSkill: p.batSkill, bowlSkill: p.bowlSkill });
 });
 
