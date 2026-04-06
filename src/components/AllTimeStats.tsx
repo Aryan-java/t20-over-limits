@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import BestXISection from "@/components/BestXISection";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
