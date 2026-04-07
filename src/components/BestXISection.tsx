@@ -209,6 +209,9 @@ function PlayerSlot({ player, index, isSub }: { player: RankedPlayer; index: num
   const avg = calcAvg(player.total_runs, player.matches_batted, player.not_outs);
   const sr = calcSR(player.total_runs, player.balls_faced);
   const matches = Math.max(player.matches_batted, player.matches_bowled);
+  const isBowler = player.role === "Bowler";
+  const bowlAvg = player.total_wickets > 0 ? (player.runs_conceded / player.total_wickets) : 0;
+  const econ = player.balls_bowled > 0 ? (player.runs_conceded / player.balls_bowled) * 6 : 0;
 
   return (
     <div
