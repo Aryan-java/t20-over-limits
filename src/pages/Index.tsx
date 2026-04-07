@@ -28,27 +28,27 @@ const Index = () => {
         
         <main className="container mx-auto px-4 py-8">
           <TabNavigation activeTab={activeTab} onTabChange={setActiveTab}>
-            <TabsContent value="teams" className="animate-fade-slide-up">
+            <TabsContent value="teams" className="animate-tab-enter">
               <TeamsTab />
             </TabsContent>
 
-            <TabsContent value="live" className="animate-fade-slide-up">
+            <TabsContent value="live" className="animate-tab-enter">
               <LiveMatchTab />
             </TabsContent>
 
-            <TabsContent value="tournament" className="animate-fade-slide-up">
+            <TabsContent value="tournament" className="animate-tab-enter">
               <TournamentTab />
             </TabsContent>
 
-            <TabsContent value="records" className="animate-fade-slide-up">
+            <TabsContent value="records" className="animate-tab-enter">
               <AllTimeStats />
             </TabsContent>
 
-            <TabsContent value="bestxi" className="animate-fade-slide-up">
+            <TabsContent value="bestxi" className="animate-tab-enter">
               <BestXITab />
             </TabsContent>
 
-            <TabsContent value="stats" className="animate-fade-slide-up">
+            <TabsContent value="stats" className="animate-tab-enter">
               <StatsTab />
             </TabsContent>
           </TabNavigation>

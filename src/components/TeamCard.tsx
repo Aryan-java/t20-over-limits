@@ -23,7 +23,7 @@ const TeamCard = ({ team, onEdit, onViewDetails, onAddPlayers }: TeamCardProps) 
     : 0;
 
   return (
-    <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 bg-card">
+    <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1.5 bg-card hover-shine">
       {/* Accent stripe */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-cricket-green to-cricket-gold opacity-80 group-hover:opacity-100 transition-opacity" />
       
