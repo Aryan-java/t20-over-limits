@@ -209,6 +209,9 @@ function PlayerSlot({ player, index, isSub }: { player: RankedPlayer; index: num
   const avg = calcAvg(player.total_runs, player.matches_batted, player.not_outs);
   const sr = calcSR(player.total_runs, player.balls_faced);
   const matches = Math.max(player.matches_batted, player.matches_bowled);
+  const isBowler = player.role === "Bowler";
+  const bowlAvg = player.total_wickets > 0 ? (player.runs_conceded / player.total_wickets) : 0;
+  const econ = player.balls_bowled > 0 ? (player.runs_conceded / player.balls_bowled) * 6 : 0;
 
   return (
     <div
@@ -252,23 +255,46 @@ function PlayerSlot({ player, index, isSub }: { player: RankedPlayer; index: num
           <span className="text-[9px] text-muted-foreground uppercase">Mat</span>
           <span className="font-bold text-sm">{matches}</span>
         </div>
-        <div className="flex flex-col items-center min-w-[44px]">
-          <span className="text-[9px] text-muted-foreground uppercase">Runs</span>
-          <span className="font-bold text-sm">{player.total_runs}</span>
-        </div>
-        <div className="flex flex-col items-center min-w-[44px]">
-          <span className="text-[9px] text-muted-foreground uppercase">Avg</span>
-          <span className="font-bold text-sm">{avg > 0 ? avg.toFixed(1) : "-"}</span>
-        </div>
-        <div className="flex flex-col items-center min-w-[44px]">
-          <span className="text-[9px] text-muted-foreground uppercase">SR</span>
-          <span className="font-bold text-sm">{sr > 0 ? sr.toFixed(1) : "-"}</span>
-        </div>
-        {(player.role === "Bowler" || player.role === "All-Rounder") && (
-          <div className="flex flex-col items-center min-w-[44px]">
-            <span className="text-[9px] text-muted-foreground uppercase">Wkt</span>
-            <span className="font-bold text-sm">{player.total_wickets}</span>
-          </div>
+        {isBowler ? (
+          <>
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[9px] text-muted-foreground uppercase">Wkt</span>
+              <span className="font-bold text-sm">{player.total_wickets}</span>
+            </div>
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[9px] text-muted-foreground uppercase">Avg</span>
+              <span className="font-bold text-sm">{bowlAvg > 0 ? bowlAvg.toFixed(1) : "-"}</span>
+            </div>
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[9px] text-muted-foreground uppercase">Econ</span>
+              <span className="font-bold text-sm">{econ > 0 ? econ.toFixed(1) : "-"}</span>
+            </div>
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[9px] text-muted-foreground uppercase">Best</span>
+              <span className="font-bold text-sm">{player.best_bowling_wickets}/{player.best_bowling_runs}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[9px] text-muted-foreground uppercase">Runs</span>
+              <span className="font-bold text-sm">{player.total_runs}</span>
+            </div>
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[9px] text-muted-foreground uppercase">Avg</span>
+              <span className="font-bold text-sm">{avg > 0 ? avg.toFixed(1) : "-"}</span>
+            </div>
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[9px] text-muted-foreground uppercase">SR</span>
+              <span className="font-bold text-sm">{sr > 0 ? sr.toFixed(1) : "-"}</span>
+            </div>
+            {player.role === "All-Rounder" && (
+              <div className="flex flex-col items-center min-w-[44px]">
+                <span className="text-[9px] text-muted-foreground uppercase">Wkt</span>
+                <span className="font-bold text-sm">{player.total_wickets}</span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
