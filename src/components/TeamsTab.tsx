@@ -119,14 +119,15 @@ const TeamsTab = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {teams.map((team) => (
+          {teams.map((team, index) => (
+            <div key={team.id} className={`animate-card-enter stagger-${Math.min(index + 1, 8)}`}>
             <TeamCard
-              key={team.id}
               team={team}
               onEdit={() => setEditingTeam(team)}
               onViewDetails={() => setViewingTeam(team)}
               onAddPlayers={() => setPlayerSelectionTeam(team)}
             />
+            </div>
           ))}
         </div>
       )}

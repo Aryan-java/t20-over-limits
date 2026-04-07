@@ -32,8 +32,8 @@ const CricketHeader = () => {
           <div className="flex items-center gap-3.5">
             <div className="relative group">
               <div className="absolute inset-0 bg-accent/30 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative p-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 shadow-lg group-hover:scale-105 transition-transform duration-300">
-                <Trophy className="h-7 w-7 text-accent drop-shadow-md" />
+              <div className="relative p-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 shadow-lg group-hover:scale-110 transition-transform duration-300 animate-logo-enter">
+                <Trophy className="h-7 w-7 text-accent drop-shadow-md animate-bounce-subtle" />
               </div>
             </div>
             <div>
