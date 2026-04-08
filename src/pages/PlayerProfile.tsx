@@ -191,19 +191,82 @@ const PlayerProfile = () => {
   };
   const role = getRole();
 
-  // Generate about points
+  // Generate rich about points highlighting unique records
   const aboutPoints: string[] = [];
-  if (s.hundreds > 0) aboutPoints.push(`Has scored ${s.hundreds} centuries in competitive matches`);
-  else if (s.fifties > 0) aboutPoints.push(`Consistent performer with ${s.fifties} half-centuries`);
-  else if (s.total_runs > 100) aboutPoints.push(`Has accumulated ${s.total_runs} runs across ${s.matches_batted} innings`);
+  const matches = Math.max(s.matches_batted, s.matches_bowled);
 
-  if (s.total_wickets >= 10) aboutPoints.push(`Claimed ${s.total_wickets} wickets with best figures of ${s.best_bowling_wickets}/${s.best_bowling_runs}`);
-  else if (s.total_wickets > 0) aboutPoints.push(`Has picked up ${s.total_wickets} wickets in ${s.matches_bowled} bowling outings`);
+  // Batting milestones
+  if (s.hundreds > 0 && s.fifties > 0) {
+    aboutPoints.push(`🏆 ${s.hundreds} centuries & ${s.fifties} fifties — a prolific run-scorer`);
+  } else if (s.hundreds > 0) {
+    aboutPoints.push(`🏆 Has smashed ${s.hundreds} centuries in competitive cricket`);
+  } else if (s.fifties > 0) {
+    aboutPoints.push(`⭐ Consistent performer with ${s.fifties} half-centuries to his name`);
+  }
 
-  if (s.sixes > 10) aboutPoints.push(`Power hitter with ${s.sixes} sixes and ${s.fours} fours in total`);
-  else if (s.fours > 10) aboutPoints.push(`Elegant stroke-player with ${s.fours} fours across ${s.matches_batted} innings`);
+  // Batting average & strike rate insight
+  const batAvgNum = (s.matches_batted - s.not_outs) > 0 ? s.total_runs / (s.matches_batted - s.not_outs) : 0;
+  const srNum = s.balls_faced > 0 ? (s.total_runs / s.balls_faced) * 100 : 0;
+  if (batAvgNum >= 40 && srNum >= 140) {
+    aboutPoints.push(`🔥 Elite combination of avg ${batAvgNum.toFixed(1)} and SR ${srNum.toFixed(0)} — dominates bowling attacks`);
+  } else if (batAvgNum >= 35) {
+    aboutPoints.push(`📊 Averages an impressive ${batAvgNum.toFixed(1)} across ${s.matches_batted} innings`);
+  } else if (srNum >= 150 && s.total_runs > 50) {
+    aboutPoints.push(`⚡ Explosive striker with a career SR of ${srNum.toFixed(0)}`);
+  }
 
-  if (aboutPoints.length === 0) aboutPoints.push("Emerging talent looking to make a mark");
+  // Highest score
+  if (s.highest_score >= 100) {
+    aboutPoints.push(`🎯 Highest score of ${s.highest_score} — a match-defining knock`);
+  } else if (s.highest_score >= 50) {
+    aboutPoints.push(`🎯 Best of ${s.highest_score} — capable of anchoring innings`);
+  }
+
+  // Power hitting
+  if (s.sixes >= 20) {
+    aboutPoints.push(`💥 ${s.sixes} career sixes — one of the most destructive hitters`);
+  } else if (s.sixes >= 10) {
+    aboutPoints.push(`💥 Power hitter with ${s.sixes} sixes and ${s.fours} fours`);
+  } else if (s.fours >= 20) {
+    aboutPoints.push(`🏏 Elegant stroke-player with ${s.fours} boundaries to his name`);
+  }
+
+  // Not outs / finisher ability
+  if (s.not_outs >= 5) {
+    aboutPoints.push(`🛡️ Remained not out ${s.not_outs} times — a reliable finisher`);
+  }
+
+  // Bowling records
+  if (s.total_wickets >= 20) {
+    aboutPoints.push(`🎳 ${s.total_wickets} career wickets with best of ${s.best_bowling_wickets}/${s.best_bowling_runs} — a lethal bowler`);
+  } else if (s.total_wickets >= 10) {
+    aboutPoints.push(`🎳 Claimed ${s.total_wickets} wickets, best figures ${s.best_bowling_wickets}/${s.best_bowling_runs}`);
+  } else if (s.total_wickets > 0) {
+    aboutPoints.push(`🎳 Has picked up ${s.total_wickets} wickets in ${s.matches_bowled} bowling outings`);
+  }
+
+  // Economy / bowling average
+  const econNum = s.balls_bowled > 0 ? (s.runs_conceded / s.balls_bowled) * 6 : 0;
+  if (econNum > 0 && econNum <= 7 && s.matches_bowled >= 3) {
+    aboutPoints.push(`📉 Miserly economy of ${econNum.toFixed(2)} — tough to score against`);
+  }
+
+  // Maidens
+  if (s.maidens >= 3) {
+    aboutPoints.push(`🔒 Bowled ${s.maidens} maiden overs — builds pressure with discipline`);
+  }
+
+  // All-rounder recognition
+  if (s.total_runs >= 200 && s.total_wickets >= 10) {
+    aboutPoints.push(`🌟 A genuine all-rounder with ${s.total_runs} runs and ${s.total_wickets} wickets`);
+  }
+
+  // Experience
+  if (matches >= 15) {
+    aboutPoints.push(`📅 Veteran of ${matches} matches — brings invaluable experience`);
+  }
+
+  if (aboutPoints.length === 0) aboutPoints.push("🌱 Emerging talent looking to make a mark");
 
   // Pie chart: run scoring breakdown
   const singles = Math.max(0, s.total_runs - (s.fours * 4) - (s.sixes * 6));
