@@ -244,9 +244,36 @@ const players: Omit<PlayerData, 'imageUrl'>[] = [
   { name: "Prabhsimran Singh", price: 1, isOverseas: false, batSkill: 75, bowlSkill: 20, role: "Wicket-keeper" },
   { name: "Travis Head", price: 1.5, isOverseas: true, batSkill: 85, bowlSkill: 40, role: "Batsman" },
   { name: "Devon Conway", price: 1.5, isOverseas: true, batSkill: 82, bowlSkill: 20, role: "Batsman" },
+  // Newly added current IPL players
+  { name: "Matheesha Pathirana", price: 1.5, isOverseas: true, batSkill: 25, bowlSkill: 85, role: "Bowler" },
+  { name: "Rachin Ravindra", price: 1.5, isOverseas: true, batSkill: 78, bowlSkill: 65, role: "All-rounder" },
+  { name: "Naman Dhir", price: 1, isOverseas: false, batSkill: 70, bowlSkill: 35, role: "Batsman" },
+  { name: "Ryan Rickelton", price: 1, isOverseas: true, batSkill: 78, bowlSkill: 20, role: "Wicket-keeper" },
+  { name: "Will Jacks", price: 1, isOverseas: true, batSkill: 78, bowlSkill: 55, role: "All-rounder" },
+  { name: "Phil Salt", price: 1.5, isOverseas: true, batSkill: 82, bowlSkill: 20, role: "Wicket-keeper" },
+  { name: "Angkrish Raghuvanshi", price: 1, isOverseas: false, batSkill: 70, bowlSkill: 25, role: "Batsman" },
+  { name: "Tristan Stubbs", price: 1, isOverseas: true, batSkill: 78, bowlSkill: 25, role: "Batsman" },
+  { name: "Jake Fraser-McGurk", price: 1, isOverseas: true, batSkill: 80, bowlSkill: 20, role: "Batsman" },
+  { name: "Fionn Hand", price: 1, isOverseas: true, batSkill: 35, bowlSkill: 70, role: "Bowler" },
+  { name: "Nitish Kumar Reddy", price: 1, isOverseas: false, batSkill: 72, bowlSkill: 65, role: "All-rounder" },
+  { name: "Dhruv Jurel", price: 1, isOverseas: false, batSkill: 72, bowlSkill: 20, role: "Wicket-keeper" },
+  { name: "Shashank Singh", price: 1, isOverseas: false, batSkill: 72, bowlSkill: 25, role: "Batsman" },
+  { name: "Marco Jansen", price: 1.5, isOverseas: true, batSkill: 55, bowlSkill: 80, role: "All-rounder" },
+  { name: "Sai Sudharsan", price: 1, isOverseas: false, batSkill: 78, bowlSkill: 20, role: "Batsman" },
+  { name: "Shahrukh Khan", price: 1, isOverseas: false, batSkill: 70, bowlSkill: 30, role: "Batsman" },
+  { name: "Gerald Coetzee", price: 1, isOverseas: true, batSkill: 30, bowlSkill: 80, role: "Bowler" },
+  { name: "Mark Wood", price: 1.5, isOverseas: true, batSkill: 30, bowlSkill: 85, role: "Bowler" },
+  // Legends additions
+  { name: "VVS Laxman", price: 1.5, isOverseas: false, batSkill: 88, bowlSkill: 20, role: "Batsman" },
+  { name: "Ricky Ponting", price: 2, isOverseas: true, batSkill: 92, bowlSkill: 20, role: "Batsman" },
+  { name: "Andrew Flintoff", price: 1.5, isOverseas: true, batSkill: 75, bowlSkill: 80, role: "All-rounder" },
+  { name: "Shaun Pollock", price: 1.5, isOverseas: true, batSkill: 60, bowlSkill: 88, role: "All-rounder" },
+  { name: "Daniel Vettori", price: 1, isOverseas: true, batSkill: 50, bowlSkill: 82, role: "All-rounder" },
 ];
+
+import { getPlayerCricinfoImage } from "./playerImages";
 
 export const PLAYER_DATABASE: PlayerData[] = players.map(player => ({
   ...player,
-  imageUrl: generateAvatar(player.name, player.role)
+  imageUrl: getPlayerCricinfoImage(player.name) || generateAvatar(player.name, player.role)
 }));
