@@ -537,27 +537,30 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           squad: match.team2.squad.map(p => p.id === bowler.id ? bowler : p)
         };
     
-    // Rotate strike if odd runs
+    // Rotate strike if odd runs (but never on a wide — wide penalty doesn't change strike)
     let newStriker = striker;
     let newNonStriker = innings.currentBatsmen.nonStriker;
-    
-    if (runs % 2 === 1 && !isWicket) {
+
+    if (runs % 2 === 1 && !isWicket && !isWide) {
       newStriker = innings.currentBatsmen.nonStriker;
       newNonStriker = striker;
     }
-    
+
     // Check if over complete (wides and no balls don't count towards the over)
     const isOverComplete = !isWideOrNoBall && newBallsBowled % 6 === 0;
-    
+
     // Track last bowler when over is complete
     if (isOverComplete) {
       setLastBowlerId(bowler.id);
     }
-    
-    // Rotate strike at end of over
-    if (isOverComplete && !isWicket) {
+
+    // Rotate strike at end of over (always — even when a wicket falls on the last ball,
+    // the surviving non-striker takes strike for the new over and the new batsman comes
+    // in at the non-striker's end).
+    if (isOverComplete) {
       [newStriker, newNonStriker] = [newNonStriker, newStriker];
     }
+
     
     // Calculate new totals
     const newTotalRuns = innings.totalRuns + runs;
