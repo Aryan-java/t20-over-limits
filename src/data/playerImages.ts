@@ -214,3 +214,10 @@ export const getPlayerImageOrFallback = (name: string): string => {
 
 export const PLAYER_IMAGE_FALLBACK =
   "https://api.dicebear.com/7.x/initials/svg?seed=Cricketer&backgroundColor=4f46e5";
+
+/**
+ * Resolves the best image source for a player: prefer the verified Wikimedia photo,
+ * then fall back to whatever URL was stored on the player object.
+ */
+export const resolvePlayerImage = (name: string, imageUrl?: string): string | undefined =>
+  getPlayerCricinfoImage(name) || imageUrl;

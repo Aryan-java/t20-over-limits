@@ -10,6 +10,7 @@ import {
   Trophy, Crown, Medal, Star, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getPlayerCricinfoImage } from "@/data/playerImages";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -117,7 +118,7 @@ function LeaderRow({ player, index, columns, navigate }: {
         {index < 3 ? <MIcon className="h-4 w-4" /> : index + 1}
       </span>
       <Avatar className={cn("h-9 w-9 border-2 flex-shrink-0", index === 0 ? "border-yellow-500" : "border-primary/20")}>
-        <AvatarImage src={player.image_url || undefined} />
+        <AvatarImage src={getPlayerCricinfoImage(player.player_name) || player.image_url || undefined} />
         <AvatarFallback className="bg-primary/10"><User className="h-4 w-4 text-primary" /></AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">

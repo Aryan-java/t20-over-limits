@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { resolvePlayerImage } from "@/data/playerImages";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -251,7 +252,7 @@ export default function TournamentTab() {
                         {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
                       </div>
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={player.imageUrl} alt={player.name} />
+                        <AvatarImage src={resolvePlayerImage(player.name, player.imageUrl)} alt={player.name} />
                         <AvatarFallback>
                           <User className="h-5 w-5" />
                         </AvatarFallback>
@@ -307,7 +308,7 @@ export default function TournamentTab() {
                         {index === 0 ? <Crown className="h-4 w-4" /> : index + 1}
                       </div>
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={player.imageUrl} alt={player.name} />
+                        <AvatarImage src={resolvePlayerImage(player.name, player.imageUrl)} alt={player.name} />
                         <AvatarFallback>
                           <User className="h-5 w-5" />
                         </AvatarFallback>

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { resolvePlayerImage } from "@/data/playerImages";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Match } from "@/types/cricket";
@@ -223,7 +224,7 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
               {/* Striker */}
               <div className="flex items-center gap-2.5 p-3 bg-primary/5 rounded-lg border border-primary/20">
                 <Avatar className="h-11 w-11 border-2 border-primary/30">
-                  <AvatarImage src={currentInnings.currentBatsmen.striker.imageUrl} alt={currentInnings.currentBatsmen.striker.name} />
+                  <AvatarImage src={resolvePlayerImage(currentInnings.currentBatsmen.striker.name, currentInnings.currentBatsmen.striker.imageUrl)} alt={currentInnings.currentBatsmen.striker.name} />
                   <AvatarFallback className="bg-primary/10 text-sm">
                     <User className="h-5 w-5 text-primary" />
                   </AvatarFallback>
@@ -253,7 +254,7 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
               {currentInnings.currentBatsmen.nonStriker && (
                 <div className="flex items-center gap-2.5 p-3 bg-muted/20 rounded-lg border border-border/40">
                   <Avatar className="h-11 w-11 border border-muted">
-                    <AvatarImage src={currentInnings.currentBatsmen.nonStriker.imageUrl} alt={currentInnings.currentBatsmen.nonStriker.name} />
+                    <AvatarImage src={resolvePlayerImage(currentInnings.currentBatsmen.nonStriker.name, currentInnings.currentBatsmen.nonStriker.imageUrl)} alt={currentInnings.currentBatsmen.nonStriker.name} />
                     <AvatarFallback className="bg-muted text-sm">
                       <User className="h-5 w-5 text-muted-foreground" />
                     </AvatarFallback>

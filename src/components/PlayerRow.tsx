@@ -1,4 +1,5 @@
 import { Player } from "@/types/cricket";
+import { resolvePlayerImage } from "@/data/playerImages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -54,7 +55,7 @@ const PlayerRow = ({
         {/* Avatar with skill ring */}
         <div className="relative">
           <Avatar className="h-11 w-11 ring-2 ring-offset-2 ring-offset-background ring-cricket-green/30 group-hover:ring-cricket-green/60 transition-all">
-            <AvatarImage src={player.imageUrl} alt={player.name} />
+            <AvatarImage src={resolvePlayerImage(player.name, player.imageUrl)} alt={player.name} />
             <AvatarFallback className="bg-gradient-to-br from-cricket-green/20 to-cricket-pitch/20 font-semibold">
               {player.name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
