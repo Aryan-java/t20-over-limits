@@ -36,7 +36,7 @@ export default function PlayerAvatar({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Avatar className={cn(sizeClasses[size], "ring-2 ring-background shadow-md")}>
-        <AvatarImage src={imageUrl} alt={name} className="object-cover" />
+        <AvatarImage src={resolvePlayerImage(name, imageUrl)} alt={name} className="object-cover" />
         <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
           {getInitials(name)}
         </AvatarFallback>

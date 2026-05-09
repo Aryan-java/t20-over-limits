@@ -128,7 +128,7 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
                       <td className="py-2">
                         <div className="flex items-center space-x-2">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={player.imageUrl} alt={player.name} />
+                            <AvatarImage src={resolvePlayerImage(player.name, player.imageUrl)} alt={player.name} />
                             <AvatarFallback>
                               <User className="h-4 w-4" />
                             </AvatarFallback>
@@ -279,7 +279,7 @@ const DetailedScorecard = ({ innings, title, target, bowlers }: DetailedScorecar
                       <td className="py-2">
                         <div className="flex items-center space-x-2">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={bowler.imageUrl} alt={bowler.name} />
+                            <AvatarImage src={resolvePlayerImage(bowler.name, bowler.imageUrl)} alt={bowler.name} />
                             <AvatarFallback>
                               <User className="h-4 w-4" />
                             </AvatarFallback>

@@ -119,7 +119,7 @@ export function PlayerCard({
                 isHovered ? "bg-primary/20 blur-lg scale-125" : "bg-transparent"
               )} />
               <Avatar className="h-14 w-14 ring-2 ring-offset-2 ring-offset-background ring-primary/30 group-hover:ring-primary transition-all">
-                <AvatarImage src={player.imageUrl} alt={player.name} />
+                <AvatarImage src={resolvePlayerImage(player.name, player.imageUrl)} alt={player.name} />
                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 font-bold text-lg">
                   {player.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
@@ -233,7 +233,7 @@ export function PlayerCard({
           <div className="flex items-start gap-4">
             {/* Large Avatar */}
             <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl">
-              <AvatarImage src={player.imageUrl} alt={player.name} />
+              <AvatarImage src={resolvePlayerImage(player.name, player.imageUrl)} alt={player.name} />
               <AvatarFallback className="bg-gradient-to-br from-primary to-primary/50 text-white font-bold text-2xl">
                 {player.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -346,7 +346,7 @@ export function PlayerCard({
         <div className="flex flex-col md:flex-row items-start gap-6">
           {/* Avatar */}
           <Avatar className="h-28 w-28 ring-4 ring-background shadow-2xl">
-            <AvatarImage src={player.imageUrl} alt={player.name} />
+            <AvatarImage src={resolvePlayerImage(player.name, player.imageUrl)} alt={player.name} />
             <AvatarFallback className="bg-gradient-to-br from-primary to-cricket-purple text-white font-bold text-3xl">
               {player.name.substring(0, 2).toUpperCase()}
             </AvatarFallback>

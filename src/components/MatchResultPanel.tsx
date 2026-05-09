@@ -105,7 +105,7 @@ const MatchResultPanel = ({ match, manOfTheMatch, topRunScorer, topWicketTaker, 
             <div className="relative flex items-center gap-4">
               <div className="relative">
                 <Avatar className="h-16 w-16 border-2 border-yellow-500/50">
-                  <AvatarImage src={manOfTheMatch.imageUrl} alt={manOfTheMatch.name} />
+                  <AvatarImage src={resolvePlayerImage(manOfTheMatch.name, manOfTheMatch.imageUrl)} alt={manOfTheMatch.name} />
                   <AvatarFallback className="text-lg font-bold bg-yellow-500/20">{manOfTheMatch.name.substring(0, 2)}</AvatarFallback>
                 </Avatar>
                 <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-500" />
@@ -143,7 +143,7 @@ const MatchResultPanel = ({ match, manOfTheMatch, topRunScorer, topWicketTaker, 
               </div>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={topRunScorer.imageUrl} alt={topRunScorer.name} />
+                  <AvatarImage src={resolvePlayerImage(topRunScorer.name, topRunScorer.imageUrl)} alt={topRunScorer.name} />
                   <AvatarFallback className="text-xs">{topRunScorer.name.substring(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -164,7 +164,7 @@ const MatchResultPanel = ({ match, manOfTheMatch, topRunScorer, topWicketTaker, 
               </div>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={topWicketTaker.imageUrl} alt={topWicketTaker.name} />
+                  <AvatarImage src={resolvePlayerImage(topWicketTaker.name, topWicketTaker.imageUrl)} alt={topWicketTaker.name} />
                   <AvatarFallback className="text-xs">{topWicketTaker.name.substring(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
