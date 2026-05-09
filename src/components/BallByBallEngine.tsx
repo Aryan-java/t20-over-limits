@@ -392,12 +392,16 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       ...(newPartnership ? [newPartnership] : []),
     ];
     
-    // Replace striker with new batsman
+    // Fill whichever batsman slot is empty. Normally this is the striker (the dismissed
+    // batsman is replaced on strike), but if a wicket fell on the last ball of an over
+    // the surviving batsman is on strike for the new over and the incoming batsman
+    // takes the non-striker's end.
+    const fillNonStriker = innings.currentBatsmen.striker && !innings.currentBatsmen.nonStriker;
     const updatedInnings = {
       ...innings,
       currentBatsmen: {
-        ...innings.currentBatsmen,
-        striker: batsman
+        striker: fillNonStriker ? innings.currentBatsmen.striker : batsman,
+        nonStriker: fillNonStriker ? batsman : innings.currentBatsmen.nonStriker,
       },
       partnerships: updatedPartnerships,
     };
