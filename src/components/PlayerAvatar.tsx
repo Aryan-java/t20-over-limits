@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { resolvePlayerImage } from "@/data/playerImages";
 import { cn } from "@/lib/utils";
 
 interface PlayerAvatarProps {

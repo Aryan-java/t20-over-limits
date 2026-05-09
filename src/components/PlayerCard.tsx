@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolvePlayerImage } from "@/data/playerImages";
 import { useNavigate } from "react-router-dom";
 import { Player } from "@/types/cricket";
 
