@@ -10,6 +10,7 @@ import {
   Trophy, Crown, Medal, Star, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getPlayerCricinfoImage } from "@/data/playerImages";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
