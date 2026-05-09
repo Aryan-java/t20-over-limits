@@ -392,12 +392,16 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       ...(newPartnership ? [newPartnership] : []),
     ];
     
-    // Replace striker with new batsman
+    // Fill whichever batsman slot is empty. Normally this is the striker (the dismissed
+    // batsman is replaced on strike), but if a wicket fell on the last ball of an over
+    // the surviving batsman is on strike for the new over and the incoming batsman
+    // takes the non-striker's end.
+    const fillNonStriker = innings.currentBatsmen.striker && !innings.currentBatsmen.nonStriker;
     const updatedInnings = {
       ...innings,
       currentBatsmen: {
-        ...innings.currentBatsmen,
-        striker: batsman
+        striker: fillNonStriker ? innings.currentBatsmen.striker : batsman,
+        nonStriker: fillNonStriker ? batsman : innings.currentBatsmen.nonStriker,
       },
       partnerships: updatedPartnerships,
     };
@@ -537,27 +541,30 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           squad: match.team2.squad.map(p => p.id === bowler.id ? bowler : p)
         };
     
-    // Rotate strike if odd runs
+    // Rotate strike if odd runs (but never on a wide — wide penalty doesn't change strike)
     let newStriker = striker;
     let newNonStriker = innings.currentBatsmen.nonStriker;
-    
-    if (runs % 2 === 1 && !isWicket) {
+
+    if (runs % 2 === 1 && !isWicket && !isWide) {
       newStriker = innings.currentBatsmen.nonStriker;
       newNonStriker = striker;
     }
-    
+
     // Check if over complete (wides and no balls don't count towards the over)
     const isOverComplete = !isWideOrNoBall && newBallsBowled % 6 === 0;
-    
+
     // Track last bowler when over is complete
     if (isOverComplete) {
       setLastBowlerId(bowler.id);
     }
-    
-    // Rotate strike at end of over
-    if (isOverComplete && !isWicket) {
+
+    // Rotate strike at end of over (always — even when a wicket falls on the last ball,
+    // the surviving non-striker takes strike for the new over and the new batsman comes
+    // in at the non-striker's end).
+    if (isOverComplete) {
       [newStriker, newNonStriker] = [newNonStriker, newStriker];
     }
+
     
     // Calculate new totals
     const newTotalRuns = innings.totalRuns + runs;
@@ -645,8 +652,11 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       ballsBowled: newBallsBowled,
       wickets: newWickets,
       currentBatsmen: {
-        striker: isWicket ? null : newStriker,
-        nonStriker: newNonStriker
+        // When a wicket falls on the LAST ball of the over, the surviving batsman
+        // (now in newStriker after the over-end rotation) keeps strike, and the new
+        // batsman walks in at the non-striker's end.
+        striker: isWicket ? (isOverComplete ? newStriker : null) : newStriker,
+        nonStriker: isWicket && isOverComplete ? null : newNonStriker,
       },
       currentBowler: isOverComplete ? null : bowler,
       battingOrder: updatedBattingOrder,
