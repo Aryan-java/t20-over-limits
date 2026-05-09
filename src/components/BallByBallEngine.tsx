@@ -648,8 +648,11 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       ballsBowled: newBallsBowled,
       wickets: newWickets,
       currentBatsmen: {
-        striker: isWicket ? null : newStriker,
-        nonStriker: newNonStriker
+        // When a wicket falls on the LAST ball of the over, the surviving batsman
+        // (now in newStriker after the over-end rotation) keeps strike, and the new
+        // batsman walks in at the non-striker's end.
+        striker: isWicket ? (isOverComplete ? newStriker : null) : newStriker,
+        nonStriker: isWicket && isOverComplete ? null : newNonStriker,
       },
       currentBowler: isOverComplete ? null : bowler,
       battingOrder: updatedBattingOrder,
