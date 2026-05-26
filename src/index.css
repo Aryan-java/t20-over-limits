@@ -701,3 +701,40 @@ All colors MUST be HSL.
 .pitch-dusty { background: linear-gradient(135deg, hsl(30 60% 70% / 0.1), hsl(25 50% 60% / 0.05)); }
 .pitch-green { background: linear-gradient(135deg, hsl(120 60% 40% / 0.1), hsl(125 50% 35% / 0.05)); }
 .pitch-damp { background: linear-gradient(135deg, hsl(200 60% 50% / 0.1), hsl(210 50% 45% / 0.05)); }
+
+/* Coin toss 3D animation */
+.coin-3d {
+  width: 110px;
+  height: 110px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease-out;
+}
+.coin-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: hsl(40 90% 20%);
+  background: radial-gradient(circle at 30% 30%, hsl(48 95% 70%), hsl(42 85% 50%) 60%, hsl(36 80% 35%) 100%);
+  box-shadow: 0 8px 24px hsl(0 0% 0% / 0.45), inset 0 2px 6px hsl(48 100% 90% / 0.6), inset 0 -3px 8px hsl(30 70% 25% / 0.6);
+  backface-visibility: hidden;
+}
+.coin-tails { transform: rotateY(180deg); }
+.coin-flipping {
+  animation: coin-flip 2.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.coin-rest-heads { transform: rotateY(0deg); }
+.coin-rest-tails { transform: rotateY(180deg); }
+
+@keyframes coin-flip {
+  0%   { transform: translateY(0) rotateY(0deg) rotateX(0deg); }
+  20%  { transform: translateY(-90px) rotateY(720deg) rotateX(180deg); }
+  50%  { transform: translateY(-120px) rotateY(1800deg) rotateX(360deg); }
+  80%  { transform: translateY(-40px) rotateY(2880deg) rotateX(540deg); }
+  100% { transform: translateY(0) rotateY(3600deg) rotateX(720deg); }
+}
