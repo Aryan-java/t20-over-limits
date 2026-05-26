@@ -10,6 +10,7 @@ import BallByBallEngine from "./BallByBallEngine";
 import LiveMatchControls from "./LiveMatchControls";
 import RunRateGraph from "./RunRateGraph";
 import PartnershipAnalysis from "./PartnershipAnalysis";
+import MatchCharts from "./MatchCharts";
 import VenueInfoDialog from "./VenueInfoDialog";
 import WinPrediction from "./WinPrediction";
 import MatchResultPanel from "./MatchResultPanel";
@@ -307,6 +308,10 @@ const LiveMatchTab = () => {
           
           {matchStarted && !currentMatch.isCompleted && (
             <RunRateGraph match={currentMatch} />
+          )}
+          
+          {matchStarted && !currentMatch.isCompleted && (
+            <MatchCharts match={currentMatch} />
           )}
           
           {matchStarted && !currentMatch.isCompleted && (

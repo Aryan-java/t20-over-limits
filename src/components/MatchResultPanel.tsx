@@ -7,6 +7,8 @@ import { Trophy, Crown, Award, X, ClipboardList } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Match, Player } from "@/types/cricket";
 import DetailedScorecard from "./DetailedScorecard";
+import PostMatchReport from "./PostMatchReport";
+import MatchCharts from "./MatchCharts";
 
 interface MatchResultPanelProps {
   match: Match;
@@ -177,6 +179,12 @@ const MatchResultPanel = ({ match, manOfTheMatch, topRunScorer, topWicketTaker, 
             </div>
           )}
         </div>
+
+        {/* AI Post-Match Report */}
+        <PostMatchReport match={match} />
+
+        {/* Match Insights: Worm / Manhattan / Wagon Wheel */}
+        <MatchCharts match={match} />
 
         {/* View Scorecard Button */}
         <Button
