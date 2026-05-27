@@ -46,6 +46,21 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
   const [showSuperOver, setShowSuperOver] = useState(false);
 
+  // ============ TACTICS STATE ============
+  const [bowlingStrategy, setBowlingStrategy] = useState<BowlingStrategy>(defaultBowlingStrategy);
+  const [battingAggression, setBattingAggression] = useState<number>(50);
+  const [fieldPreset, setFieldPreset] = useState<FieldPreset>('balanced');
+  const [fielders, setFielders] = useState<FielderPosition[]>(PRESET_FIELDS.balanced);
+  const [showTactics, setShowTactics] = useState(false);
+  // 2 DRS per innings per side, reset on second innings start
+  const [drsReviews, setDrsReviews] = useState({ batting: 2, bowling: 2 });
+  // Pending wicket awaiting DRS resolution
+  const [pendingBall, setPendingBall] = useState<null | {
+    outcome: any;
+    isFreeHit: boolean;
+    dismissalType: string;
+  }>(null);
+
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
     teams.forEach(team => {
