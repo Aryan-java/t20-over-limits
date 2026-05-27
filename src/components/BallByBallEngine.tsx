@@ -12,6 +12,17 @@ import { generateRealisticCommentary } from "./RealisticCommentary";
 import SuperOverDialog from "./SuperOverDialog";
 import { toast } from "@/hooks/use-toast";
 import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
+import TacticalPanel from "./TacticalPanel";
+import FieldPlacementEditor, { PRESET_FIELDS } from "./FieldPlacementEditor";
+import DRSReviewDialog from "./DRSReviewDialog";
+import {
+  BowlingStrategy,
+  FieldPreset,
+  FielderPosition,
+  computeTacticsModifiers,
+  defaultBowlingStrategy,
+  pickDelivery,
+} from "@/types/tactics";
 
 
 interface BallByBallEngineProps {
