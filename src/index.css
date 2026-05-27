@@ -738,3 +738,23 @@ All colors MUST be HSL.
   80%  { transform: translateY(-40px) rotateY(2880deg) rotateX(540deg); }
   100% { transform: translateY(0) rotateY(3600deg) rotateX(720deg); }
 }
+
+/* ============ DRS Ball Tracking Animation ============ */
+.drs-ball {
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: drs-ball-path 2.6s cubic-bezier(0.55, 0.1, 0.4, 1) forwards;
+}
+.drs-trail {
+  stroke-dashoffset: 100;
+  animation: drs-trail-draw 2.6s ease-out forwards;
+}
+@keyframes drs-ball-path {
+  0%   { top: 4%;  left: 50%; opacity: 1; transform: translateX(-50%) scale(1.2); }
+  60%  { top: 70%; left: 50%; opacity: 1; transform: translateX(-50%) scale(1); }
+  100% { top: 84%; left: 50%; opacity: 1; transform: translateX(-50%) scale(0.9); }
+}
+@keyframes drs-trail-draw {
+  to { stroke-dashoffset: 0; }
+}

@@ -12,6 +12,17 @@ import { generateRealisticCommentary } from "./RealisticCommentary";
 import SuperOverDialog from "./SuperOverDialog";
 import { toast } from "@/hooks/use-toast";
 import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
+import TacticalPanel from "./TacticalPanel";
+import FieldPlacementEditor, { PRESET_FIELDS } from "./FieldPlacementEditor";
+import DRSReviewDialog from "./DRSReviewDialog";
+import {
+  BowlingStrategy,
+  FieldPreset,
+  FielderPosition,
+  computeTacticsModifiers,
+  defaultBowlingStrategy,
+  pickDelivery,
+} from "@/types/tactics";
 
 
 interface BallByBallEngineProps {
@@ -34,6 +45,21 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
   const [showMatchResultDialog, setShowMatchResultDialog] = useState(false);
   const [showSuperOver, setShowSuperOver] = useState(false);
+
+  // ============ TACTICS STATE ============
+  const [bowlingStrategy, setBowlingStrategy] = useState<BowlingStrategy>(defaultBowlingStrategy);
+  const [battingAggression, setBattingAggression] = useState<number>(50);
+  const [fieldPreset, setFieldPreset] = useState<FieldPreset>('balanced');
+  const [fielders, setFielders] = useState<FielderPosition[]>(PRESET_FIELDS.balanced);
+  const [showTactics, setShowTactics] = useState(false);
+  // 2 DRS per innings per side, reset on second innings start
+  const [drsReviews, setDrsReviews] = useState({ batting: 2, bowling: 2 });
+  // Pending wicket awaiting DRS resolution
+  const [pendingBall, setPendingBall] = useState<null | {
+    outcome: any;
+    isFreeHit: boolean;
+    dismissalType: string;
+  }>(null);
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -422,8 +448,50 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     if (!innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker) return;
 
     const isFreeHit = innings.isFreeHit || false;
-    const outcome = simulateBallOutcome(innings.currentBatsmen.striker, innings.currentBowler);
-    
+
+    // === TACTICS: pick delivery and derive modifiers ===
+    const delivery = pickDelivery(bowlingStrategy);
+    const tMods = computeTacticsModifiers(delivery, battingAggression, fieldPreset);
+    const conditionMods = {
+      boundaryMultiplier: tMods.boundaryMul,
+      sixMultiplier: tMods.sixMul,
+      runScoringMultiplier: tMods.singleMul,
+      paceWicketMultiplier: tMods.wicketMul,
+      spinWicketMultiplier: tMods.wicketMul,
+      extrasMultiplier: tMods.extrasMul,
+      dotBallMultiplier: tMods.dotMul,
+    };
+
+    const outcome = simulateBallOutcome(
+      innings.currentBatsmen.striker,
+      innings.currentBowler,
+      conditionMods,
+    );
+
+    // FREE HIT: Wickets not allowed (except run out) on free hit balls
+    if (isFreeHit && outcome.isWicket) {
+      outcome.isWicket = false;
+      outcome.runs = 0;
+    }
+
+    // === DRS: batting side may review on a wicket (40% chance if review left) ===
+    if (outcome.isWicket && !outcome.extras && drsReviews.batting > 0 && Math.random() < 0.4) {
+      const dismissalType = delivery === 'yorker' ? 'LBW' : 'caught';
+      setPendingBall({ outcome, isFreeHit, dismissalType });
+      return;
+    }
+
+    await applyBallOutcome(outcome, isFreeHit);
+  };
+
+  const applyBallOutcome = async (
+    outcome: { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } },
+    isFreeHit: boolean,
+  ) => {
+    const innings = getCurrentInnings();
+    if (!innings || !innings.currentBowler) return;
+    if (!innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker) return;
+
     let runs = outcome.runs;
     let isWicket = outcome.isWicket;
     const isExtra = outcome.extras !== undefined;
@@ -432,13 +500,6 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const isWideOrNoBall = isWide || isNoBall;
     const isBye = isExtra && outcome.extras?.type === 'bye';
     const isLegBye = isExtra && outcome.extras?.type === 'leg-bye';
-    
-    // FREE HIT: Wickets not allowed (except run out) on free hit balls
-    if (isFreeHit && isWicket) {
-      // Convert wicket to a dot ball on free hit (run out would need special handling)
-      isWicket = false;
-      runs = 0;
-    }
     
     // Update striker's stats
     const striker = { ...innings.currentBatsmen.striker };
@@ -879,6 +940,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     setOpeningBatsman2("");
     setCommentary([]);
     setLastBowlerId(null); // Reset for second innings
+    setDrsReviews({ batting: 2, bowling: 2 }); // Reset DRS for new innings
   };
 
   const formatBallNumber = (ballNum: number) => {
@@ -899,6 +961,41 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
   return (
     <div className="space-y-4">
+      {/* ============ TACTICS PANELS ============ */}
+      {canSimulate && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="outline" className="bg-primary/10 border-primary/30">
+                🧠 Tactics
+              </Badge>
+              <Badge variant="outline">DRS · Bat {drsReviews.batting} / Bowl {drsReviews.bowling}</Badge>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setShowTactics(s => !s)}>
+              {showTactics ? 'Hide' : 'Show'} controls
+            </Button>
+          </div>
+          {showTactics && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <TacticalPanel
+                strategy={bowlingStrategy}
+                aggression={battingAggression}
+                bowlerName={innings?.currentBowler?.name}
+                batsmanName={innings?.currentBatsmen.striker?.name}
+                onStrategyChange={setBowlingStrategy}
+                onAggressionChange={setBattingAggression}
+              />
+              <FieldPlacementEditor
+                fielders={fielders}
+                preset={fieldPreset}
+                onChange={setFielders}
+                onPresetChange={setFieldPreset}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -1199,6 +1296,33 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           setShowSuperOver(false);
           setShowMatchResultDialog(true);
         }}
+      />
+
+      {/* ============ DRS REVIEW DIALOG ============ */}
+      <DRSReviewDialog
+        open={!!pendingBall}
+        reviewingTeam="batting"
+        reviewsLeft={drsReviews.batting}
+        dismissalType={pendingBall?.dismissalType || 'caught'}
+        batsmanName={innings?.currentBatsmen.striker?.name || ''}
+        bowlerName={innings?.currentBowler?.name || ''}
+        onResolve={(overturned, reviewUsed) => {
+          if (!pendingBall) return;
+          const finalOutcome = { ...pendingBall.outcome };
+          if (overturned) {
+            finalOutcome.isWicket = false;
+            finalOutcome.runs = 0;
+            toast({ title: '🎉 Decision Overturned!', description: 'Not out — review retained.' });
+          } else if (reviewUsed) {
+            setDrsReviews(d => ({ ...d, batting: Math.max(0, d.batting - 1) }));
+            toast({ title: 'Decision Stands', description: 'Review lost.', variant: 'destructive' });
+          }
+          const fh = pendingBall.isFreeHit;
+          setPendingBall(null);
+          // Defer until state updates flush
+          setTimeout(() => applyBallOutcome(finalOutcome, fh), 0);
+        }}
+        onClose={() => setPendingBall(null)}
       />
     </div>
   );
