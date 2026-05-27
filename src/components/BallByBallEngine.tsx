@@ -448,8 +448,50 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     if (!innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker) return;
 
     const isFreeHit = innings.isFreeHit || false;
-    const outcome = simulateBallOutcome(innings.currentBatsmen.striker, innings.currentBowler);
-    
+
+    // === TACTICS: pick delivery and derive modifiers ===
+    const delivery = pickDelivery(bowlingStrategy);
+    const tMods = computeTacticsModifiers(delivery, battingAggression, fieldPreset);
+    const conditionMods = {
+      boundaryMultiplier: tMods.boundaryMul,
+      sixMultiplier: tMods.sixMul,
+      runScoringMultiplier: tMods.singleMul,
+      paceWicketMultiplier: tMods.wicketMul,
+      spinWicketMultiplier: tMods.wicketMul,
+      extrasMultiplier: tMods.extrasMul,
+      dotBallMultiplier: tMods.dotMul,
+    };
+
+    const outcome = simulateBallOutcome(
+      innings.currentBatsmen.striker,
+      innings.currentBowler,
+      conditionMods,
+    );
+
+    // FREE HIT: Wickets not allowed (except run out) on free hit balls
+    if (isFreeHit && outcome.isWicket) {
+      outcome.isWicket = false;
+      outcome.runs = 0;
+    }
+
+    // === DRS: batting side may review on a wicket (40% chance if review left) ===
+    if (outcome.isWicket && !outcome.extras && drsReviews.batting > 0 && Math.random() < 0.4) {
+      const dismissalType = delivery === 'yorker' ? 'LBW' : 'caught';
+      setPendingBall({ outcome, isFreeHit, dismissalType });
+      return;
+    }
+
+    await applyBallOutcome(outcome, isFreeHit);
+  };
+
+  const applyBallOutcome = async (
+    outcome: { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } },
+    isFreeHit: boolean,
+  ) => {
+    const innings = getCurrentInnings();
+    if (!innings || !innings.currentBowler) return;
+    if (!innings.currentBatsmen.striker || !innings.currentBatsmen.nonStriker) return;
+
     let runs = outcome.runs;
     let isWicket = outcome.isWicket;
     const isExtra = outcome.extras !== undefined;
@@ -458,13 +500,6 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     const isWideOrNoBall = isWide || isNoBall;
     const isBye = isExtra && outcome.extras?.type === 'bye';
     const isLegBye = isExtra && outcome.extras?.type === 'leg-bye';
-    
-    // FREE HIT: Wickets not allowed (except run out) on free hit balls
-    if (isFreeHit && isWicket) {
-      // Convert wicket to a dot ball on free hit (run out would need special handling)
-      isWicket = false;
-      runs = 0;
-    }
     
     // Update striker's stats
     const striker = { ...innings.currentBatsmen.striker };
