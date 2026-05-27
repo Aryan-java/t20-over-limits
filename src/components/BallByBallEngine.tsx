@@ -940,6 +940,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     setOpeningBatsman2("");
     setCommentary([]);
     setLastBowlerId(null); // Reset for second innings
+    setDrsReviews({ batting: 2, bowling: 2 }); // Reset DRS for new innings
   };
 
   const formatBallNumber = (ballNum: number) => {
@@ -960,6 +961,41 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
   return (
     <div className="space-y-4">
+      {/* ============ TACTICS PANELS ============ */}
+      {canSimulate && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="outline" className="bg-primary/10 border-primary/30">
+                🧠 Tactics
+              </Badge>
+              <Badge variant="outline">DRS · Bat {drsReviews.batting} / Bowl {drsReviews.bowling}</Badge>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setShowTactics(s => !s)}>
+              {showTactics ? 'Hide' : 'Show'} controls
+            </Button>
+          </div>
+          {showTactics && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <TacticalPanel
+                strategy={bowlingStrategy}
+                aggression={battingAggression}
+                bowlerName={innings?.currentBowler?.name}
+                batsmanName={innings?.currentBatsmen.striker?.name}
+                onStrategyChange={setBowlingStrategy}
+                onAggressionChange={setBattingAggression}
+              />
+              <FieldPlacementEditor
+                fielders={fielders}
+                preset={fieldPreset}
+                onChange={setFielders}
+                onPresetChange={setFieldPreset}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
