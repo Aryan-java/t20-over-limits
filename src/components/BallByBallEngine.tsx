@@ -1297,6 +1297,33 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
           setShowMatchResultDialog(true);
         }}
       />
+
+      {/* ============ DRS REVIEW DIALOG ============ */}
+      <DRSReviewDialog
+        open={!!pendingBall}
+        reviewingTeam="batting"
+        reviewsLeft={drsReviews.batting}
+        dismissalType={pendingBall?.dismissalType || 'caught'}
+        batsmanName={innings?.currentBatsmen.striker?.name || ''}
+        bowlerName={innings?.currentBowler?.name || ''}
+        onResolve={(overturned, reviewUsed) => {
+          if (!pendingBall) return;
+          const finalOutcome = { ...pendingBall.outcome };
+          if (overturned) {
+            finalOutcome.isWicket = false;
+            finalOutcome.runs = 0;
+            toast({ title: '🎉 Decision Overturned!', description: 'Not out — review retained.' });
+          } else if (reviewUsed) {
+            setDrsReviews(d => ({ ...d, batting: Math.max(0, d.batting - 1) }));
+            toast({ title: 'Decision Stands', description: 'Review lost.', variant: 'destructive' });
+          }
+          const fh = pendingBall.isFreeHit;
+          setPendingBall(null);
+          // Defer until state updates flush
+          setTimeout(() => applyBallOutcome(finalOutcome, fh), 0);
+        }}
+        onClose={() => setPendingBall(null)}
+      />
     </div>
   );
 };
