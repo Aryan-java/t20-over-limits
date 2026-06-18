@@ -83,12 +83,13 @@ const TeamsTab = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => generateSampleTeams(4)}
+            onClick={() => generateSampleTeams(10)}
             disabled={teams.length > 0}
           >
             <Shuffle className="h-3.5 w-3.5 mr-1.5" />
-            Generate Teams
+            Generate IPL Teams
           </Button>
+          
           
           <Button size="sm" onClick={() => setCreateDialogOpen(true)} className="shadow-sm shadow-primary/20">
             <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -106,9 +107,9 @@ const TeamsTab = () => {
               <p className="text-sm text-muted-foreground mt-1">Create your first team or generate sample teams to get started</p>
             </div>
             <div className="flex items-center justify-center gap-3 pt-2">
-              <Button variant="outline" onClick={() => generateSampleTeams(4)} disabled={teams.length > 0}>
+              <Button variant="outline" onClick={() => generateSampleTeams(10)} disabled={teams.length > 0}>
                 <Shuffle className="h-4 w-4 mr-2" />
-                Generate Sample Teams
+                Generate IPL 2025 Teams
               </Button>
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />

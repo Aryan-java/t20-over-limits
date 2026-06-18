@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Team, Player, Match, Fixture, MatchHistory, Tournament, TradeProposal } from '@/types/cricket';
 import { PLAYER_DATABASE } from '@/data/playerDatabase';
+import { IPL_TEAMS_2025 } from '@/data/iplSquads';
 import { getRandomVenue, IPL_VENUES } from '@/data/venues';
 
 
@@ -867,44 +868,22 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
   
   generateSampleTeams: (count) => {
-    const teamNames = [
-      'Mumbai Indians', 'Chennai Super Kings', 'Royal Challengers Bangalore',
-      'Kolkata Knight Riders', 'Delhi Capitals', 'Punjab Kings',
-      'Rajasthan Royals', 'Sunrisers Hyderabad'
-    ];
-    
-    for (let i = 0; i < Math.min(count, teamNames.length); i++) {
+    // Always spawn the real IPL 2025 franchises (up to 10) with their actual squads
+    const teamsToCreate = IPL_TEAMS_2025.slice(0, Math.max(1, Math.min(count, IPL_TEAMS_2025.length)));
+    const newTeams: Team[] = [];
+
+    for (const franchise of teamsToCreate) {
       const team: Team = {
         id: generateId(),
-        name: teamNames[i],
+        name: franchise.name,
         squad: [],
         subUsed: false,
       };
-      
-      // Get random players from database for each team
-      const availablePlayers = [...PLAYER_DATABASE];
-      const selectedPlayers: string[] = [];
-      
-      // Ensure we have a good mix of players
-      let overseasCount = 0;
-      const maxOverseas = 8;
-      
-      while (team.squad.length < 20 && availablePlayers.length > 0) {
-        const randomIndex = Math.floor(Math.random() * availablePlayers.length);
-        const playerData = availablePlayers[randomIndex];
-        
-        // Check overseas limit
-        if (playerData.isOverseas && overseasCount >= maxOverseas) {
-          availablePlayers.splice(randomIndex, 1);
-          continue;
-        }
-        
-        // Check if player already selected by another team
-        if (selectedPlayers.includes(playerData.name)) {
-          availablePlayers.splice(randomIndex, 1);
-          continue;
-        }
-        
+
+      for (const playerName of franchise.squad) {
+        const playerData = PLAYER_DATABASE.find(p => p.name === playerName);
+        if (!playerData) continue; // skip if not in DB
+
         const player: Player = {
           id: generateId(),
           name: playerData.name,
@@ -938,21 +917,13 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           noBallsConceded: 0,
           dotBalls: 0,
         };
-        
         team.squad.push(player);
-        selectedPlayers.push(playerData.name);
-        
-        if (playerData.isOverseas) {
-          overseasCount++;
-        }
-        
-        availablePlayers.splice(randomIndex, 1);
       }
-      
-      set(state => ({
-        teams: [...state.teams, team]
-      }));
+
+      newTeams.push(team);
     }
+
+    set(state => ({ teams: [...state.teams, ...newTeams] }));
   },
 }), {
   name: 'cricket-tournament-storage',
