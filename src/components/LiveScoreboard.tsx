@@ -8,6 +8,7 @@ import { User, Target, Zap, Flame, TrendingUp, Radio, Crosshair, Droplets } from
 import OverProgress from "@/components/ui/OverProgress";
 import AnimatedScore from "@/components/ui/AnimatedScore";
 import { WEATHER_ICONS, PITCH_ICONS } from "@/types/weather";
+import { baseIntentFor, INTENT_LABEL, INTENT_COLOR } from "@/lib/playerIntent";
 
 interface LiveScoreboardProps {
   match: Match;
