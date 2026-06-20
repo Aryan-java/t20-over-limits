@@ -165,6 +165,34 @@ const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrate
             <span>All-out attack</span>
           </div>
         </div>
+
+        {/* Per-batsman INTENT */}
+        {(striker || nonStriker) && onIntentChange && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">Batsman Approach</p>
+              <span className="text-[10px] text-muted-foreground">
+                Auto-adapts to RRR &amp; wickets
+              </span>
+            </div>
+            <div className="space-y-2">
+              {striker && (
+                <BatsmanIntentRow
+                  player={striker}
+                  overrides={intentOverrides}
+                  onChange={onIntentChange}
+                />
+              )}
+              {nonStriker && (
+                <BatsmanIntentRow
+                  player={nonStriker}
+                  overrides={intentOverrides}
+                  onChange={onIntentChange}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
