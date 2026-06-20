@@ -23,6 +23,12 @@ import {
   defaultBowlingStrategy,
   pickDelivery,
 } from "@/types/tactics";
+import {
+  baseIntentFor,
+  resolveIntent,
+  intentModifiers,
+  BatsmanIntent,
+} from "@/lib/playerIntent";
 
 
 interface BallByBallEngineProps {
