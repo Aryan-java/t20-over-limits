@@ -60,6 +60,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [showTactics, setShowTactics] = useState(false);
   // 2 DRS per innings per side, reset on second innings start
   const [drsReviews, setDrsReviews] = useState({ batting: 2, bowling: 2 });
+  // Manual per-batsman intent overrides (playerId -> intent). Defaults to baseIntentFor.
+  const [intentOverrides, setIntentOverrides] = useState<Record<string, BatsmanIntent>>({});
   // Pending wicket awaiting DRS resolution
   const [pendingBall, setPendingBall] = useState<null | {
     outcome: any;
