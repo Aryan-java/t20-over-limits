@@ -23,6 +23,12 @@ import {
   defaultBowlingStrategy,
   pickDelivery,
 } from "@/types/tactics";
+import {
+  baseIntentFor,
+  resolveIntent,
+  intentModifiers,
+  BatsmanIntent,
+} from "@/lib/playerIntent";
 
 
 interface BallByBallEngineProps {
@@ -54,6 +60,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [showTactics, setShowTactics] = useState(false);
   // 2 DRS per innings per side, reset on second innings start
   const [drsReviews, setDrsReviews] = useState({ batting: 2, bowling: 2 });
+  // Manual per-batsman intent overrides (playerId -> intent). Defaults to baseIntentFor.
+  const [intentOverrides, setIntentOverrides] = useState<Record<string, BatsmanIntent>>({});
   // Pending wicket awaiting DRS resolution
   const [pendingBall, setPendingBall] = useState<null | {
     outcome: any;
@@ -246,6 +254,23 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     let sixProb = Math.max(2, 6 + totalDiff * 0.15);
     let singleProb = 35;
     let doubleProb = 15;
+
+    // APPLY PLAYER INTENT — anchor/rotator/aggressor/finisher, situationally resolved
+    const inningsForIntent = getCurrentInnings();
+    if (inningsForIntent) {
+      const base = intentOverrides[batsman.id] ?? baseIntentFor(batsman);
+      const effective = resolveIntent(base, {
+        match,
+        innings: inningsForIntent,
+        striker: batsman,
+      });
+      const im = intentModifiers(effective);
+      dotProb *= im.dotMul;
+      singleProb *= im.singleMul;
+      boundaryProb *= im.boundaryMul;
+      sixProb *= im.sixMul;
+      wicketProb *= im.wicketMul;
+    }
 
     // APPLY WEATHER & PITCH CONDITION MODIFIERS
     if (conditionModifiers) {
@@ -984,6 +1009,12 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                 batsmanName={innings?.currentBatsmen.striker?.name}
                 onStrategyChange={setBowlingStrategy}
                 onAggressionChange={setBattingAggression}
+                striker={innings?.currentBatsmen.striker ?? null}
+                nonStriker={innings?.currentBatsmen.nonStriker ?? null}
+                intentOverrides={intentOverrides}
+                onIntentChange={(playerId, intent) =>
+                  setIntentOverrides(prev => ({ ...prev, [playerId]: intent }))
+                }
               />
               <FieldPlacementEditor
                 fielders={fielders}

@@ -4,6 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BowlingStrategy, BowlingDelivery } from "@/types/tactics";
 import { Zap, Shield, Target, Wind, Activity } from "lucide-react";
+import type { Player } from "@/types/cricket";
+import {
+  BatsmanIntent,
+  INTENT_LABEL,
+  INTENT_COLOR,
+  baseIntentFor,
+} from "@/lib/playerIntent";
+import { cn } from "@/lib/utils";
 
 interface Props {
   strategy: BowlingStrategy;
@@ -12,6 +20,11 @@ interface Props {
   batsmanName?: string;
   onStrategyChange: (s: BowlingStrategy) => void;
   onAggressionChange: (n: number) => void;
+  // Optional batsman-intent control
+  striker?: Player | null;
+  nonStriker?: Player | null;
+  intentOverrides?: Record<string, BatsmanIntent>;
+  onIntentChange?: (playerId: string, intent: BatsmanIntent) => void;
 }
 
 const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: string }> = {
@@ -22,7 +35,41 @@ const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: 
   knuckle: { label: 'Knuckle', icon: Shield, color: 'text-purple-400' },
 };
 
-const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrategyChange, onAggressionChange }: Props) => {
+const INTENT_OPTIONS: BatsmanIntent[] = ['anchor', 'rotator', 'aggressor', 'finisher'];
+
+const BatsmanIntentRow = ({
+  player, overrides, onChange,
+}: {
+  player: Player;
+  overrides: Record<string, BatsmanIntent>;
+  onChange: (id: string, i: BatsmanIntent) => void;
+}) => {
+  const current = overrides[player.id] ?? baseIntentFor(player);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium truncate w-28">{player.name}</span>
+      <div className="flex flex-wrap gap-1 flex-1">
+        {INTENT_OPTIONS.map(i => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onChange(player.id, i)}
+            className={cn(
+              "text-[10px] px-2 py-0.5 rounded border transition-colors",
+              i === current
+                ? INTENT_COLOR[i] + ' font-semibold'
+                : 'border-border/40 text-muted-foreground hover:bg-muted/30'
+            )}
+          >
+            {INTENT_LABEL[i]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrategyChange, onAggressionChange, striker, nonStriker, intentOverrides = {}, onIntentChange }: Props) => {
   const total = Object.values(strategy).reduce((a, b) => a + b, 0) || 1;
 
   const setWeight = (k: BowlingDelivery, v: number) => {
@@ -118,6 +165,34 @@ const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrate
             <span>All-out attack</span>
           </div>
         </div>
+
+        {/* Per-batsman INTENT */}
+        {(striker || nonStriker) && onIntentChange && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">Batsman Approach</p>
+              <span className="text-[10px] text-muted-foreground">
+                Auto-adapts to RRR &amp; wickets
+              </span>
+            </div>
+            <div className="space-y-2">
+              {striker && (
+                <BatsmanIntentRow
+                  player={striker}
+                  overrides={intentOverrides}
+                  onChange={onIntentChange}
+                />
+              )}
+              {nonStriker && (
+                <BatsmanIntentRow
+                  player={nonStriker}
+                  overrides={intentOverrides}
+                  onChange={onIntentChange}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
