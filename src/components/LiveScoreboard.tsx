@@ -269,8 +269,16 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate text-muted-foreground">
+                    <div className="font-medium text-sm truncate text-muted-foreground flex items-center gap-1.5">
                       {currentInnings.currentBatsmen.nonStriker.name}
+                      {(() => {
+                        const i = baseIntentFor(currentInnings.currentBatsmen.nonStriker!);
+                        return (
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border leading-none ${INTENT_COLOR[i]}`}>
+                            {INTENT_LABEL[i]}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-lg font-bold">{currentInnings.currentBatsmen.nonStriker.runs}</span>
