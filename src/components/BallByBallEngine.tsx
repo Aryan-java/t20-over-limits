@@ -1009,6 +1009,12 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
                 batsmanName={innings?.currentBatsmen.striker?.name}
                 onStrategyChange={setBowlingStrategy}
                 onAggressionChange={setBattingAggression}
+                striker={innings?.currentBatsmen.striker ?? null}
+                nonStriker={innings?.currentBatsmen.nonStriker ?? null}
+                intentOverrides={intentOverrides}
+                onIntentChange={(playerId, intent) =>
+                  setIntentOverrides(prev => ({ ...prev, [playerId]: intent }))
+                }
               />
               <FieldPlacementEditor
                 fielders={fielders}
