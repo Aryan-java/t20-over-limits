@@ -4,6 +4,7 @@ import { Team, Player, Match, Fixture, MatchHistory, Tournament, TradeProposal }
 import { PLAYER_DATABASE } from '@/data/playerDatabase';
 import { IPL_TEAMS_2025 } from '@/data/iplSquads';
 import { getRandomVenue, IPL_VENUES } from '@/data/venues';
+import { getPlayerCountry } from '@/data/playerCountries';
 
 
 interface CricketStore {
@@ -881,8 +882,18 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       };
 
       for (const playerName of franchise.squad) {
-        const playerData = PLAYER_DATABASE.find(p => p.name === playerName);
-        if (!playerData) continue; // skip if not in DB
+        const dbData = PLAYER_DATABASE.find(p => p.name === playerName);
+        // Fallback: spawn the player even if missing from PLAYER_DATABASE,
+        // detecting overseas via the country mapping so squads stay complete.
+        const country = getPlayerCountry(playerName, false);
+        const inferredOverseas = country.code !== 'IND';
+        const playerData = dbData ?? {
+          name: playerName,
+          imageUrl: undefined,
+          isOverseas: inferredOverseas,
+          batSkill: 55,
+          bowlSkill: 55,
+        };
 
         const player: Player = {
           id: generateId(),
