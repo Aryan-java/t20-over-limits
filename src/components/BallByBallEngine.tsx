@@ -255,6 +255,23 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     let singleProb = 35;
     let doubleProb = 15;
 
+    // APPLY PLAYER INTENT — anchor/rotator/aggressor/finisher, situationally resolved
+    const inningsForIntent = getCurrentInnings();
+    if (inningsForIntent) {
+      const base = intentOverrides[batsman.id] ?? baseIntentFor(batsman);
+      const effective = resolveIntent(base, {
+        match,
+        innings: inningsForIntent,
+        striker: batsman,
+      });
+      const im = intentModifiers(effective);
+      dotProb *= im.dotMul;
+      singleProb *= im.singleMul;
+      boundaryProb *= im.boundaryMul;
+      sixProb *= im.sixMul;
+      wicketProb *= im.wicketMul;
+    }
+
     // APPLY WEATHER & PITCH CONDITION MODIFIERS
     if (conditionModifiers) {
       boundaryProb *= conditionModifiers.boundaryMultiplier;
