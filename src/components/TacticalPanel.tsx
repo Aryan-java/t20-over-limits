@@ -4,6 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BowlingStrategy, BowlingDelivery } from "@/types/tactics";
 import { Zap, Shield, Target, Wind, Activity } from "lucide-react";
+import type { Player } from "@/types/cricket";
+import {
+  BatsmanIntent,
+  INTENT_LABEL,
+  INTENT_COLOR,
+  baseIntentFor,
+} from "@/lib/playerIntent";
+import { cn } from "@/lib/utils";
 
 interface Props {
   strategy: BowlingStrategy;
@@ -12,6 +20,11 @@ interface Props {
   batsmanName?: string;
   onStrategyChange: (s: BowlingStrategy) => void;
   onAggressionChange: (n: number) => void;
+  // Optional batsman-intent control
+  striker?: Player | null;
+  nonStriker?: Player | null;
+  intentOverrides?: Record<string, BatsmanIntent>;
+  onIntentChange?: (playerId: string, intent: BatsmanIntent) => void;
 }
 
 const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: string }> = {
