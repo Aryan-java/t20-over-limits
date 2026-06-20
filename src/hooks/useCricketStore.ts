@@ -885,7 +885,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         const dbData = PLAYER_DATABASE.find(p => p.name === playerName);
         // Fallback: spawn the player even if missing from PLAYER_DATABASE,
         // detecting overseas via the country mapping so squads stay complete.
-        const country = (require('@/data/playerCountries') as typeof import('@/data/playerCountries')).getPlayerCountry(playerName, false);
+        const country = getPlayerCountry(playerName, false);
         const inferredOverseas = country.code !== 'IND';
         const playerData = dbData ?? {
           name: playerName,
