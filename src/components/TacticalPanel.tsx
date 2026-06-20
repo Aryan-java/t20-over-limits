@@ -35,7 +35,41 @@ const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: 
   knuckle: { label: 'Knuckle', icon: Shield, color: 'text-purple-400' },
 };
 
-const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrategyChange, onAggressionChange }: Props) => {
+const INTENT_OPTIONS: BatsmanIntent[] = ['anchor', 'rotator', 'aggressor', 'finisher'];
+
+const BatsmanIntentRow = ({
+  player, overrides, onChange,
+}: {
+  player: Player;
+  overrides: Record<string, BatsmanIntent>;
+  onChange: (id: string, i: BatsmanIntent) => void;
+}) => {
+  const current = overrides[player.id] ?? baseIntentFor(player);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium truncate w-28">{player.name}</span>
+      <div className="flex flex-wrap gap-1 flex-1">
+        {INTENT_OPTIONS.map(i => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onChange(player.id, i)}
+            className={cn(
+              "text-[10px] px-2 py-0.5 rounded border transition-colors",
+              i === current
+                ? INTENT_COLOR[i] + ' font-semibold'
+                : 'border-border/40 text-muted-foreground hover:bg-muted/30'
+            )}
+          >
+            {INTENT_LABEL[i]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrategyChange, onAggressionChange, striker, nonStriker, intentOverrides = {}, onIntentChange }: Props) => {
   const total = Object.values(strategy).reduce((a, b) => a + b, 0) || 1;
 
   const setWeight = (k: BowlingDelivery, v: number) => {
