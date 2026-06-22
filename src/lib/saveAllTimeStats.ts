@@ -110,6 +110,14 @@ export async function saveAllTimeStats(match: Match): Promise<boolean> {
     team1Players.forEach((p) => allPlayers.push({ player: p, teamName: match.team1.name }));
     team2Players.forEach((p) => allPlayers.push({ player: p, teamName: match.team2.name }));
 
+    // Include players who were substituted out via Impact Player rule — their stats count separately
+    if (team1Setup?.substitutedOutPlayer) {
+      allPlayers.push({ player: team1Setup.substitutedOutPlayer, teamName: match.team1.name });
+    }
+    if (team2Setup?.substitutedOutPlayer) {
+      allPlayers.push({ player: team2Setup.substitutedOutPlayer, teamName: match.team2.name });
+    }
+
     const batchSize = 3;
     for (let i = 0; i < allPlayers.length; i += batchSize) {
       const batch = allPlayers.slice(i, i + batchSize);
