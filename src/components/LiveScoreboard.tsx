@@ -8,7 +8,7 @@ import { User, Target, Zap, Flame, TrendingUp, Radio, Crosshair, Droplets } from
 import OverProgress from "@/components/ui/OverProgress";
 import AnimatedScore from "@/components/ui/AnimatedScore";
 import { WEATHER_ICONS, PITCH_ICONS } from "@/types/weather";
-import { baseIntentFor, INTENT_LABEL, INTENT_COLOR } from "@/lib/playerIntent";
+
 
 interface LiveScoreboardProps {
   match: Match;
@@ -234,14 +234,6 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
                   <div className="font-bold text-sm truncate flex items-center gap-1.5">
                     {currentInnings.currentBatsmen.striker.name}
                     <span className="text-primary">*</span>
-                    {(() => {
-                      const i = baseIntentFor(currentInnings.currentBatsmen.striker);
-                      return (
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded border leading-none ${INTENT_COLOR[i]}`}>
-                          {INTENT_LABEL[i]}
-                        </span>
-                      );
-                    })()}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-lg font-black">{currentInnings.currentBatsmen.striker.runs}</span>
@@ -271,14 +263,6 @@ const LiveScoreboard = ({ match, conditions }: LiveScoreboardProps) => {
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate text-muted-foreground flex items-center gap-1.5">
                       {currentInnings.currentBatsmen.nonStriker.name}
-                      {(() => {
-                        const i = baseIntentFor(currentInnings.currentBatsmen.nonStriker!);
-                        return (
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded border leading-none ${INTENT_COLOR[i]}`}>
-                            {INTENT_LABEL[i]}
-                          </span>
-                        );
-                      })()}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-lg font-bold">{currentInnings.currentBatsmen.nonStriker.runs}</span>
