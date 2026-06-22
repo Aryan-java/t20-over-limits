@@ -149,6 +149,7 @@ export interface Match {
     openingPair: [Player, Player];
     impactPlayerUsed: boolean;
     substitutedPlayerId?: string; // ID of player who was replaced
+    substitutedOutPlayer?: Player; // snapshot of replaced player with their stats at substitution time
   };
   team2Setup?: {
     playingXI: Player[];
@@ -156,7 +157,8 @@ export interface Match {
     battingOrder: Player[];
     openingPair: [Player, Player];
     impactPlayerUsed: boolean;
-    substitutedPlayerId?: string; // ID of player who was replaced
+    substitutedPlayerId?: string;
+    substitutedOutPlayer?: Player;
   };
   superOver?: {
     team1Innings: Innings;
