@@ -66,25 +66,32 @@ const LiveMatchTab = () => {
     console.log("Simulating ball");
   };
 
-  const handleUseImpactPlayer = (playerId: string, replacePlayerId: string) => {
+  const handleUseImpactPlayer = (
+    playerId: string,
+    replacePlayerId: string,
+    side: 'batting' | 'bowling' = 'batting'
+  ) => {
     if (!currentMatch) return;
-    
+
     const innings = currentMatch.currentInnings === 1 ? currentMatch.firstInnings : currentMatch.secondInnings;
     if (!innings) return;
-    
+
     const isTeam1Batting = innings.battingTeam === currentMatch.team1.name;
-    const teamSetup = isTeam1Batting ? currentMatch.team1Setup : currentMatch.team2Setup;
-    
+    // Determine which team's setup is being modified
+    const targetIsTeam1 = side === 'batting' ? isTeam1Batting : !isTeam1Batting;
+    const teamSetup = targetIsTeam1 ? currentMatch.team1Setup : currentMatch.team2Setup;
+
     if (!teamSetup) return;
-    
+    if (teamSetup.impactPlayerUsed) return;
+
     const impactPlayer = teamSetup.impactPlayers.find(p => p.id === playerId);
     const replacePlayerIdx = teamSetup.playingXI.findIndex(p => p.id === replacePlayerId);
-    
+
     if (!impactPlayer || replacePlayerIdx === -1) return;
-    
+
     const newPlayingXI = [...teamSetup.playingXI];
     const replacedPlayer = newPlayingXI[replacePlayerIdx];
-    
+
     newPlayingXI[replacePlayerIdx] = {
       ...impactPlayer,
       isPlaying: true,
@@ -102,21 +109,21 @@ const LiveMatchTab = () => {
       noBallsConceded: 0,
       dotBalls: 0,
     };
-    
+
     const updatedSetup = {
       ...teamSetup,
       playingXI: newPlayingXI,
       impactPlayerUsed: true,
       substitutedPlayerId: replacePlayerId
     };
-    
-    if (isTeam1Batting) {
+
+    if (targetIsTeam1) {
       updateMatch({ team1Setup: updatedSetup });
     } else {
       updateMatch({ team2Setup: updatedSetup });
     }
-    
-    console.log(`Impact Player: ${impactPlayer.name} replaced ${replacedPlayer.name}`);
+
+    console.log(`Impact Player (${side}): ${impactPlayer.name} replaced ${replacedPlayer.name}`);
   };
 
   if (!currentMatch) {
