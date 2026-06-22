@@ -114,7 +114,8 @@ const LiveMatchTab = () => {
       ...teamSetup,
       playingXI: newPlayingXI,
       impactPlayerUsed: true,
-      substitutedPlayerId: replacePlayerId
+      substitutedPlayerId: replacePlayerId,
+      substitutedOutPlayer: { ...replacedPlayer }, // preserve their match stats
     };
 
     if (targetIsTeam1) {
