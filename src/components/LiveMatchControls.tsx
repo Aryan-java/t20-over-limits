@@ -79,20 +79,16 @@ const LiveMatchControls = ({
   const replaceableForSide = () => {
     const xi = sideSetup?.playingXI || [];
     if (impactSide === 'batting') {
-      // Cannot remove a batsman who has already faced a ball or is out / currently batting
+      // Anyone in XI except the two batsmen currently at the crease
       return xi.filter(p =>
-        !p.dismissed &&
-        p.balls === 0 &&
         p.id !== innings?.currentBatsmen.striker?.id &&
         p.id !== innings?.currentBatsmen.nonStriker?.id
       );
     }
-    // bowling side: cannot remove a bowler who has already bowled, or current bowler
-    return xi.filter(p =>
-      p.oversBowled === 0 &&
-      p.id !== innings?.currentBowler?.id
-    );
+    // bowling side: anyone except the current bowler
+    return xi.filter(p => p.id !== innings?.currentBowler?.id);
   };
+
 
   const validateSubstitution = (impactId: string, replaceId: string): { valid: boolean; message: string } => {
     const xi = sideSetup?.playingXI || [];
