@@ -152,7 +152,7 @@ const SelectPlayingXIDialog = ({ team, open, onOpenChange }: SelectPlayingXIDial
                 <div>
                   <h3 className="text-lg font-semibold">Impact Players ({selectedImpact.length}/4)</h3>
                   <p className="text-sm text-muted-foreground">
-                    Select up to 4 players from remaining squad
+                    Select up to 4 players from remaining squad. Only one can be used per match.
                   </p>
                 </div>
                 <Badge variant={selectedImpact.length <= 4 ? "default" : "destructive"}>
