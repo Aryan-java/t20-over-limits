@@ -329,6 +329,8 @@ const LiveMatchControls = ({
                   {replaceableForSide().map(player => (
                     <SelectItem key={player.id} value={player.id}>
                       {player.name} {player.isOverseas && "(OS)"}
+                      {impactSide === 'batting' && player.dismissed ? ' - OUT' : ''}
+                      {impactSide === 'batting' && !player.dismissed && player.balls > 0 ? ` - ${player.runs}(${player.balls})` : ''}
                       {impactSide === 'bowling' && player.oversBowled > 0 ? ` - ${player.oversBowled}ov` : ''}
                     </SelectItem>
                   ))}
@@ -336,10 +338,11 @@ const LiveMatchControls = ({
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
                 {impactSide === 'batting'
-                  ? "Only yet-to-bat players can be replaced."
-                  : "Only bowlers who haven't bowled yet can be replaced."}
+                  ? "Any batter (including dismissed) can be replaced, except the two at the crease."
+                  : "Any bowler can be replaced, except the current bowler."}
               </p>
             </div>
+
 
             {!substitutionValidation.valid && (
               <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2">
