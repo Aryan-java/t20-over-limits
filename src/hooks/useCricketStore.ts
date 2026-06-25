@@ -938,4 +938,20 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
 }), {
   name: 'cricket-tournament-storage',
+  version: 2,
+  migrate: (persisted: any, version: number) => {
+    if (!persisted) return persisted;
+    // v2: resync batSkill/bowlSkill on every player from the latest PLAYER_DATABASE
+    if (version < 2) {
+      const syncPlayer = (p: any) => {
+        if (!p || !p.name) return p;
+        const ref = PLAYER_DATABASE.find(d => d.name === p.name);
+        if (!ref) return p;
+        return { ...p, batSkill: ref.batSkill, bowlSkill: ref.bowlSkill };
+      };
+      const syncTeam = (t: any) => t ? { ...t, squad: (t.squad || []).map(syncPlayer) } : t;
+      persisted.teams = (persisted.teams || []).map(syncTeam);
+    }
+    return persisted;
+  },
 }));
