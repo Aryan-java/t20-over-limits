@@ -938,7 +938,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
 }), {
   name: 'cricket-tournament-storage',
-  version: 3,
+  version: 4,
   migrate: (persisted: any, version: number) => {
     if (!persisted) return persisted;
     // v2/v3: resync batSkill/bowlSkill on every player from latest PLAYER_DATABASE (form-based)
