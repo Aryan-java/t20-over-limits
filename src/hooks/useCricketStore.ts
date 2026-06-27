@@ -5,6 +5,8 @@ import { PLAYER_DATABASE } from '@/data/playerDatabase';
 import { IPL_TEAMS_2025 } from '@/data/iplSquads';
 import { getRandomVenue, IPL_VENUES } from '@/data/venues';
 import { getPlayerCountry } from '@/data/playerCountries';
+import { applyMatchToPlayer } from '@/lib/playerForm';
+
 
 
 interface CricketStore {
