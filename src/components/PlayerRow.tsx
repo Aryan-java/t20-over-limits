@@ -88,20 +88,45 @@ const PlayerRow = ({
 
         {/* Skill Badges */}
         <div className="flex items-center gap-3">
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${getSkillBg(player.batSkill)}`}>
+          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border ${getSkillBg(player.batSkill)}`}>
             <TrendingUp className="h-3.5 w-3.5 text-score-four" />
             <span className={`text-sm font-bold ${getSkillColor(player.batSkill)}`}>
               {player.batSkill}
             </span>
+            {!!player.performanceHistory?.batFormAdjustment && (
+              <span className={`text-[10px] font-bold flex items-center ${player.performanceHistory.batFormAdjustment > 0 ? 'text-cricket-green' : 'text-destructive'}`}>
+                {player.performanceHistory.batFormAdjustment > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                {Math.abs(player.performanceHistory.batFormAdjustment)}
+              </span>
+            )}
           </div>
-          
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${getSkillBg(player.bowlSkill)}`}>
+
+          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border ${getSkillBg(player.bowlSkill)}`}>
             <Target className="h-3.5 w-3.5 text-cricket-ball" />
             <span className={`text-sm font-bold ${getSkillColor(player.bowlSkill)}`}>
               {player.bowlSkill}
             </span>
+            {!!player.performanceHistory?.bowlFormAdjustment && (
+              <span className={`text-[10px] font-bold flex items-center ${player.performanceHistory.bowlFormAdjustment > 0 ? 'text-cricket-green' : 'text-destructive'}`}>
+                {player.performanceHistory.bowlFormAdjustment > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                {Math.abs(player.performanceHistory.bowlFormAdjustment)}
+              </span>
+            )}
           </div>
+
+          {player.performanceHistory && (player.performanceHistory.recentMatches?.length ?? 0) > 0 && (
+            <div
+              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border/40 bg-muted/30"
+              title={`Form rating: ${player.performanceHistory.formRating}/100 (last ${player.performanceHistory.recentMatches?.length} matches)`}
+            >
+              <Flame className={`h-3.5 w-3.5 ${player.performanceHistory.formRating >= 65 ? 'text-cricket-green' : player.performanceHistory.formRating <= 35 ? 'text-destructive' : 'text-muted-foreground'}`} />
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                {player.performanceHistory.formRating}
+              </span>
+            </div>
+          )}
         </div>
+
 
         {showStats && player.isPlaying && (
           <div className="flex items-center gap-4 text-sm px-3 py-1.5 bg-muted/30 rounded-lg">
