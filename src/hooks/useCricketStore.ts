@@ -5,6 +5,8 @@ import { PLAYER_DATABASE } from '@/data/playerDatabase';
 import { IPL_TEAMS_2025 } from '@/data/iplSquads';
 import { getRandomVenue, IPL_VENUES } from '@/data/venues';
 import { getPlayerCountry } from '@/data/playerCountries';
+import { applyMatchToPlayer } from '@/lib/playerForm';
+
 
 
 interface CricketStore {
@@ -595,14 +597,22 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     console.log('Completing match - players who played:', allPlayers.length);
 
     // Create a map of player stats from the completed match
-    const matchPlayerStats = new Map<string, { runs: number; wickets: number; name: string }>();
+    const matchPlayerStats = new Map<string, {
+      runs: number; balls: number; wickets: number; runsConceded: number;
+      oversBowled: number; batted: boolean; bowled: boolean; name: string;
+    }>();
     allPlayers.forEach(player => {
       matchPlayerStats.set(player.id, {
         runs: player.runs,
+        balls: player.balls,
         wickets: player.wickets,
-        name: player.name
+        runsConceded: player.runsConceded,
+        oversBowled: player.oversBowled,
+        batted: player.dismissed || player.balls > 0,
+        bowled: player.oversBowled > 0,
+        name: player.name,
       });
-      console.log(`Player ${player.name}: ${player.runs} runs, ${player.wickets} wickets`);
+      console.log(`Player ${player.name}: ${player.runs}(${player.balls}) | ${player.wickets}/${player.runsConceded}`);
     });
 
     // Apply all updates in a single state change
@@ -617,42 +627,17 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
         return {
           ...team,
           squad: team.squad.map(statePlayer => {
-            // Check if this player played in the match
             const matchStats = matchPlayerStats.get(statePlayer.id);
-
             if (!matchStats) return statePlayer;
 
-            console.log(`Updating stats for ${matchStats.name}: +${matchStats.runs} runs, +${matchStats.wickets} wickets`);
+            // Apply form-based skill adjustment
+            const updated = applyMatchToPlayer(statePlayer, matchStats);
 
-            // Update performance history with match stats
-            const currentHistory = statePlayer.performanceHistory || {
-              last5MatchesRuns: 0,
-              last5MatchesWickets: 0,
-              totalMatches: 0,
-              totalRuns: 0,
-              totalWickets: 0,
-              averageRuns: 0,
-              averageWickets: 0,
-              formRating: 50,
-            };
-
-            const updatedHistory = {
-              last5MatchesRuns: currentHistory.last5MatchesRuns + matchStats.runs,
-              last5MatchesWickets: currentHistory.last5MatchesWickets + matchStats.wickets,
-              totalMatches: currentHistory.totalMatches + 1,
-              totalRuns: currentHistory.totalRuns + matchStats.runs,
-              totalWickets: currentHistory.totalWickets + matchStats.wickets,
-              averageRuns: (currentHistory.totalRuns + matchStats.runs) / (currentHistory.totalMatches + 1),
-              averageWickets: (currentHistory.totalWickets + matchStats.wickets) / (currentHistory.totalMatches + 1),
-              formRating: Math.min(100, Math.max(0, 50 + matchStats.runs * 0.1 + matchStats.wickets * 2)),
-            };
-
-            console.log(`New totals for ${matchStats.name}: ${updatedHistory.totalRuns} runs, ${updatedHistory.totalWickets} wickets`);
+            console.log(`${matchStats.name} → form ${updated.performanceHistory?.formRating} | bat ${updated.baseBatSkill}→${updated.batSkill} (${updated.performanceHistory?.batFormAdjustment! >= 0 ? '+' : ''}${updated.performanceHistory?.batFormAdjustment}) | bowl ${updated.baseBowlSkill}→${updated.bowlSkill} (${updated.performanceHistory?.bowlFormAdjustment! >= 0 ? '+' : ''}${updated.performanceHistory?.bowlFormAdjustment})`);
 
             // Reset match-specific stats for the next game
             return {
-              ...statePlayer,
-              performanceHistory: updatedHistory,
+              ...updated,
               runs: 0,
               balls: 0,
               fours: 0,
@@ -668,6 +653,7 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
           }),
         };
       }),
+
       matchHistory: [...state.matchHistory, completedMatch],
       fixtures: (() => {
         // Find the first UNPLAYED fixture between these two teams to mark as played
@@ -938,12 +924,11 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
 }), {
   name: 'cricket-tournament-storage',
-  version: 4,
+  version: 5,
   migrate: (persisted: any, version: number) => {
     if (!persisted) return persisted;
     // v2/v3: resync batSkill/bowlSkill on every player from latest PLAYER_DATABASE (form-based)
     if (version < 3) {
-
       const syncPlayer = (p: any) => {
         if (!p || !p.name) return p;
         const ref = PLAYER_DATABASE.find(d => d.name === p.name);
@@ -953,6 +938,39 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       const syncTeam = (t: any) => t ? { ...t, squad: (t.squad || []).map(syncPlayer) } : t;
       persisted.teams = (persisted.teams || []).map(syncTeam);
     }
+    // v5: introduce form system — seed baseBatSkill/baseBowlSkill and recentMatches
+    if (version < 5) {
+      const seedPlayer = (p: any) => {
+        if (!p || !p.name) return p;
+        const ref = PLAYER_DATABASE.find(d => d.name === p.name);
+        const baseBat = ref?.batSkill ?? p.batSkill;
+        const baseBowl = ref?.bowlSkill ?? p.bowlSkill;
+        const ph = p.performanceHistory || {};
+        return {
+          ...p,
+          baseBatSkill: baseBat,
+          baseBowlSkill: baseBowl,
+          batSkill: baseBat,
+          bowlSkill: baseBowl,
+          performanceHistory: {
+            last5MatchesRuns: ph.last5MatchesRuns || 0,
+            last5MatchesWickets: ph.last5MatchesWickets || 0,
+            totalMatches: ph.totalMatches || 0,
+            totalRuns: ph.totalRuns || 0,
+            totalWickets: ph.totalWickets || 0,
+            averageRuns: ph.averageRuns || 0,
+            averageWickets: ph.averageWickets || 0,
+            formRating: ph.formRating || 50,
+            recentMatches: ph.recentMatches || [],
+            batFormAdjustment: 0,
+            bowlFormAdjustment: 0,
+          },
+        };
+      };
+      const seedTeam = (t: any) => t ? { ...t, squad: (t.squad || []).map(seedPlayer) } : t;
+      persisted.teams = (persisted.teams || []).map(seedTeam);
+    }
     return persisted;
   },
 }));
+
