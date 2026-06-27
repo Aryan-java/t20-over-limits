@@ -924,12 +924,11 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
 }), {
   name: 'cricket-tournament-storage',
-  version: 4,
+  version: 5,
   migrate: (persisted: any, version: number) => {
     if (!persisted) return persisted;
     // v2/v3: resync batSkill/bowlSkill on every player from latest PLAYER_DATABASE (form-based)
     if (version < 3) {
-
       const syncPlayer = (p: any) => {
         if (!p || !p.name) return p;
         const ref = PLAYER_DATABASE.find(d => d.name === p.name);
@@ -939,6 +938,39 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       const syncTeam = (t: any) => t ? { ...t, squad: (t.squad || []).map(syncPlayer) } : t;
       persisted.teams = (persisted.teams || []).map(syncTeam);
     }
+    // v5: introduce form system — seed baseBatSkill/baseBowlSkill and recentMatches
+    if (version < 5) {
+      const seedPlayer = (p: any) => {
+        if (!p || !p.name) return p;
+        const ref = PLAYER_DATABASE.find(d => d.name === p.name);
+        const baseBat = ref?.batSkill ?? p.batSkill;
+        const baseBowl = ref?.bowlSkill ?? p.bowlSkill;
+        const ph = p.performanceHistory || {};
+        return {
+          ...p,
+          baseBatSkill: baseBat,
+          baseBowlSkill: baseBowl,
+          batSkill: baseBat,
+          bowlSkill: baseBowl,
+          performanceHistory: {
+            last5MatchesRuns: ph.last5MatchesRuns || 0,
+            last5MatchesWickets: ph.last5MatchesWickets || 0,
+            totalMatches: ph.totalMatches || 0,
+            totalRuns: ph.totalRuns || 0,
+            totalWickets: ph.totalWickets || 0,
+            averageRuns: ph.averageRuns || 0,
+            averageWickets: ph.averageWickets || 0,
+            formRating: ph.formRating || 50,
+            recentMatches: ph.recentMatches || [],
+            batFormAdjustment: 0,
+            bowlFormAdjustment: 0,
+          },
+        };
+      };
+      const seedTeam = (t: any) => t ? { ...t, squad: (t.squad || []).map(seedPlayer) } : t;
+      persisted.teams = (persisted.teams || []).map(seedTeam);
+    }
     return persisted;
   },
 }));
+
