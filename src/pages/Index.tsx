@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import CricketHeader from "@/components/CricketHeader";
 import TabNavigation from "@/components/TabNavigation";
@@ -10,9 +10,21 @@ import AllTimeStats from "@/components/AllTimeStats";
 import BestXITab from "@/components/BestXISection";
 import IPLSquadsTab from "@/components/IPLSquadsTab";
 import { TabsContent } from "@/components/ui/tabs";
+import { useCricketStore } from "@/hooks/useCricketStore";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("teams");
+  const currentMatch = useCricketStore((s) => s.currentMatch);
+  const prevMatchIdRef = useRef<string | null>(null);
+
+  // Auto-switch to Live tab whenever a new (incomplete) match is created
+  useEffect(() => {
+    const id = currentMatch?.id ?? null;
+    if (id && id !== prevMatchIdRef.current && !currentMatch?.isCompleted) {
+      setActiveTab("live");
+    }
+    prevMatchIdRef.current = id;
+  }, [currentMatch?.id, currentMatch?.isCompleted]);
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
