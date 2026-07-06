@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ interface BallByBallEngineProps {
 
 const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const { updateMatch, teams } = useCricketStore();
+  const queryClient = useQueryClient();
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
   const [showBowlerDialog, setShowBowlerDialog] = useState(true);
   const [showBatsmanDialog, setShowBatsmanDialog] = useState(false);
@@ -851,6 +853,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
         // Save all-time stats
         saveAllTimeStats(completedMatch).then(success => {
           if (success) {
+            queryClient.invalidateQueries({ queryKey: ["player-all-time-stats"] });
             toast({ title: "Stats Saved", description: "All-time player records updated." });
           }
         });
@@ -1290,6 +1293,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
           saveAllTimeStats(completedMatch).then(success => {
             if (success) {
+              queryClient.invalidateQueries({ queryKey: ["player-all-time-stats"] });
               toast({ title: "Stats Saved", description: "All-time player records updated." });
             }
           });
