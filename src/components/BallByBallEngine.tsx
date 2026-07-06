@@ -1293,6 +1293,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
 
           saveAllTimeStats(completedMatch).then(success => {
             if (success) {
+              queryClient.invalidateQueries({ queryKey: ["player-all-time-stats"] });
               toast({ title: "Stats Saved", description: "All-time player records updated." });
             }
           });
