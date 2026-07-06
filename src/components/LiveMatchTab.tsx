@@ -25,6 +25,13 @@ const LiveMatchTab = () => {
   const [matchStarted, setMatchStarted] = useState(false);
   const [dismissedResult, setDismissedResult] = useState(false);
 
+  // Reset per-match local UI state whenever a new match is loaded
+  useEffect(() => {
+    setMatchStarted(!!currentMatch?.isLive);
+    setDismissedResult(false);
+  }, [currentMatch?.id]);
+
+
   // Memoize venue so it doesn't change on every re-render
   const venue = useMemo(() => {
     const matchFixture = fixtures.find(
