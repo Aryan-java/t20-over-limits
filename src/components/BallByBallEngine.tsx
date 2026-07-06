@@ -34,6 +34,7 @@ interface BallByBallEngineProps {
 
 const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const { updateMatch, teams } = useCricketStore();
+  const queryClient = useQueryClient();
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
   const [showBowlerDialog, setShowBowlerDialog] = useState(true);
   const [showBatsmanDialog, setShowBatsmanDialog] = useState(false);
