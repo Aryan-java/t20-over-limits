@@ -31,16 +31,27 @@ export function useAllTimeStats() {
   const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ["player-all-time-stats"],
     queryFn: async () => {
-      // Fetch a broad dataset first, then aggregate/sort in memory.
-      // Previous top-20 prefiltering could hide updates for players that
-      // weren't already in those top lists.
-      const { data, error } = await supabase
-        .from("player_all_time_stats")
-        .select("*")
-        .limit(1000);
-
-      if (error) throw error;
-      return (data || []) as unknown as PlayerAllTimeStats[];
+      // Paginate to fetch ALL rows — a single .limit() call caps at the
+      // PostgREST max and silently drops rows, which breaks name-based
+      // aggregation (players split across multiple player_ids end up with
+      // partial totals).
+      const pageSize = 1000;
+      let from = 0;
+      const all: PlayerAllTimeStats[] = [];
+      // Safety cap to avoid infinite loops
+      for (let i = 0; i < 50; i++) {
+        const { data, error } = await supabase
+          .from("player_all_time_stats")
+          .select("*")
+          .order("player_id", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = (data || []) as unknown as PlayerAllTimeStats[];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
     refetchOnWindowFocus: false,
     staleTime: 60000,
