@@ -318,7 +318,7 @@ const LiveMatchTab = () => {
           <LiveScoreboard match={currentMatch} conditions={conditions} />
           
           {matchStarted && (
-            <BallByBallEngine match={currentMatch} />
+            <BallByBallEngine match={currentMatch} conditionModifiers={modifiers} />
           )}
           
           {matchStarted && !currentMatch.isCompleted && (

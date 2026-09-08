@@ -18,21 +18,32 @@ import FieldPlacementEditor, { PRESET_FIELDS } from "./FieldPlacementEditor";
 import DRSReviewDialog from "./DRSReviewDialog";
 import {
   BowlingStrategy,
+  BowlingDelivery,
   FieldPreset,
   FielderPosition,
   computeTacticsModifiers,
   defaultBowlingStrategy,
   pickDelivery,
 } from "@/types/tactics";
+import { simulateBall, BallContext, ConditionModifierInput } from "@/lib/simulation/outcome";
+import { Modifiers } from "@/lib/simulation/pipeline";
+import { Phase } from "@/lib/simulation/matchup";
+import { getPlayerTraits } from "@/lib/simulation/traits";
+import { suggestTactics } from "@/lib/simulation/ai";
 
 
 interface BallByBallEngineProps {
   match: Match;
+  /** Weather / pitch modifiers from the live match screen (optional). */
+  conditionModifiers?: ConditionModifierInput | null;
+  /** Structured per-ball context so the UI can show matchup / pressure info. */
+  onContextChange?: (ctx: BallContext) => void;
 }
 
 
 
-const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
+
+const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallByBallEngineProps) => {
   const { updateMatch, teams } = useCricketStore();
   const queryClient = useQueryClient();
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
@@ -62,6 +73,10 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     isFreeHit: boolean;
     dismissalType: string;
   }>(null);
+  // ============ INTELLIGENCE LAYER STATE ============
+  const [ballContext, setBallContext] = useState<BallContext | null>(null);
+  const [autoTactics, setAutoTactics] = useState(false);
+  const dotStreakRef = useRef(0);
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -217,144 +232,70 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     return currentOver >= match.overs - 4;
   };
 
-  const simulateBallOutcome = (batsman: Player, bowler: Player, conditionModifiers?: {
-    boundaryMultiplier: number;
-    sixMultiplier: number;
-    runScoringMultiplier: number;
-    paceWicketMultiplier: number;
-    spinWicketMultiplier: number;
-    extrasMultiplier: number;
-    dotBallMultiplier: number;
-  }): { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } } => {
-    const batSkill = batsman.batSkill;
-    const bowlSkill = bowler.bowlSkill;
-
-    const batsmanForm = batsman.performanceHistory?.formRating || 50;
-    const bowlerForm = bowler.performanceHistory?.formRating || 50;
-
-    const batsmanLast5Runs = batsman.performanceHistory?.last5MatchesRuns || 0;
-    const bowlerLast5Wickets = bowler.performanceHistory?.last5MatchesWickets || 0;
-
-    const formBonus = (batsmanForm - bowlerForm) * 0.15;
-    const recentFormBonus = (batsmanLast5Runs * 0.02) - (bowlerLast5Wickets * 0.5);
-
-    const skillDiff = batSkill - bowlSkill;
-    const totalDiff = skillDiff + formBonus + recentFormBonus;
-
-    // Base probabilities
-    let dotProb = Math.max(20, 45 - totalDiff * 0.3);
-    let wicketProb = Math.max(3, 8 - totalDiff * 0.1);
-    let boundaryProb = Math.max(8, 15 + totalDiff * 0.2);
-    let sixProb = Math.max(2, 6 + totalDiff * 0.15);
-    let singleProb = 35;
-    let doubleProb = 15;
-
-
-    // APPLY WEATHER & PITCH CONDITION MODIFIERS
-    if (conditionModifiers) {
-      boundaryProb *= conditionModifiers.boundaryMultiplier;
-      sixProb *= conditionModifiers.sixMultiplier;
-      dotProb *= conditionModifiers.dotBallMultiplier;
-      
-      // Determine if bowler is more pace or spin oriented
-      const isPaceBowler = bowler.bowlSkill > 60 && bowler.batSkill < bowler.bowlSkill;
-      if (isPaceBowler) {
-        wicketProb *= conditionModifiers.paceWicketMultiplier;
-      } else {
-        wicketProb *= conditionModifiers.spinWicketMultiplier;
-      }
-    }
-
-    // POWERPLAY ADJUSTMENTS (Field restrictions: Only 2 fielders outside 30-yard circle)
-    if (isPowerplay()) {
-      // More boundaries due to fewer fielders on boundary
-      boundaryProb *= 1.5;
-      sixProb *= 1.3;
-      // More singles as gaps are easier to find
-      singleProb *= 1.2;
-      // Slightly fewer dot balls
-      dotProb *= 0.8;
-      // Slightly higher wicket chance (aggressive batting)
-      wicketProb *= 1.1;
-    }
-
-    // DEATH OVERS ADJUSTMENTS (Overs 17-20)
-    if (isDeathOvers()) {
-      // High risk, high reward phase
-      boundaryProb *= 1.3;
-      sixProb *= 1.6;
-      // More wickets as batsmen go for big shots
-      wicketProb *= 1.4;
-      // Fewer singles (batsmen looking for boundaries)
-      singleProb *= 0.8;
-      // More dot balls (yorkers, slower balls)
-      dotProb *= 1.1;
-    }
-
-    // Check for extras first (8% chance, slightly higher in death overs)
-    let extrasChance = isDeathOvers() ? 10 : 8;
-    if (conditionModifiers) {
-      extrasChance *= conditionModifiers.extrasMultiplier;
-    }
-    const extrasRoll = Math.random() * 100;
-    if (extrasRoll < extrasChance) {
-      const extrasType = Math.random();
-      if (extrasType < 0.4) {
-        // Wide (40% of extras)
-        return { 
-          runs: 1, 
-          isWicket: false, 
-          extras: { type: 'wide', runs: 1 } 
-        };
-      } else if (extrasType < 0.7) {
-        // No ball (30% of extras)
-        const noBallRuns = Math.random() < 0.7 ? 1 : Math.random() < 0.5 ? 4 : 6;
-        return { 
-          runs: noBallRuns, 
-          isWicket: false, 
-          extras: { type: 'no-ball', runs: noBallRuns } 
-        };
-      } else if (extrasType < 0.85) {
-        // Bye (15% of extras)
-        const byeRuns = Math.random() < 0.8 ? 1 : 4;
-        return { 
-          runs: byeRuns, 
-          isWicket: false, 
-          extras: { type: 'bye', runs: byeRuns } 
-        };
-      } else {
-        // Leg bye (15% of extras)
-        const legByeRuns = Math.random() < 0.8 ? 1 : Math.random() < 0.6 ? 2 : 4;
-        return { 
-          runs: legByeRuns, 
-          isWicket: false, 
-          extras: { type: 'leg-bye', runs: legByeRuns } 
-        };
-      }
-    }
-
-    const outcomes = [
-      { runs: 0, isWicket: false, weight: dotProb },
-      { runs: 1, isWicket: false, weight: singleProb },
-      { runs: 2, isWicket: false, weight: doubleProb },
-      { runs: 3, isWicket: false, weight: 3 },
-      { runs: 4, isWicket: false, weight: boundaryProb },
-      { runs: 6, isWicket: false, weight: sixProb },
-      { runs: 0, isWicket: true, weight: wicketProb },
-    ];
-
-    const totalWeight = outcomes.reduce((sum, outcome) => sum + outcome.weight, 0);
-    const random = Math.random() * totalWeight;
-
-    let weightSum = 0;
-    for (const outcome of outcomes) {
-      weightSum += outcome.weight;
-      if (random <= weightSum) {
-        return outcome;
-      }
-    }
-    return outcomes[0];
+  const getPhase = (): Phase => {
+    if (isPowerplay()) return 'powerplay';
+    if (isDeathOvers()) return 'death';
+    return 'middle';
   };
+
+  // Situation snapshot used by the pressure model.
+  const getSituation = () => {
+    const innings = getCurrentInnings();
+    const target =
+      match.currentInnings === 2 && match.firstInnings
+        ? match.firstInnings.totalRuns + 1
+        : null;
+    return {
+      innings: match.currentInnings,
+      runs: innings?.totalRuns ?? 0,
+      wickets: innings?.wickets ?? 0,
+      ballsBowled: innings?.ballsBowled ?? 0,
+      totalOvers: match.overs,
+      target,
+      dotStreak: dotStreakRef.current,
+    };
+  };
+
+  /**
+   * Thin wrapper around the extracted pure simulation. Base probabilities,
+   * extras behaviour and phase effects are unchanged; matchup, pressure,
+   * conditions, form and tactics all flow through one clamped pipeline.
+   */
+  const simulateBallOutcome = (
+    batsman: Player,
+    bowler: Player,
+    tacticsMods: Modifiers,
+    delivery: BowlingDelivery,
+  ) => {
+    const { outcome, context } = simulateBall({
+      batter: batsman,
+      bowler,
+      delivery,
+      phase: getPhase(),
+      conditions: conditionModifiers ?? null,
+      tactics: tacticsMods,
+      situation: getSituation(),
+    });
+    setBallContext(context);
+    onContextChange?.(context);
+
+    // AI captain: adapt the plan to the situation (only when the user enabled it).
+    if (autoTactics) {
+      const s = suggestTactics(
+        context.phase,
+        context.pressure,
+        getPlayerTraits(batsman),
+        getPlayerTraits(bowler),
+      );
+      setBowlingStrategy(s.bowlingStrategy);
+      setBattingAggression(s.battingAggression);
+      setFieldPreset(s.fieldPreset);
+      setFielders(PRESET_FIELDS[s.fieldPreset]);
+    }
+
+    return outcome;
+  };
+
 
   const handleBowlerSelection = (bowlerId: string) => {
     if (!bowlerId) return;
@@ -455,21 +396,25 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     // === TACTICS: pick delivery and derive modifiers ===
     const delivery = pickDelivery(bowlingStrategy);
     const tMods = computeTacticsModifiers(delivery, battingAggression, fieldPreset);
-    const conditionMods = {
-      boundaryMultiplier: tMods.boundaryMul,
-      sixMultiplier: tMods.sixMul,
-      runScoringMultiplier: tMods.singleMul,
-      paceWicketMultiplier: tMods.wicketMul,
-      spinWicketMultiplier: tMods.wicketMul,
-      extrasMultiplier: tMods.extrasMul,
-      dotBallMultiplier: tMods.dotMul,
-    };
 
     const outcome = simulateBallOutcome(
       innings.currentBatsmen.striker,
       innings.currentBowler,
-      conditionMods,
+      {
+        dotMul: tMods.dotMul,
+        singleMul: tMods.singleMul,
+        boundaryMul: tMods.boundaryMul,
+        sixMul: tMods.sixMul,
+        wicketMul: tMods.wicketMul,
+        extrasMul: tMods.extrasMul,
+      },
+      delivery,
     );
+
+    // Track dot-ball streak for the pressure model (legal dot balls only).
+    if (!outcome.extras && outcome.runs === 0 && !outcome.isWicket) dotStreakRef.current += 1;
+    else if (!outcome.extras) dotStreakRef.current = 0;
+
 
     // FREE HIT: Wickets not allowed (except run out) on free hit balls
     if (isFreeHit && outcome.isWicket) {
@@ -969,15 +914,41 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       {canSimulate && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
               <Badge variant="outline" className="bg-primary/10 border-primary/30">
                 🧠 Tactics
               </Badge>
               <Badge variant="outline">DRS · Bat {drsReviews.batting} / Bowl {drsReviews.bowling}</Badge>
+              {ballContext && (
+                <Badge
+                  variant="outline"
+                  className={
+                    ballContext.pressure.index >= 70
+                      ? 'border-red-500 text-red-400'
+                      : ballContext.pressure.index >= 55
+                      ? 'border-amber-500 text-amber-400'
+                      : 'border-emerald-500 text-emerald-400'
+                  }
+                >
+                  Pressure {ballContext.pressure.index} · {ballContext.pressure.label}
+                </Badge>
+              )}
+              {ballContext && ballContext.matchup.notes.length > 0 && (
+                <Badge variant="outline">⚔ {ballContext.matchup.notes[0]}</Badge>
+              )}
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setShowTactics(s => !s)}>
-              {showTactics ? 'Hide' : 'Show'} controls
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={autoTactics ? 'default' : 'outline'}
+                onClick={() => setAutoTactics(a => !a)}
+              >
+                AI captain {autoTactics ? 'on' : 'off'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowTactics(s => !s)}>
+                {showTactics ? 'Hide' : 'Show'} controls
+              </Button>
+            </div>
           </div>
           {showTactics && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
