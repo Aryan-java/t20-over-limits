@@ -43,7 +43,7 @@ interface BallByBallEngineProps {
 
 
 
-const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
+const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallByBallEngineProps) => {
   const { updateMatch, teams } = useCricketStore();
   const queryClient = useQueryClient();
   const [commentary, setCommentary] = useState<BallEvent[]>([]);
@@ -73,6 +73,10 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     isFreeHit: boolean;
     dismissalType: string;
   }>(null);
+  // ============ INTELLIGENCE LAYER STATE ============
+  const [ballContext, setBallContext] = useState<BallContext | null>(null);
+  const [autoTactics, setAutoTactics] = useState(false);
+  const dotStreakRef = useRef(0);
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -377,21 +381,25 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     // === TACTICS: pick delivery and derive modifiers ===
     const delivery = pickDelivery(bowlingStrategy);
     const tMods = computeTacticsModifiers(delivery, battingAggression, fieldPreset);
-    const conditionMods = {
-      boundaryMultiplier: tMods.boundaryMul,
-      sixMultiplier: tMods.sixMul,
-      runScoringMultiplier: tMods.singleMul,
-      paceWicketMultiplier: tMods.wicketMul,
-      spinWicketMultiplier: tMods.wicketMul,
-      extrasMultiplier: tMods.extrasMul,
-      dotBallMultiplier: tMods.dotMul,
-    };
 
     const outcome = simulateBallOutcome(
       innings.currentBatsmen.striker,
       innings.currentBowler,
-      conditionMods,
+      {
+        dotMul: tMods.dotMul,
+        singleMul: tMods.singleMul,
+        boundaryMul: tMods.boundaryMul,
+        sixMul: tMods.sixMul,
+        wicketMul: tMods.wicketMul,
+        extrasMul: tMods.extrasMul,
+      },
+      delivery,
     );
+
+    // Track dot-ball streak for the pressure model (legal dot balls only).
+    if (!outcome.extras && outcome.runs === 0 && !outcome.isWicket) dotStreakRef.current += 1;
+    else if (!outcome.extras) dotStreakRef.current = 0;
+
 
     // FREE HIT: Wickets not allowed (except run out) on free hit balls
     if (isFreeHit && outcome.isWicket) {
