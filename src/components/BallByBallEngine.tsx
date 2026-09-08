@@ -278,6 +278,21 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     });
     setBallContext(context);
     onContextChange?.(context);
+
+    // AI captain: adapt the plan to the situation (only when the user enabled it).
+    if (autoTactics) {
+      const s = suggestTactics(
+        context.phase,
+        context.pressure,
+        getPlayerTraits(batsman),
+        getPlayerTraits(bowler),
+      );
+      setBowlingStrategy(s.bowlingStrategy);
+      setBattingAggression(s.battingAggression);
+      setFieldPreset(s.fieldPreset);
+      setFielders(PRESET_FIELDS[s.fieldPreset]);
+    }
+
     return outcome;
   };
 
