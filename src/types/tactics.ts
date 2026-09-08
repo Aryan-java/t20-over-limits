@@ -139,3 +139,66 @@ export function computeTacticsModifiers(
 
   return m;
 }
+
+// ============ PHASE 2: deeper tactical gameplay ============
+
+/** Instruction given to the batter currently on strike. */
+export type BatterTactic = 'anchor' | 'rotate' | 'attack';
+
+/** Optional matchup-aware instruction for the batter. */
+export type BatterMatchupInstruction = 'none' | 'attack-pace' | 'attack-spin' | 'see-off';
+
+/** High-level plan chosen for the current bowler. */
+export type BowlerPlan =
+  | 'attack'
+  | 'balanced'
+  | 'defensive'
+  | 'yorkers'
+  | 'bouncers'
+  | 'variations'
+  | 'target-weakness';
+
+export interface BatterTacticsState {
+  tactic: BatterTactic;
+  instruction: BatterMatchupInstruction;
+  /** Bowler id the batter is instructed to target (optional). */
+  targetBowlerId?: string | null;
+}
+
+export const defaultBatterTactics: BatterTacticsState = {
+  tactic: 'rotate',
+  instruction: 'none',
+  targetBowlerId: null,
+};
+
+/** Delivery mixes behind each bowler plan. Existing presets keep working. */
+export const BOWLER_PLAN_STRATEGY: Record<BowlerPlan, BowlingStrategy> = {
+  attack: { normal: 45, yorker: 15, bouncer: 25, slower: 10, knuckle: 5 },
+  balanced: { normal: 50, yorker: 15, bouncer: 15, slower: 15, knuckle: 5 },
+  defensive: { normal: 55, yorker: 20, bouncer: 5, slower: 15, knuckle: 5 },
+  yorkers: { normal: 20, yorker: 55, bouncer: 10, slower: 10, knuckle: 5 },
+  bouncers: { normal: 25, yorker: 10, bouncer: 50, slower: 10, knuckle: 5 },
+  variations: { normal: 25, yorker: 10, bouncer: 10, slower: 35, knuckle: 20 },
+  'target-weakness': { normal: 35, yorker: 20, bouncer: 25, slower: 15, knuckle: 5 },
+};
+
+export const BOWLER_PLAN_LABEL: Record<BowlerPlan, string> = {
+  attack: 'Attack',
+  balanced: 'Balanced',
+  defensive: 'Defensive',
+  yorkers: 'Yorkers',
+  bouncers: 'Short ball',
+  variations: 'Variations',
+  'target-weakness': 'Target weakness',
+};
+
+/** One recorded tactical change during a match (optional / backwards compatible). */
+export interface TacticsLogEntry {
+  innings: 1 | 2;
+  over: number;
+  ball: number;
+  type: 'batter' | 'bowler-plan' | 'field' | 'aggression' | 'ai';
+  label: string;
+  detail?: string;
+  at: string;
+}
