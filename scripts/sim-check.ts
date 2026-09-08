@@ -2,7 +2,7 @@
 // Run: bun scripts/sim-check.ts
 import { simulateBall } from "../src/lib/simulation/outcome";
 import { createRng } from "../src/lib/simulation/rng";
-import { pickDelivery, defaultBowlingStrategy } from "../src/types/tactics";
+import type { BowlingDelivery } from "../src/types/tactics";
 import type { Player } from "../src/types/cricket";
 
 const mk = (name: string, bat: number, bowl: number): Player => ({
@@ -31,7 +31,8 @@ function simulateInnings(seed: number) {
     const batter = batters[Math.min(idx, batters.length - 1)];
     const bowler = bowlers[Math.floor(balls / 6) % bowlers.length];
     const phase = balls < 36 ? "powerplay" : balls >= 96 ? "death" : "middle";
-    const delivery = pickDelivery(defaultBowlingStrategy);
+    const deliveries: BowlingDelivery[] = ["normal","normal","yorker","bouncer","slower","knuckle"];
+    const delivery = deliveries[Math.floor(rng() * deliveries.length)];
     const { outcome } = simulateBall({
       batter, bowler, delivery, phase,
       situation: { innings: 1, runs, wickets, ballsBowled: balls, totalOvers: 20, dotStreak },
