@@ -18,17 +18,28 @@ import FieldPlacementEditor, { PRESET_FIELDS } from "./FieldPlacementEditor";
 import DRSReviewDialog from "./DRSReviewDialog";
 import {
   BowlingStrategy,
+  BowlingDelivery,
   FieldPreset,
   FielderPosition,
   computeTacticsModifiers,
   defaultBowlingStrategy,
   pickDelivery,
 } from "@/types/tactics";
+import { simulateBall, BallContext, ConditionModifierInput } from "@/lib/simulation/outcome";
+import { Modifiers } from "@/lib/simulation/pipeline";
+import { Phase } from "@/lib/simulation/matchup";
+import { getPlayerTraits } from "@/lib/simulation/traits";
+import { suggestTactics } from "@/lib/simulation/ai";
 
 
 interface BallByBallEngineProps {
   match: Match;
+  /** Weather / pitch modifiers from the live match screen (optional). */
+  conditionModifiers?: ConditionModifierInput | null;
+  /** Structured per-ball context so the UI can show matchup / pressure info. */
+  onContextChange?: (ctx: BallContext) => void;
 }
+
 
 
 
