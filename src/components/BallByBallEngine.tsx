@@ -914,15 +914,41 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
       {canSimulate && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
               <Badge variant="outline" className="bg-primary/10 border-primary/30">
                 🧠 Tactics
               </Badge>
               <Badge variant="outline">DRS · Bat {drsReviews.batting} / Bowl {drsReviews.bowling}</Badge>
+              {ballContext && (
+                <Badge
+                  variant="outline"
+                  className={
+                    ballContext.pressure.index >= 70
+                      ? 'border-red-500 text-red-400'
+                      : ballContext.pressure.index >= 55
+                      ? 'border-amber-500 text-amber-400'
+                      : 'border-emerald-500 text-emerald-400'
+                  }
+                >
+                  Pressure {ballContext.pressure.index} · {ballContext.pressure.label}
+                </Badge>
+              )}
+              {ballContext && ballContext.matchup.notes.length > 0 && (
+                <Badge variant="outline">⚔ {ballContext.matchup.notes[0]}</Badge>
+              )}
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setShowTactics(s => !s)}>
-              {showTactics ? 'Hide' : 'Show'} controls
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={autoTactics ? 'default' : 'outline'}
+                onClick={() => setAutoTactics(a => !a)}
+              >
+                AI captain {autoTactics ? 'on' : 'off'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowTactics(s => !s)}>
+                {showTactics ? 'Hide' : 'Show'} controls
+              </Button>
+            </div>
           </div>
           {showTactics && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
