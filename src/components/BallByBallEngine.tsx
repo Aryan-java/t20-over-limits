@@ -80,6 +80,11 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>('balanced');
   const [fielders, setFielders] = useState<FielderPosition[]>(PRESET_FIELDS.balanced);
   const [showTactics, setShowTactics] = useState(false);
+  // ---- Phase 2: per-batter tactics, bowler plans, tactical history ----
+  const [batterTactics, setBatterTactics] = useState<BatterTacticsState>(defaultBatterTactics);
+  const [bowlerPlan, setBowlerPlan] = useState<BowlerPlan>('balanced');
+  const [tacticsLog, setTacticsLog] = useState<TacticsLogEntry[]>([]);
+
   // 2 DRS per innings per side, reset on second innings start
   const [drsReviews, setDrsReviews] = useState({ batting: 2, bowling: 2 });
   // Pending wicket awaiting DRS resolution
