@@ -414,22 +414,48 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     const isFreeHit = innings.isFreeHit || false;
 
     // === TACTICS: pick delivery and derive modifiers ===
+    const striker = innings.currentBatsmen.striker;
+    const bowlerPlayer = innings.currentBowler;
+    const batterTraits = getPlayerTraits(striker);
+    const bowlerTraits = getPlayerTraits(bowlerPlayer);
+    const phase = getPhase();
+
     const delivery = pickDelivery(bowlingStrategy);
     const tMods = computeTacticsModifiers(delivery, battingAggression, fieldPreset);
+    const batMods = computeBatterTacticModifiers({
+      tactics: batterTactics,
+      bowlerType: bowlerTraits.bowlerType,
+      bowlerId: bowlerPlayer.id,
+      phase,
+      isNewBatter: (striker.balls ?? 0) < 8,
+    });
+    const planMods = computeBowlerPlanModifiers({
+      plan: bowlerPlan,
+      phase,
+      batter: batterTraits,
+      bowler: bowlerTraits,
+    });
+    const fieldMods = computeFieldModifiers(fielders, fieldPreset);
 
-    const outcome = simulateBallOutcome(
-      innings.currentBatsmen.striker,
-      innings.currentBowler,
-      {
-        dotMul: tMods.dotMul,
-        singleMul: tMods.singleMul,
-        boundaryMul: tMods.boundaryMul,
-        sixMul: tMods.sixMul,
-        wicketMul: tMods.wicketMul,
-        extrasMul: tMods.extrasMul,
-      },
-      delivery,
+    const combinedTactics = combineModifiers(
+      [
+        {
+          dotMul: tMods.dotMul,
+          singleMul: tMods.singleMul,
+          boundaryMul: tMods.boundaryMul,
+          sixMul: tMods.sixMul,
+          wicketMul: tMods.wicketMul,
+          extrasMul: tMods.extrasMul,
+        },
+        batMods.modifiers,
+        planMods.modifiers,
+        fieldMods.modifiers,
+      ],
+      0.9,
     );
+
+    const outcome = simulateBallOutcome(striker, bowlerPlayer, combinedTactics, delivery);
+
 
     // Track dot-ball streak for the pressure model (legal dot balls only).
     if (!outcome.extras && outcome.runs === 0 && !outcome.isWicket) dotStreakRef.current += 1;
