@@ -16,6 +16,7 @@ import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
 import TacticalPanel from "./TacticalPanel";
 import FieldPlacementEditor, { PRESET_FIELDS } from "./FieldPlacementEditor";
 import DRSReviewDialog from "./DRSReviewDialog";
+import TacticalImpact from "./TacticalImpact";
 import {
   BowlingStrategy,
   BowlingDelivery,
@@ -24,12 +25,26 @@ import {
   computeTacticsModifiers,
   defaultBowlingStrategy,
   pickDelivery,
+  BatterTacticsState,
+  defaultBatterTactics,
+  BowlerPlan,
+  BOWLER_PLAN_LABEL,
+  TacticsLogEntry,
 } from "@/types/tactics";
 import { simulateBall, BallContext, ConditionModifierInput } from "@/lib/simulation/outcome";
-import { Modifiers } from "@/lib/simulation/pipeline";
+import { Modifiers, combineModifiers } from "@/lib/simulation/pipeline";
 import { Phase } from "@/lib/simulation/matchup";
 import { getPlayerTraits } from "@/lib/simulation/traits";
 import { suggestTactics } from "@/lib/simulation/ai";
+import {
+  computeBatterTacticModifiers,
+  computeBowlerPlanModifiers,
+  computeFieldModifiers,
+  estimateTacticalImpact,
+  recommendTactics,
+  strategyForPlan,
+} from "@/lib/simulation/tactics";
+
 
 
 interface BallByBallEngineProps {
