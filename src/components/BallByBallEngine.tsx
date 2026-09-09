@@ -16,6 +16,7 @@ import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
 import TacticalPanel from "./TacticalPanel";
 import FieldPlacementEditor, { PRESET_FIELDS } from "./FieldPlacementEditor";
 import DRSReviewDialog from "./DRSReviewDialog";
+import TacticalImpact from "./TacticalImpact";
 import {
   BowlingStrategy,
   BowlingDelivery,
@@ -24,12 +25,26 @@ import {
   computeTacticsModifiers,
   defaultBowlingStrategy,
   pickDelivery,
+  BatterTacticsState,
+  defaultBatterTactics,
+  BowlerPlan,
+  BOWLER_PLAN_LABEL,
+  TacticsLogEntry,
 } from "@/types/tactics";
 import { simulateBall, BallContext, ConditionModifierInput } from "@/lib/simulation/outcome";
-import { Modifiers } from "@/lib/simulation/pipeline";
+import { Modifiers, combineModifiers } from "@/lib/simulation/pipeline";
 import { Phase } from "@/lib/simulation/matchup";
 import { getPlayerTraits } from "@/lib/simulation/traits";
 import { suggestTactics } from "@/lib/simulation/ai";
+import {
+  computeBatterTacticModifiers,
+  computeBowlerPlanModifiers,
+  computeFieldModifiers,
+  estimateTacticalImpact,
+  recommendTactics,
+  strategyForPlan,
+} from "@/lib/simulation/tactics";
+
 
 
 interface BallByBallEngineProps {
@@ -65,6 +80,11 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>('balanced');
   const [fielders, setFielders] = useState<FielderPosition[]>(PRESET_FIELDS.balanced);
   const [showTactics, setShowTactics] = useState(false);
+  // ---- Phase 2: per-batter tactics, bowler plans, tactical history ----
+  const [batterTactics, setBatterTactics] = useState<BatterTacticsState>(defaultBatterTactics);
+  const [bowlerPlan, setBowlerPlan] = useState<BowlerPlan>('balanced');
+  const [tacticsLog, setTacticsLog] = useState<TacticsLogEntry[]>([]);
+
   // 2 DRS per innings per side, reset on second innings start
   const [drsReviews, setDrsReviews] = useState({ batting: 2, bowling: 2 });
   // Pending wicket awaiting DRS resolution
@@ -394,22 +414,48 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     const isFreeHit = innings.isFreeHit || false;
 
     // === TACTICS: pick delivery and derive modifiers ===
+    const striker = innings.currentBatsmen.striker;
+    const bowlerPlayer = innings.currentBowler;
+    const batterTraits = getPlayerTraits(striker);
+    const bowlerTraits = getPlayerTraits(bowlerPlayer);
+    const phase = getPhase();
+
     const delivery = pickDelivery(bowlingStrategy);
     const tMods = computeTacticsModifiers(delivery, battingAggression, fieldPreset);
+    const batMods = computeBatterTacticModifiers({
+      tactics: batterTactics,
+      bowlerType: bowlerTraits.bowlerType,
+      bowlerId: bowlerPlayer.id,
+      phase,
+      isNewBatter: (striker.balls ?? 0) < 8,
+    });
+    const planMods = computeBowlerPlanModifiers({
+      plan: bowlerPlan,
+      phase,
+      batter: batterTraits,
+      bowler: bowlerTraits,
+    });
+    const fieldMods = computeFieldModifiers(fielders, fieldPreset);
 
-    const outcome = simulateBallOutcome(
-      innings.currentBatsmen.striker,
-      innings.currentBowler,
-      {
-        dotMul: tMods.dotMul,
-        singleMul: tMods.singleMul,
-        boundaryMul: tMods.boundaryMul,
-        sixMul: tMods.sixMul,
-        wicketMul: tMods.wicketMul,
-        extrasMul: tMods.extrasMul,
-      },
-      delivery,
+    const combinedTactics = combineModifiers(
+      [
+        {
+          dotMul: tMods.dotMul,
+          singleMul: tMods.singleMul,
+          boundaryMul: tMods.boundaryMul,
+          sixMul: tMods.sixMul,
+          wicketMul: tMods.wicketMul,
+          extrasMul: tMods.extrasMul,
+        },
+        batMods.modifiers,
+        planMods.modifiers,
+        fieldMods.modifiers,
+      ],
+      0.9,
     );
+
+    const outcome = simulateBallOutcome(striker, bowlerPlayer, combinedTactics, delivery);
+
 
     // Track dot-ball streak for the pressure model (legal dot balls only).
     if (!outcome.extras && outcome.runs === 0 && !outcome.isWicket) dotStreakRef.current += 1;
