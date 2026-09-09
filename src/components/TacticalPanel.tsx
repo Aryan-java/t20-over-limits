@@ -2,7 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BowlingStrategy, BowlingDelivery } from "@/types/tactics";
+import {
+  BowlingStrategy,
+  BowlingDelivery,
+  BatterTactic,
+  BatterMatchupInstruction,
+  BatterTacticsState,
+  BowlerPlan,
+  BOWLER_PLAN_LABEL,
+} from "@/types/tactics";
 import { Zap, Shield, Target, Wind, Activity } from "lucide-react";
 
 interface Props {
@@ -12,6 +20,11 @@ interface Props {
   batsmanName?: string;
   onStrategyChange: (s: BowlingStrategy) => void;
   onAggressionChange: (n: number) => void;
+  /** Optional Phase 2 controls — omitted safely by older callers. */
+  batterTactics?: BatterTacticsState;
+  onBatterTacticsChange?: (s: BatterTacticsState) => void;
+  bowlerPlan?: BowlerPlan;
+  onBowlerPlanChange?: (p: BowlerPlan) => void;
 }
 
 const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: string }> = {
@@ -22,7 +35,33 @@ const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: 
   knuckle: { label: 'Knuckle', icon: Shield, color: 'text-purple-400' },
 };
 
-const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrategyChange, onAggressionChange }: Props) => {
+const BATTER_TACTICS: { key: BatterTactic; label: string }[] = [
+  { key: 'anchor', label: 'Anchor' },
+  { key: 'rotate', label: 'Rotate' },
+  { key: 'attack', label: 'Attack' },
+];
+
+const INSTRUCTIONS: { key: BatterMatchupInstruction; label: string }[] = [
+  { key: 'none', label: 'No special plan' },
+  { key: 'attack-pace', label: 'Attack pace' },
+  { key: 'attack-spin', label: 'Attack spin' },
+  { key: 'see-off', label: 'See off spell' },
+];
+
+const PLANS: BowlerPlan[] = ['attack', 'balanced', 'defensive', 'yorkers', 'bouncers', 'variations', 'target-weakness'];
+
+const TacticalPanel = ({
+  strategy,
+  aggression,
+  bowlerName,
+  batsmanName,
+  onStrategyChange,
+  onAggressionChange,
+  batterTactics,
+  onBatterTacticsChange,
+  bowlerPlan,
+  onBowlerPlanChange,
+}: Props) => {
   const total = Object.values(strategy).reduce((a, b) => a + b, 0) || 1;
 
   const setWeight = (k: BowlingDelivery, v: number) => {
@@ -33,6 +72,7 @@ const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrate
     aggression < 25 ? 'Block' :
     aggression < 50 ? 'Defensive' :
     aggression < 75 ? 'Positive' : 'Attack';
+
 
   return (
     <Card>
