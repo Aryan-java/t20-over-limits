@@ -276,6 +276,51 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     };
   };
 
+  // ---- Phase 2: tactical decision history (optional, backwards compatible) ----
+  const logTactic = (type: TacticsLogEntry['type'], label: string, detail?: string) => {
+    const innings = getCurrentInnings();
+    const balls = innings?.ballsBowled ?? 0;
+    const entry: TacticsLogEntry = {
+      innings: match.currentInnings,
+      over: Math.floor(balls / 6),
+      ball: balls % 6,
+      type,
+      label,
+      detail,
+      at: new Date().toISOString(),
+    };
+    setTacticsLog(prev => [...prev, entry]);
+    updateMatch({ tacticsLog: [...(match.tacticsLog ?? []), entry] });
+  };
+
+  const handleBatterTacticsChange = (s: BatterTacticsState) => {
+    setBatterTactics(s);
+    logTactic('batter', `Batter: ${s.tactic}`, s.instruction !== 'none' ? s.instruction : undefined);
+  };
+
+  const handleBowlerPlanChange = (p: BowlerPlan) => {
+    setBowlerPlan(p);
+    // Keep the delivery mix in sync with the chosen plan; the sliders remain
+    // fully editable afterwards (manual edits are never overwritten again).
+    setBowlingStrategy(strategyForPlan(p));
+    logTactic('bowler-plan', `Plan: ${BOWLER_PLAN_LABEL[p]}`);
+  };
+
+  const handleFieldPresetChange = (p: FieldPreset) => {
+    setFieldPreset(p);
+    setFielders(PRESET_FIELDS[p]);
+    logTactic('field', `Field: ${p}`);
+  };
+
+  const lastLoggedAggression = useRef(50);
+  const handleAggressionChange = (n: number) => {
+    setBattingAggression(n);
+    if (Math.abs(n - lastLoggedAggression.current) >= 10) {
+      lastLoggedAggression.current = n;
+      logTactic('aggression', `Intent: ${n}`);
+    }
+  };
+
   /**
    * Thin wrapper around the extracted pure simulation. Base probabilities,
    * extras behaviour and phase effects are unchanged; matchup, pressure,
@@ -954,6 +999,50 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     innings.currentBatsmen.striker && 
     innings.currentBatsmen.nonStriker;
 
+  // ---- Phase 2: live tactical impact estimate + suggestions ----
+  const previewStriker = innings?.currentBatsmen.striker;
+  const previewBowler = innings?.currentBowler;
+  const previewBatterTraits = previewStriker ? getPlayerTraits(previewStriker) : undefined;
+  const previewBowlerTraits = previewBowler ? getPlayerTraits(previewBowler) : undefined;
+  const previewPhase = getPhase();
+  const previewFieldReport = computeFieldModifiers(fielders, fieldPreset);
+  const previewTactics = computeTacticsModifiers('normal', battingAggression, fieldPreset);
+  const previewBatMods = computeBatterTacticModifiers({
+    tactics: batterTactics,
+    bowlerType: previewBowlerTraits?.bowlerType,
+    bowlerId: previewBowler?.id,
+    phase: previewPhase,
+    isNewBatter: (previewStriker?.balls ?? 0) < 8,
+  });
+  const previewPlanMods = computeBowlerPlanModifiers({
+    plan: bowlerPlan,
+    phase: previewPhase,
+    batter: previewBatterTraits,
+    bowler: previewBowlerTraits,
+  });
+  const tacticalEstimate = estimateTacticalImpact([
+    previewTactics,
+    previewBatMods.modifiers,
+    previewPlanMods.modifiers,
+    previewFieldReport.modifiers,
+  ]);
+  const tacticalRecommendations = ballContext
+    ? recommendTactics({
+        phase: previewPhase,
+        pressure: ballContext.pressure,
+        isNewBatter: (previewStriker?.balls ?? 0) < 8,
+        batter: previewBatterTraits,
+        bowler: previewBowlerTraits,
+        fieldPreset,
+        deepCount: previewFieldReport.deepCount,
+      })
+    : [];
+  const tacticalNotes = [
+    ...previewBatMods.notes,
+    ...previewPlanMods.notes,
+    ...previewFieldReport.notes,
+  ];
+
   return (
     <div className="space-y-4">
       {/* ============ TACTICS PANELS ============ */}
@@ -1004,14 +1093,25 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
                 bowlerName={innings?.currentBowler?.name}
                 batsmanName={innings?.currentBatsmen.striker?.name}
                 onStrategyChange={setBowlingStrategy}
-                onAggressionChange={setBattingAggression}
+                onAggressionChange={handleAggressionChange}
+                batterTactics={batterTactics}
+                onBatterTacticsChange={handleBatterTacticsChange}
+                bowlerPlan={bowlerPlan}
+                onBowlerPlanChange={handleBowlerPlanChange}
               />
-              <FieldPlacementEditor
-                fielders={fielders}
-                preset={fieldPreset}
-                onChange={setFielders}
-                onPresetChange={setFieldPreset}
-              />
+              <div className="space-y-3">
+                <FieldPlacementEditor
+                  fielders={fielders}
+                  preset={fieldPreset}
+                  onChange={setFielders}
+                  onPresetChange={handleFieldPresetChange}
+                />
+                <TacticalImpact
+                  estimate={tacticalEstimate}
+                  recommendations={tacticalRecommendations}
+                  fieldNotes={tacticalNotes}
+                />
+              </div>
             </div>
           )}
         </div>

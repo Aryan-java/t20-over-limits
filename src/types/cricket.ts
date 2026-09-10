@@ -181,6 +181,8 @@ export interface Match {
     team1Innings: Innings;
     team2Innings: Innings;
   };
+  /** Optional tactical decision history (Phase 2). Old saves simply omit it. */
+  tacticsLog?: import("./tactics").TacticsLogEntry[];
 }
 
 export interface Fixture {
