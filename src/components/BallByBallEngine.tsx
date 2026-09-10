@@ -276,6 +276,47 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     };
   };
 
+  // ---- Phase 2: tactical decision history (optional, backwards compatible) ----
+  const logTactic = (type: TacticsLogEntry['type'], label: string, detail?: string) => {
+    const innings = getCurrentInnings();
+    const balls = innings?.ballsBowled ?? 0;
+    const entry: TacticsLogEntry = {
+      innings: match.currentInnings,
+      over: Math.floor(balls / 6),
+      ball: balls % 6,
+      type,
+      label,
+      detail,
+      at: new Date().toISOString(),
+    };
+    setTacticsLog(prev => [...prev, entry]);
+    updateMatch({ tacticsLog: [...(match.tacticsLog ?? []), entry] });
+  };
+
+  const handleBatterTacticsChange = (s: BatterTacticsState) => {
+    setBatterTactics(s);
+    logTactic('batter', `Batter: ${s.tactic}`, s.instruction !== 'none' ? s.instruction : undefined);
+  };
+
+  const handleBowlerPlanChange = (p: BowlerPlan) => {
+    setBowlerPlan(p);
+    // Keep the delivery mix in sync with the chosen plan; the sliders remain
+    // fully editable afterwards (manual edits are never overwritten again).
+    setBowlingStrategy(strategyForPlan(p));
+    logTactic('bowler-plan', `Plan: ${BOWLER_PLAN_LABEL[p]}`);
+  };
+
+  const handleFieldPresetChange = (p: FieldPreset) => {
+    setFieldPreset(p);
+    setFielders(PRESET_FIELDS[p]);
+    logTactic('field', `Field: ${p}`);
+  };
+
+  const handleAggressionChange = (n: number) => {
+    setBattingAggression(n);
+    logTactic('aggression', `Intent: ${n}`);
+  };
+
   /**
    * Thin wrapper around the extracted pure simulation. Base probabilities,
    * extras behaviour and phase effects are unchanged; matchup, pressure,
