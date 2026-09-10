@@ -999,6 +999,50 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     innings.currentBatsmen.striker && 
     innings.currentBatsmen.nonStriker;
 
+  // ---- Phase 2: live tactical impact estimate + suggestions ----
+  const previewStriker = innings?.currentBatsmen.striker;
+  const previewBowler = innings?.currentBowler;
+  const previewBatterTraits = previewStriker ? getPlayerTraits(previewStriker) : undefined;
+  const previewBowlerTraits = previewBowler ? getPlayerTraits(previewBowler) : undefined;
+  const previewPhase = getPhase();
+  const previewFieldReport = computeFieldModifiers(fielders, fieldPreset);
+  const previewTactics = computeTacticsModifiers('normal', battingAggression, fieldPreset);
+  const previewBatMods = computeBatterTacticModifiers({
+    tactics: batterTactics,
+    bowlerType: previewBowlerTraits?.bowlerType,
+    bowlerId: previewBowler?.id,
+    phase: previewPhase,
+    isNewBatter: (previewStriker?.balls ?? 0) < 8,
+  });
+  const previewPlanMods = computeBowlerPlanModifiers({
+    plan: bowlerPlan,
+    phase: previewPhase,
+    batter: previewBatterTraits,
+    bowler: previewBowlerTraits,
+  });
+  const tacticalEstimate = estimateTacticalImpact([
+    previewTactics,
+    previewBatMods.modifiers,
+    previewPlanMods.modifiers,
+    previewFieldReport.modifiers,
+  ]);
+  const tacticalRecommendations = ballContext
+    ? recommendTactics({
+        phase: previewPhase,
+        pressure: ballContext.pressure,
+        isNewBatter: (previewStriker?.balls ?? 0) < 8,
+        batter: previewBatterTraits,
+        bowler: previewBowlerTraits,
+        fieldPreset,
+        deepCount: previewFieldReport.deepCount,
+      })
+    : [];
+  const tacticalNotes = [
+    ...previewBatMods.notes,
+    ...previewPlanMods.notes,
+    ...previewFieldReport.notes,
+  ];
+
   return (
     <div className="space-y-4">
       {/* ============ TACTICS PANELS ============ */}
