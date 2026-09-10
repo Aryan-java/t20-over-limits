@@ -1093,14 +1093,25 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
                 bowlerName={innings?.currentBowler?.name}
                 batsmanName={innings?.currentBatsmen.striker?.name}
                 onStrategyChange={setBowlingStrategy}
-                onAggressionChange={setBattingAggression}
+                onAggressionChange={handleAggressionChange}
+                batterTactics={batterTactics}
+                onBatterTacticsChange={handleBatterTacticsChange}
+                bowlerPlan={bowlerPlan}
+                onBowlerPlanChange={handleBowlerPlanChange}
               />
-              <FieldPlacementEditor
-                fielders={fielders}
-                preset={fieldPreset}
-                onChange={setFielders}
-                onPresetChange={setFieldPreset}
-              />
+              <div className="space-y-3">
+                <FieldPlacementEditor
+                  fielders={fielders}
+                  preset={fieldPreset}
+                  onChange={setFielders}
+                  onPresetChange={handleFieldPresetChange}
+                />
+                <TacticalImpact
+                  estimate={tacticalEstimate}
+                  recommendations={tacticalRecommendations}
+                  fieldNotes={tacticalNotes}
+                />
+              </div>
             </div>
           )}
         </div>
