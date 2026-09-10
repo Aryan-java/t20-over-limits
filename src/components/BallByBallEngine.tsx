@@ -312,9 +312,13 @@ const BallByBallEngine = ({ match, conditionModifiers, onContextChange }: BallBy
     logTactic('field', `Field: ${p}`);
   };
 
+  const lastLoggedAggression = useRef(50);
   const handleAggressionChange = (n: number) => {
     setBattingAggression(n);
-    logTactic('aggression', `Intent: ${n}`);
+    if (Math.abs(n - lastLoggedAggression.current) >= 10) {
+      lastLoggedAggression.current = n;
+      logTactic('aggression', `Intent: ${n}`);
+    }
   };
 
   /**
