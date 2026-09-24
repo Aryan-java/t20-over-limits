@@ -2,15 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  BowlingStrategy,
-  BowlingDelivery,
-  BatterTactic,
-  BatterMatchupInstruction,
-  BatterTacticsState,
-  BowlerPlan,
-  BOWLER_PLAN_LABEL,
-} from "@/types/tactics";
+import { BowlingStrategy, BowlingDelivery } from "@/types/tactics";
 import { Zap, Shield, Target, Wind, Activity } from "lucide-react";
 
 interface Props {
@@ -20,11 +12,6 @@ interface Props {
   batsmanName?: string;
   onStrategyChange: (s: BowlingStrategy) => void;
   onAggressionChange: (n: number) => void;
-  /** Optional Phase 2 controls — omitted safely by older callers. */
-  batterTactics?: BatterTacticsState;
-  onBatterTacticsChange?: (s: BatterTacticsState) => void;
-  bowlerPlan?: BowlerPlan;
-  onBowlerPlanChange?: (p: BowlerPlan) => void;
 }
 
 const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: string }> = {
@@ -35,33 +22,7 @@ const DELIVERY_META: Record<BowlingDelivery, { label: string; icon: any; color: 
   knuckle: { label: 'Knuckle', icon: Shield, color: 'text-purple-400' },
 };
 
-const BATTER_TACTICS: { key: BatterTactic; label: string }[] = [
-  { key: 'anchor', label: 'Anchor' },
-  { key: 'rotate', label: 'Rotate' },
-  { key: 'attack', label: 'Attack' },
-];
-
-const INSTRUCTIONS: { key: BatterMatchupInstruction; label: string }[] = [
-  { key: 'none', label: 'No special plan' },
-  { key: 'attack-pace', label: 'Attack pace' },
-  { key: 'attack-spin', label: 'Attack spin' },
-  { key: 'see-off', label: 'See off spell' },
-];
-
-const PLANS: BowlerPlan[] = ['attack', 'balanced', 'defensive', 'yorkers', 'bouncers', 'variations', 'target-weakness'];
-
-const TacticalPanel = ({
-  strategy,
-  aggression,
-  bowlerName,
-  batsmanName,
-  onStrategyChange,
-  onAggressionChange,
-  batterTactics,
-  onBatterTacticsChange,
-  bowlerPlan,
-  onBowlerPlanChange,
-}: Props) => {
+const TacticalPanel = ({ strategy, aggression, bowlerName, batsmanName, onStrategyChange, onAggressionChange }: Props) => {
   const total = Object.values(strategy).reduce((a, b) => a + b, 0) || 1;
 
   const setWeight = (k: BowlingDelivery, v: number) => {
@@ -72,7 +33,6 @@ const TacticalPanel = ({
     aggression < 25 ? 'Block' :
     aggression < 50 ? 'Defensive' :
     aggression < 75 ? 'Positive' : 'Attack';
-
 
   return (
     <Card>
@@ -86,60 +46,8 @@ const TacticalPanel = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Per-batter tactics */}
-        {batterTactics && onBatterTacticsChange && (
-          <div>
-            <p className="text-sm font-medium mb-2">Batter Instruction</p>
-            <div className="flex flex-wrap gap-2">
-              {BATTER_TACTICS.map(t => (
-                <Button
-                  key={t.key}
-                  size="sm"
-                  variant={batterTactics.tactic === t.key ? 'default' : 'outline'}
-                  onClick={() => onBatterTacticsChange({ ...batterTactics, tactic: t.key })}
-                >
-                  {t.label}
-                </Button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {INSTRUCTIONS.map(i => (
-                <Button
-                  key={i.key}
-                  size="sm"
-                  variant={batterTactics.instruction === i.key ? 'secondary' : 'ghost'}
-                  className="text-xs h-7"
-                  onClick={() => onBatterTacticsChange({ ...batterTactics, instruction: i.key })}
-                >
-                  {i.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Bowler plan */}
-        {bowlerPlan && onBowlerPlanChange && (
-          <div>
-            <p className="text-sm font-medium mb-2">Bowler Plan</p>
-            <div className="flex flex-wrap gap-2">
-              {PLANS.map(p => (
-                <Button
-                  key={p}
-                  size="sm"
-                  variant={bowlerPlan === p ? 'default' : 'outline'}
-                  onClick={() => onBowlerPlanChange(p)}
-                >
-                  {BOWLER_PLAN_LABEL[p]}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Bowling strategy */}
         <div>
-
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium">Bowling Plan</p>
             <span className="text-xs text-muted-foreground">% of deliveries</span>

@@ -10,7 +10,6 @@ import { Team } from "@/types/cricket";
 import { useToast } from "@/hooks/use-toast";
 import { PLAYER_DATABASE, PlayerData } from "@/data/playerDatabase";
 import { Globe, Search, TrendingUp, Target } from "lucide-react";
-import { searchPlayers, squadBlockReason } from "@/lib/playerSearch";
 
 interface PlayerSelectionDialogProps {
   team: Team | null;
@@ -38,29 +37,19 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
 
   if (!team) return null;
 
-  const filteredPlayers = searchPlayers(searchTerm).map(r => r.data).filter(player => {
+  const filteredPlayers = PLAYER_DATABASE.filter(player => {
+    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPrice = priceFilter === "all" || player.price.toString() === priceFilter;
     const matchesRole = roleFilter === "all" || player.role === roleFilter;
     const matchesOverseas = overseasFilter === "all" || 
       (overseasFilter === "overseas" && player.isOverseas) ||
       (overseasFilter === "indian" && !player.isOverseas);
-    // Already-in-squad players are hidden to prevent duplicates
+    
+    // Check if player is already in team squad
     const notInTeam = !team.squad.some(p => p.name === player.name);
-    return matchesPrice && matchesRole && matchesOverseas && notInTeam;
+    
+    return matchesSearch && matchesPrice && matchesRole && matchesOverseas && notInTeam;
   });
-
-  // Squad as it would look with current picks — used to explain blocked players.
-  const pendingSquad = [
-    ...team.squad,
-    ...PLAYER_DATABASE.filter(p => selectedPlayers.includes(p.name)),
-  ];
-
-  const blockReason = (player: PlayerData): string | null => {
-    const r = squadBlockReason(player, pendingSquad);
-    if (r) return r;
-    if (budget < player.price) return `Needs ₹${player.price} Cr, ₹${budget} Cr left`;
-    return null;
-  };
 
   const togglePlayer = (playerName: string) => {
     const player = PLAYER_DATABASE.find(p => p.name === playerName);
@@ -70,13 +59,16 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
       setSelectedPlayers(selectedPlayers.filter(name => name !== playerName));
       setBudget(prev => prev + player.price);
     } else {
-      const reason = blockReason(player);
-      if (reason) {
-        toast({ title: `Can't add ${playerName}`, description: reason, variant: "destructive" });
-        return;
+      if (budget >= player.price) {
+        setSelectedPlayers([...selectedPlayers, playerName]);
+        setBudget(prev => prev - player.price);
+      } else {
+        toast({
+          title: "Insufficient Budget",
+          description: `You need ${player.price} Cr but only have ${budget} Cr remaining.`,
+          variant: "destructive"
+        });
       }
-      setSelectedPlayers([...selectedPlayers, playerName]);
-      setBudget(prev => prev - player.price);
     }
   };
 
@@ -223,23 +215,17 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
 
         {/* Player List */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
-          {filteredPlayers.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">No players match your search/filters.</p>
-          )}
           {filteredPlayers.map((player) => (
             <div key={player.name} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
               <Checkbox
                 checked={selectedPlayers.includes(player.name)}
                 onCheckedChange={() => togglePlayer(player.name)}
-                aria-label={`Select ${player.name}`}
+                disabled={!selectedPlayers.includes(player.name) && budget < player.price}
               />
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <span className="font-medium truncate">{player.name}</span>
-                  {!selectedPlayers.includes(player.name) && blockReason(player) && (
-                    <span className="text-xs text-destructive">{blockReason(player)}</span>
-                  )}
                   {player.isOverseas && (
                     <Badge variant="outline" className="text-xs">
                       <Globe className="h-3 w-3 mr-1" />

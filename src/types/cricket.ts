@@ -1,16 +1,5 @@
 import { Venue } from "@/data/venues";
 
-export interface RecentMatchPerformance {
-  runs: number;
-  balls: number;
-  wickets: number;
-  runsConceded: number;
-  oversBowled: number;
-  batted: boolean;
-  bowled: boolean;
-  matchDate: string; // ISO
-}
-
 export interface PlayerPerformanceHistory {
   last5MatchesRuns: number;
   last5MatchesWickets: number;
@@ -19,10 +8,7 @@ export interface PlayerPerformanceHistory {
   totalWickets: number;
   averageRuns: number;
   averageWickets: number;
-  formRating: number; // 0-100
-  recentMatches?: RecentMatchPerformance[]; // last 5
-  batFormAdjustment?: number; // signed delta applied to batSkill (-8..+8)
-  bowlFormAdjustment?: number; // signed delta applied to bowlSkill (-8..+8)
+  formRating: number;
 }
 
 export interface Player {
@@ -30,13 +16,10 @@ export interface Player {
   name: string;
   imageUrl?: string;
   isOverseas: boolean;
-  batSkill: number; // 0-100 (effective: base + form)
-  bowlSkill: number; // 0-100 (effective: base + form)
-  baseBatSkill?: number; // unchanged baseline from PLAYER_DATABASE
-  baseBowlSkill?: number;
+  batSkill: number; // 0-100
+  bowlSkill: number; // 0-100
   currentTeamId?: string;
   performanceHistory?: PlayerPerformanceHistory;
-
   // Match stats
   runs: number;
   balls: number;
@@ -181,8 +164,6 @@ export interface Match {
     team1Innings: Innings;
     team2Innings: Innings;
   };
-  /** Optional tactical decision history (Phase 2). Old saves simply omit it. */
-  tacticsLog?: import("./tactics").TacticsLogEntry[];
 }
 
 export interface Fixture {
