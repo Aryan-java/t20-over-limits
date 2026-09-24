@@ -161,9 +161,16 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search players..."
+                placeholder="Name, role, country, team… (Enter adds top match)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && filteredPlayers[0]) {
+                    e.preventDefault();
+                    if (!selectedPlayers.includes(filteredPlayers[0].name)) togglePlayer(filteredPlayers[0].name);
+                    setSearchTerm("");
+                  }
+                }}
                 className="pl-10"
               />
             </div>
@@ -199,11 +206,18 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
 
           {/* Player List */}
           <div className="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
-            {filteredPlayers.map((player) => (
-              <div key={player.name} className="flex items-center space-x-3 p-2 border rounded hover:bg-muted/50">
+            {filteredPlayers.length === 0 && (
+              <p className="py-8 text-center text-sm text-muted-foreground">No players match your search/filters.</p>
+            )}
+            {filteredPlayers.map((player) => {
+              const isSelected = selectedPlayers.includes(player.name);
+              const reason = isSelected ? null : squadBlockReason(player, selectedSquad);
+              return (
+              <div key={player.name} className={`flex items-center space-x-3 p-2 border rounded hover:bg-muted/50 ${reason ? "opacity-60" : ""}`}>
                 <Checkbox
-                  checked={selectedPlayers.includes(player.name)}
+                  checked={isSelected}
                   onCheckedChange={() => togglePlayer(player.name)}
+                  aria-label={`Select ${player.name}`}
                 />
                 
                 <div className="flex-1 min-w-0">
@@ -219,7 +233,9 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
                       {player.role}
                     </Badge>
                   </div>
+                  {reason && <p className="text-xs text-destructive mt-0.5">{reason}</p>}
                 </div>
+
 
                 <div className="flex items-center space-x-4 text-sm">
                   <span className="font-medium">Bat: {player.batSkill}</span>
