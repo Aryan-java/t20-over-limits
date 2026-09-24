@@ -37,7 +37,8 @@ const ROLE_ALIASES: Record<string, string> = {
 };
 
 export function buildIndex(players: PlayerData[]): SearchablePlayer[] {
-  return players.map((p) => {
+  const seen = new Set<string>();
+  return players.filter((p) => (seen.has(p.name) ? false : (seen.add(p.name), true))).map((p) => {
     const nameNorm = norm(p.name);
     const tokens = nameNorm.split(" ");
     const c = getPlayerCountry(p.name, p.isOverseas);
@@ -50,6 +51,7 @@ export function buildIndex(players: PlayerData[]): SearchablePlayer[] {
         c.code,
         p.bowlSkill >= 40 ? `${bowlerType} ${bowlerType === "spin" ? "spinner" : "seamer fast"}` : "",
         team ?? "",
+        team ? norm(team).split(" ").map((w) => w[0]).join("") : "",
       ].join(" "),
     );
     return {
@@ -67,14 +69,18 @@ export const getDefaultIndex = () => (defaultIndex ??= buildIndex(PLAYER_DATABAS
 function lev(a: string, b: string, max: number): number {
   if (Math.abs(a.length - b.length) > max) return max + 1;
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  let pp: number[] = prev;
   for (let i = 1; i <= a.length; i++) {
     const cur = [i];
     let rowMin = i;
     for (let j = 1; j <= b.length; j++) {
       cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      // adjacent transposition ("kahn" -> "khan") counts as one edit
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], pp[j - 2] + 1);
       rowMin = Math.min(rowMin, cur[j]);
     }
     if (rowMin > max) return max + 1;
+    pp = prev;
     prev = cur;
   }
   return prev[b.length];
