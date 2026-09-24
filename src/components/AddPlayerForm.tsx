@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { useToast } from "@/hooks/use-toast";
+import PlayerSearchCombobox from "./PlayerSearchCombobox";
+import { squadBlockReason } from "@/lib/playerSearch";
 
 interface AddPlayerFormProps {
   teamId: string;
@@ -16,7 +18,8 @@ interface AddPlayerFormProps {
 }
 
 const AddPlayerForm = ({ teamId, onSuccess, onCancel, overseasCount, squadSize }: AddPlayerFormProps) => {
-  const { addPlayerToTeam } = useCricketStore();
+  const { addPlayerToTeam, teams } = useCricketStore();
+  const squad = teams.find(t => t.id === teamId)?.squad ?? [];
   const { toast } = useToast();
   
   const [player, setPlayer] = useState({
@@ -33,6 +36,12 @@ const AddPlayerForm = ({ teamId, onSuccess, onCancel, overseasCount, squadSize }
         description: "Player name is required",
         variant: "destructive"
       });
+      return;
+    }
+
+    const dup = squadBlockReason(player, squad);
+    if (dup === "Already in squad") {
+      toast({ title: "Error", description: `${player.name} is already in the squad`, variant: "destructive" });
       return;
     }
 
@@ -83,6 +92,11 @@ const AddPlayerForm = ({ teamId, onSuccess, onCancel, overseasCount, squadSize }
   return (
     <div className="p-4 border rounded-lg space-y-4 bg-muted/20">
       <h4 className="font-medium">Add New Player</h4>
+      <PlayerSearchCombobox
+        autoFocus
+        blockReason={(p) => squadBlockReason(p, squad)}
+        onSelect={(p) => setPlayer({ name: p.name, isOverseas: p.isOverseas, batSkill: p.batSkill, bowlSkill: p.bowlSkill })}
+      />
       
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
