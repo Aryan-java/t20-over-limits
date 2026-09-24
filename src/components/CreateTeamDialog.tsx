@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo, useDeferredValue } from "react";
+import { searchPlayers, squadBlockReason } from "@/lib/playerSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,47 +27,33 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [overseasFilter, setOverseasFilter] = useState<string>("all");
 
-  const filteredPlayers = PLAYER_DATABASE.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const deferredSearch = useDeferredValue(searchTerm);
+  const filteredPlayers = useMemo(() => searchPlayers(deferredSearch).map(r => r.data).filter(player => {
     const matchesRole = roleFilter === "all" || player.role === roleFilter;
-    const matchesOverseas = overseasFilter === "all" || 
+    const matchesOverseas = overseasFilter === "all" ||
       (overseasFilter === "overseas" && player.isOverseas) ||
       (overseasFilter === "indian" && !player.isOverseas);
-    
-    return matchesSearch && matchesRole && matchesOverseas;
-  });
+    return matchesRole && matchesOverseas;
+  }), [deferredSearch, roleFilter, overseasFilter]);
+
+  const selectedSquad = useMemo(
+    () => selectedPlayers.map(n => PLAYER_DATABASE.find(p => p.name === n)!).filter(Boolean),
+    [selectedPlayers],
+  );
 
   const togglePlayer = (playerName: string) => {
     if (selectedPlayers.includes(playerName)) {
       setSelectedPlayers(selectedPlayers.filter(name => name !== playerName));
-    } else {
-      if (selectedPlayers.length >= 25) {
-        toast({
-          title: "Squad Full",
-          description: "Maximum 25 players allowed in squad",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const player = PLAYER_DATABASE.find(p => p.name === playerName);
-      if (player?.isOverseas) {
-        const overseasCount = selectedPlayers.filter(name => 
-          PLAYER_DATABASE.find(p => p.name === name)?.isOverseas
-        ).length;
-        
-        if (overseasCount >= 8) {
-          toast({
-            title: "Overseas Limit Exceeded",
-            description: "Maximum 8 overseas players allowed in squad",
-            variant: "destructive"
-          });
-          return;
-        }
-      }
-
-      setSelectedPlayers([...selectedPlayers, playerName]);
+      return;
     }
+    const player = PLAYER_DATABASE.find(p => p.name === playerName);
+    if (!player) return;
+    const reason = squadBlockReason(player, selectedSquad);
+    if (reason) {
+      toast({ title: `Can't add ${playerName}`, description: reason, variant: "destructive" });
+      return;
+    }
+    setSelectedPlayers([...selectedPlayers, playerName]);
   };
 
   const createTeam = () => {
