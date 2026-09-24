@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { IPL_TEAMS_2025 } from "@/data/iplSquads";
 import { PLAYER_DATABASE, PlayerData } from "@/data/playerDatabase";
-import { getPlayerCountry } from "@/data/playerCountries";
+import { getPlayerCountry, PLAYER_COUNTRY } from "@/data/playerCountries";
+import { buildIndex, searchPlayers } from "@/lib/playerSearch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
