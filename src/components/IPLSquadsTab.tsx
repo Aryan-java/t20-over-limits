@@ -134,16 +134,21 @@ const IPLSquadsTab = () => {
   const [query, setQuery] = useState("");
   const teams = IPL_TEAMS_2025;
 
+  const squadIndex = useMemo(() => {
+    const byName = new Map(PLAYER_DATABASE.map((p) => [p.name.toLowerCase(), p]));
+    const all = teams.flatMap((t) => t.squad).map((n) =>
+      byName.get(n.toLowerCase()) ?? { name: n, price: 0, isOverseas: !!PLAYER_COUNTRY[n], batSkill: 50, bowlSkill: 30, role: "Batsman" as const },
+    );
+    return buildIndex(all);
+  }, [teams]);
+
   const filtered = useMemo(() => {
     if (!query.trim()) return teams;
-    const q = query.toLowerCase();
+    const hits = new Set(searchPlayers(query, squadIndex).map((p) => p.name));
     return teams
-      .map((t) => ({
-        ...t,
-        squad: t.squad.filter((n) => n.toLowerCase().includes(q)),
-      }))
+      .map((t) => ({ ...t, squad: t.squad.filter((n) => hits.has(n)) }))
       .filter((t) => t.squad.length > 0);
-  }, [query, teams]);
+  }, [query, teams, squadIndex]);
 
   return (
     <div className="space-y-6">
