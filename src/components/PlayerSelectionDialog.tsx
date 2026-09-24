@@ -223,17 +223,23 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
 
         {/* Player List */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
+          {filteredPlayers.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No players match your search/filters.</p>
+          )}
           {filteredPlayers.map((player) => (
             <div key={player.name} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
               <Checkbox
                 checked={selectedPlayers.includes(player.name)}
                 onCheckedChange={() => togglePlayer(player.name)}
-                disabled={!selectedPlayers.includes(player.name) && budget < player.price}
+                aria-label={`Select ${player.name}`}
               />
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <span className="font-medium truncate">{player.name}</span>
+                  {!selectedPlayers.includes(player.name) && blockReason(player) && (
+                    <span className="text-xs text-destructive">{blockReason(player)}</span>
+                  )}
                   {player.isOverseas && (
                     <Badge variant="outline" className="text-xs">
                       <Globe className="h-3 w-3 mr-1" />
