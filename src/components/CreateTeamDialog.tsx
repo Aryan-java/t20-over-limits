@@ -242,7 +242,8 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
                   <span className="font-medium">Bowl: {player.bowlSkill}</span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="flex justify-end space-x-2">
