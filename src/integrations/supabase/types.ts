@@ -79,6 +79,214 @@ export type Database = {
         }
         Relationships: []
       }
+      multiplayer_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          id: number
+          payload: Json
+          room_id: string
+          type: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: number
+          payload?: Json
+          room_id: string
+          type: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: number
+          payload?: Json
+          room_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_events_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_match_state: {
+        Row: {
+          room_id: string
+          state: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          room_id: string
+          state?: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          room_id?: string
+          state?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_match_state_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_pending_decisions: {
+        Row: {
+          created_at: string
+          kind: string
+          payload: Json
+          room_id: string
+          side: string
+          submitted_by: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          kind: string
+          payload: Json
+          room_id: string
+          side: string
+          submitted_by: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          payload?: Json
+          room_id?: string
+          side?: string
+          submitted_by?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_pending_decisions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_room_members: {
+        Row: {
+          display_name: string
+          id: string
+          joined_at: string
+          ready: boolean
+          role: string
+          room_id: string
+          team_side: string | null
+          user_id: string
+        }
+        Insert: {
+          display_name: string
+          id?: string
+          joined_at?: string
+          ready?: boolean
+          role?: string
+          room_id: string
+          team_side?: string | null
+          user_id: string
+        }
+        Update: {
+          display_name?: string
+          id?: string
+          joined_at?: string
+          ready?: boolean
+          role?: string
+          room_id?: string
+          team_side?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_room_secrets: {
+        Row: {
+          room_id: string
+          seed: string
+        }
+        Insert: {
+          room_id: string
+          seed?: string
+        }
+        Update: {
+          room_id?: string
+          seed?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_room_secrets_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_rooms: {
+        Row: {
+          code: string
+          created_at: string
+          host_user_id: string
+          id: string
+          paused_from: string | null
+          settings: Json
+          setups: Json
+          status: string
+          team_a: Json | null
+          team_b: Json | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          host_user_id: string
+          id?: string
+          paused_from?: string | null
+          settings?: Json
+          setups?: Json
+          status?: string
+          team_a?: Json | null
+          team_b?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          host_user_id?: string
+          id?: string
+          paused_from?: string | null
+          settings?: Json
+          setups?: Json
+          status?: string
+          team_a?: Json | null
+          team_b?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       player_all_time_stats: {
         Row: {
           balls_bowled: number
@@ -207,7 +415,97 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      mp_assign_member: {
+        Args: {
+          p_role: string
+          p_room: string
+          p_side?: string
+          p_user: string
+        }
+        Returns: undefined
+      }
+      mp_clean_name: { Args: { _n: string }; Returns: string }
+      mp_commit_state: {
+        Args: {
+          p_actor: string
+          p_event: Json
+          p_event_type: string
+          p_expected_version: number
+          p_room: string
+          p_state: Json
+          p_status: string
+        }
+        Returns: number
+      }
+      mp_create_room: {
+        Args: { p_display_name: string; p_overs?: number }
+        Returns: Json
+      }
+      mp_decision_status: { Args: { p_room: string }; Returns: Json }
+      mp_is_member: { Args: { _room: string; _uid: string }; Returns: boolean }
+      mp_join_room: {
+        Args: { p_code: string; p_display_name: string }
+        Returns: Json
+      }
+      mp_kick_member: {
+        Args: { p_room: string; p_user: string }
+        Returns: undefined
+      }
+      mp_leave_room: { Args: { p_room: string }; Returns: undefined }
+      mp_log: {
+        Args: { _payload?: Json; _room: string; _type: string }
+        Returns: undefined
+      }
+      mp_require_host: {
+        Args: { _room: string }
+        Returns: {
+          code: string
+          created_at: string
+          host_user_id: string
+          id: string
+          paused_from: string | null
+          settings: Json
+          setups: Json
+          status: string
+          team_a: Json | null
+          team_b: Json | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "multiplayer_rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mp_require_uid: { Args: never; Returns: string }
+      mp_set_paused: {
+        Args: { p_paused: boolean; p_room: string }
+        Returns: undefined
+      }
+      mp_set_teams: {
+        Args: { p_room: string; p_team_a: Json; p_team_b: Json }
+        Returns: undefined
+      }
+      mp_side_of: { Args: { _room: string; _uid: string }; Returns: string }
+      mp_submit_decision: {
+        Args: {
+          p_expected_version: number
+          p_kind: string
+          p_payload: Json
+          p_room: string
+        }
+        Returns: undefined
+      }
+      mp_submit_team_setup: {
+        Args: { p_impact: string[]; p_room: string; p_xi: string[] }
+        Returns: undefined
+      }
+      mp_transfer_host: {
+        Args: { p_room: string; p_user: string }
+        Returns: undefined
+      }
+      mp_validate_team: { Args: { t: Json }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
