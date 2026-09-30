@@ -119,7 +119,7 @@ export function validateBowler(inn: Innings, overs: number, bowlerId: string, bo
 
 const HOW = ["bowled", "caught", "caught", "caught behind", "lbw", "run out", "stumped"];
 
-export function playBall(state: MatchState, squads: Record<Side, MPPlayer[]>, bd: BattingDecision, bw: BowlingDecision, rng: () => number): { state: MatchState; ball: BallRecord } {
+export function playBall(state: MatchState, squads: Record<Side, MPPlayer[]>, orders: Record<Side, string[]>, bd: BattingDecision, bw: BowlingDecision, rng: () => number): { state: MatchState; ball: BallRecord } {
   const s: MatchState = structuredClone(state);
   const inn = s.innings[s.current];
   const bowlSide: Side = inn.battingSide === "A" ? "B" : "A";
@@ -181,7 +181,7 @@ export function playBall(state: MatchState, squads: Record<Side, MPPlayer[]>, bd
     inn.done = true;
     if (s.current === 0) {
       s.current = 1;
-      s.innings.push(newInnings(bowlSide, (squads as any).__order[bowlSide], inn.runs + 1));
+      s.innings.push(newInnings(bowlSide, orders[bowlSide], inn.runs + 1));
     } else {
       const first = s.innings[0];
       if (inn.runs >= inn.target!) s.result = { winner: inn.battingSide, text: `won by ${inn.order.length - 1 - inn.wickets} wickets` };
