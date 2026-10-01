@@ -10,6 +10,9 @@ import AllTimeStats from "@/components/AllTimeStats";
 import BestXITab from "@/components/BestXISection";
 import IPLSquadsTab from "@/components/IPLSquadsTab";
 import { TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Users } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("teams");
@@ -28,6 +31,9 @@ const Index = () => {
         <CricketHeader />
         
         <main className="container mx-auto px-4 py-8">
+          <div className="flex justify-end mb-4">
+            <Button asChild variant="secondary"><Link to="/multiplayer"><Users className="h-4 w-4 mr-2" />Multiplayer</Link></Button>
+          </div>
           <TabNavigation activeTab={activeTab} onTabChange={setActiveTab}>
             <TabsContent value="teams" className="animate-tab-enter">
               <TeamsTab />

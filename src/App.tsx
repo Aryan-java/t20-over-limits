@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import PlayerProfile from "./pages/PlayerProfile";
 import NotFound from "./pages/NotFound";
+import Multiplayer from "./pages/Multiplayer";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/player/:playerId" element={<PlayerProfile />} />
+            <Route path="/multiplayer" element={<Multiplayer />} />
+            <Route path="/multiplayer/:roomId" element={<Multiplayer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
