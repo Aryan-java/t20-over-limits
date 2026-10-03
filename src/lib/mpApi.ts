@@ -19,7 +19,7 @@ export async function rpc<T = unknown>(fn: string, args: Record<string, unknown>
   return (data ?? true) as T;
 }
 
-export async function engine(action: "start" | "play", roomId: string, expectedVersion: number) {
+export async function engine(action: "start" | "play" | "override_play", roomId: string, expectedVersion: number) {
   const { data, error } = await supabase.functions.invoke("mp-engine", { body: { action, roomId, expectedVersion } });
   if (error) {
     toast({ title: "Not allowed", description: await errMsg(error), variant: "destructive" });
