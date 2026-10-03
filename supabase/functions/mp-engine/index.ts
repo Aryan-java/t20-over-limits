@@ -5,7 +5,7 @@ import { z } from "npm:zod@3";
 import { makeRng, newInnings, playBall, validateBowler, type MatchState, type MPPlayer, type Side } from "../_shared/mpEngine.ts";
 
 const Body = z.object({
-  action: z.enum(["start", "play"]),
+  action: z.enum(["start", "play", "override_play"]),
   roomId: z.string().uuid(),
   expectedVersion: z.number().int().min(0),
 });
@@ -73,12 +73,17 @@ Deno.serve(async (req) => {
     }
 
     // play
-    if (room.status !== "live") return json({ error: room.status === "paused" ? "Match is paused" : "Match is not live" }, 409);
+    const override = action === "override_play";
+    if (override) {
+      // Host emergency override: only while paused (e.g. bowling owner offline), fully logged.
+      if (room.host_user_id !== uid) return json({ error: "Only the host can use the emergency override" }, 403);
+      if (room.status !== "paused") return json({ error: "Pause the match before using the override" }, 409);
+    } else if (room.status !== "live") return json({ error: room.status === "paused" ? "Match is paused" : "Match is not live" }, 409);
     const state = ms.state as unknown as MatchState;
     const inn = state.innings[state.current];
     const bowlSide: Side = inn.battingSide === "A" ? "B" : "A";
     const mySide = me.role === "team_owner" ? (me.team_side as Side) : null;
-    if (mySide !== bowlSide) return json({ error: "Only the bowling team can play the next ball" }, 403);
+    if (!override && mySide !== bowlSide) return json({ error: "Only the bowling team can play the next ball" }, 403);
     const { data: decisions } = await db.from("multiplayer_pending_decisions").select("*").eq("room_id", roomId).eq("version", expectedVersion);
     const bat = decisions?.find((d) => d.kind === "batting" && d.side === inn.battingSide);
     const bowl = decisions?.find((d) => d.kind === "bowling" && d.side === bowlSide);
@@ -89,8 +94,9 @@ Deno.serve(async (req) => {
 
     const rng = makeRng(`${secret.seed}:${expectedVersion}`);
     const { state: next, ball } = playBall(state, squads, orders, bat.payload as any, bw, rng);
-    const status = next.result ? "completed" : "live";
-    return await commit(next, status, next.result ? "match_completed" : "ball_played", { ball, result: next.result ?? null });
+    const status = next.result ? "completed" : override ? "paused" : "live";
+    const type = next.result ? "match_completed" : next.current !== state.current ? "innings_break" : override ? "host_override_ball" : "ball_played";
+    return await commit(next, status, type, { ball, result: next.result ?? null });
   } catch (e) {
     console.error(e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
