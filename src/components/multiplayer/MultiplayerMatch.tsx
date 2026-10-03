@@ -77,6 +77,12 @@ export default function MultiplayerMatch({ room, state, version, me, isHost, dec
                   {room.status === "paused" ? "Resume" : "Pause"}
                 </Button>
               )}
+              {isHost && room.status === "paused" && (
+                <Button variant="destructive" size="sm" className="ml-2" disabled={!bothIn || busy}
+                  onClick={async () => { setBusy(true); await engine("override_play", room.id, version); setBusy(false); }}>
+                  Host override: play one ball
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
