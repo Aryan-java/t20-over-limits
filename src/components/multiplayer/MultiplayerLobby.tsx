@@ -4,24 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useCricketStore } from "@/hooks/useCricketStore";
+import { Input } from "@/components/ui/input";
+import { PLAYER_DATABASE } from "@/data/playerDatabase";
 import { rpc, engine } from "@/lib/mpApi";
-import type { Member, MPTeam, Room, Side } from "@/types/multiplayer";
+import type { Member, Room, Side } from "@/types/multiplayer";
 
 interface Props { room: Room; members: Member[]; me: Member; isHost: boolean; online: Set<string>; version: number }
 
 export default function MultiplayerLobby({ room, members, me, isHost, online, version }: Props) {
-  const teams = useCricketStore((s) => s.teams).filter((t) => t.squad.length >= 11);
-  const [a, setA] = useState(""); const [b, setB] = useState("");
   const [busy, setBusy] = useState(false);
   const owners = { A: members.find((m) => m.team_side === "A"), B: members.find((m) => m.team_side === "B") };
   const teamName = (s: Side) => (s === "A" ? room.team_a?.name : room.team_b?.name) ?? `Team ${s}`;
-
-  const toMP = (id: string): MPTeam | null => {
-    const t = teams.find((x) => x.id === id);
-    if (!t) return null;
-    return { name: t.name.slice(0, 60), squad: t.squad.slice(0, 40).map((p) => ({ id: p.id, name: p.name, batSkill: p.batSkill, bowlSkill: p.bowlSkill, isOverseas: p.isOverseas, imageUrl: p.imageUrl })) };
-  };
 
   const canStart = owners.A?.ready && owners.B?.ready && room.setups.A && room.setups.B;
 
@@ -65,17 +58,9 @@ export default function MultiplayerLobby({ room, members, me, isHost, online, ve
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Teams</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <p><b>A:</b> {room.team_a?.name ?? "—"} · {owners.A?.display_name ?? "no owner"}</p>
-          <p><b>B:</b> {room.team_b?.name ?? "—"} · {owners.B?.display_name ?? "no owner"}</p>
-          {isHost && (
-            teams.length < 2 ? <p className="text-muted-foreground">Create at least two teams (11+ players) in the Teams tab first.</p> : <>
-              <Select value={a} onValueChange={setA}><SelectTrigger><SelectValue placeholder="Team A" /></SelectTrigger>
-                <SelectContent>{teams.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
-              <Select value={b} onValueChange={setB}><SelectTrigger><SelectValue placeholder="Team B" /></SelectTrigger>
-                <SelectContent>{teams.filter((t) => t.id !== a).map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
-              <Button variant="secondary" className="w-full" disabled={!a || !b || a === b} onClick={() => rpc("mp_set_teams", { p_room: room.id, p_team_a: toMP(a), p_team_b: toMP(b) })}>Set teams</Button>
-            </>
-          )}
+          <p><b>A:</b> {room.team_a ? `${room.team_a.name} (${room.team_a.squad.length})` : "squad not built"} · {owners.A?.display_name ?? "no owner"}{room.setups.A && " · XI locked"}</p>
+          <p><b>B:</b> {room.team_b ? `${room.team_b.name} (${room.team_b.squad.length})` : "squad not built"} · {owners.B?.display_name ?? "no owner"}{room.setups.B && " · XI locked"}</p>
+          <p className="text-muted-foreground">Each team owner builds their own squad from the player database.</p>
           {isHost && (
             <Button className="w-full" disabled={!canStart || busy} onClick={async () => { setBusy(true); await engine("start", room.id, version); setBusy(false); }}>
               Start match
@@ -95,7 +80,8 @@ function TeamSetup({ room, side }: { room: Room; side: Side }) {
   const existing = room.setups[side];
   const [xi, setXi] = useState<string[]>(existing?.xi ?? []);
   const [impact, setImpact] = useState<string[]>(existing?.impact ?? []);
-  if (!team) return <Card className="lg:col-span-3"><CardContent className="pt-6 text-muted-foreground">You control Team {side}. Waiting for the host to pick teams.</CardContent></Card>;
+  const [editing, setEditing] = useState(false);
+  if (!team || editing) return <SquadBuilder room={room} initial={team ?? null} onDone={() => { setEditing(false); setXi([]); setImpact([]); }} />;
   const overseas = team.squad.filter((p) => xi.includes(p.id) && p.isOverseas).length;
   const toggle = (id: string, list: string[], set: (v: string[]) => void, max: number) =>
     set(list.includes(id) ? list.filter((x) => x !== id) : list.length < max ? [...list, id] : list);
@@ -124,6 +110,58 @@ function TeamSetup({ room, side }: { room: Room; side: Side }) {
         <Button className="mt-4" disabled={xi.length !== 11 || overseas > 4} onClick={() => rpc("mp_submit_team_setup", { p_room: room.id, p_xi: xi, p_impact: impact })}>
           Lock in team
         </Button>
+        <Button variant="ghost" className="mt-4 ml-2" onClick={() => setEditing(true)}>Edit squad</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+const slug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 80);
+
+function SquadBuilder({ room, initial, onDone }: { room: Room; initial: Room["team_a"]; onDone: () => void }) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [picked, setPicked] = useState<string[]>(initial?.squad.map((p) => p.name) ?? []);
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const byName = new Map(PLAYER_DATABASE.map((p) => [p.name, p]));
+  const overseas = picked.filter((n) => byName.get(n)?.isOverseas).length;
+  const list = PLAYER_DATABASE.filter((p) => p.name.toLowerCase().includes(q.toLowerCase())).slice(0, 120);
+  const toggle = (n: string) => {
+    if (picked.includes(n)) return setPicked(picked.filter((x) => x !== n));
+    if (picked.length >= 25) return;
+    if (byName.get(n)?.isOverseas && overseas >= 8) return;
+    setPicked([...picked, n]);
+  };
+  const valid = name.trim().length > 0 && picked.length >= 18 && picked.length <= 25 && overseas <= 8;
+  const save = async () => {
+    setBusy(true);
+    const squad = picked.map((n) => { const p = byName.get(n)!; return { id: slug(p.name), name: p.name, batSkill: p.batSkill, bowlSkill: p.bowlSkill, isOverseas: p.isOverseas, imageUrl: p.imageUrl }; });
+    const ok = await rpc("mp_set_my_squad", { p_room: room.id, p_team: { name: name.trim().slice(0, 60), squad } });
+    setBusy(false);
+    if (ok) onDone();
+  };
+  return (
+    <Card className="lg:col-span-3">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Build your squad</CardTitle>
+        <p className="text-sm text-muted-foreground">Players {picked.length}/25 (min 18) · Overseas {overseas}/8</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid sm:grid-cols-2 gap-2">
+          <Input placeholder="Team name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder="Search players…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        {picked.length > 0 && <div className="flex flex-wrap gap-1">{picked.map((n) => <Badge key={n} variant="secondary" className="cursor-pointer" onClick={() => toggle(n)}>{n} ×</Badge>)}</div>}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+          {list.map((p) => (
+            <label key={p.name} className="flex items-center gap-2 p-2 rounded bg-muted/30 text-sm cursor-pointer">
+              <Checkbox checked={picked.includes(p.name)} onCheckedChange={() => toggle(p.name)} />
+              <span className="flex-1 truncate">{p.name}{p.isOverseas && " ✈"}</span>
+              <span className="text-xs text-muted-foreground">{p.role} · {p.batSkill}/{p.bowlSkill}</span>
+            </label>
+          ))}
+        </div>
+        <Button disabled={!valid || busy} onClick={save}>Save squad</Button>
       </CardContent>
     </Card>
   );
