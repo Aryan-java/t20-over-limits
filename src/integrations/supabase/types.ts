@@ -479,6 +479,10 @@ export type Database = {
         }
       }
       mp_require_uid: { Args: never; Returns: string }
+      mp_set_my_squad: {
+        Args: { p_room: string; p_team: Json }
+        Returns: undefined
+      }
       mp_set_paused: {
         Args: { p_paused: boolean; p_room: string }
         Returns: undefined
