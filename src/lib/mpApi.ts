@@ -19,8 +19,8 @@ export async function rpc<T = unknown>(fn: string, args: Record<string, unknown>
   return (data ?? true) as T;
 }
 
-export async function engine(action: "start" | "play" | "override_play", roomId: string, expectedVersion: number) {
-  const { data, error } = await supabase.functions.invoke("mp-engine", { body: { action, roomId, expectedVersion } });
+export async function engine(action: "start" | "play" | "override_play" | "select_batter", roomId: string, expectedVersion: number, extra: Record<string, unknown> = {}) {
+  const { data, error } = await supabase.functions.invoke("mp-engine", { body: { action, roomId, expectedVersion, ...extra } });
   if (error) {
     toast({ title: "Not allowed", description: await errMsg(error), variant: "destructive" });
     return null;
