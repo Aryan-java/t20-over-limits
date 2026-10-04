@@ -20,6 +20,7 @@ export interface Innings {
   batters: Record<string, BatLine>; bowlers: Record<string, BowlLine>;
   currentBowler: string | null; lastOverBowler: string | null; freeHit: boolean;
   recent: BallRecord[]; overRuns: number[]; target?: number; done: boolean;
+  batted?: string[]; awaitingBatter?: boolean;
 }
 export interface MatchState {
   overs: number; current: 0 | 1; toss: { winner: Side; decision: "bat" | "bowl" };
@@ -101,7 +102,7 @@ export function newInnings(side: Side, order: string[], target?: number): Inning
   const batters: Record<string, BatLine> = {};
   order.forEach((id) => (batters[id] = { runs: 0, balls: 0, fours: 0, sixes: 0, out: false }));
   return { battingSide: side, runs: 0, wickets: 0, balls: 0, extras: 0, striker: order[0], nonStriker: order[1], order, nextIdx: 2,
-    batters, bowlers: {}, currentBowler: null, lastOverBowler: null, freeHit: false, recent: [], overRuns: [], target, done: false };
+    batters, bowlers: {}, currentBowler: null, lastOverBowler: null, freeHit: false, recent: [], overRuns: [], target, done: false, batted: order.slice(0, 2), awaitingBatter: false };
 }
 export const maxOversPerBowler = (overs: number) => Math.max(1, Math.ceil(overs / 5));
 export const oversStr = (balls: number) => `${Math.floor(balls / 6)}.${balls % 6}`;
@@ -161,7 +162,7 @@ export function playBall(state: MatchState, squads: Record<Side, MPPlayer[]>, or
   // Strike: odd runs swap (not on wides), wicket brings new batter at striker end.
   const ranRuns = o.extra === "no-ball" ? o.runs - 1 : o.runs;
   if (!wicket && o.extra !== "wide" && ranRuns % 2 === 1) [inn.striker, inn.nonStriker] = [inn.nonStriker, inn.striker];
-  if (wicket) inn.striker = inn.nextIdx < inn.order.length ? inn.order[inn.nextIdx++] : null;
+  if (wicket) inn.striker = null; // vacated: next batter is chosen by the batting owner (auto if only one left)
   const overDone = legal && inn.balls % 6 === 0;
   inn.overRuns[overIdx] = (inn.overRuns[overIdx] ?? 0) + o.runs;
   if (overDone) {
@@ -174,7 +175,11 @@ export function playBall(state: MatchState, squads: Record<Side, MPPlayer[]>, or
   inn.recent = [...inn.recent, ball].slice(-18);
   s.lastBall = ball;
 
-  const allOut = inn.wickets >= inn.order.length - 1 || !inn.striker || !inn.nonStriker;
+  const allOut = inn.wickets >= inn.order.length - 1;
+  if (wicket && !allOut) {
+    const left = yetToBat(inn);
+    if (left.length === 1) fillBatter(inn, left[0]); else inn.awaitingBatter = true;
+  }
   const oversUp = inn.balls >= s.overs * 6;
   const chased = inn.target !== undefined && inn.runs >= inn.target;
   if (allOut || oversUp || chased) {
@@ -190,4 +195,25 @@ export function playBall(state: MatchState, squads: Record<Side, MPPlayer[]>, or
     }
   }
   return { state: s, ball };
+}
+
+/** Batters in the XI who have not come in yet. */
+export function yetToBat(inn: Innings): string[] {
+  const came = inn.batted ?? inn.order.slice(0, inn.nextIdx);
+  return inn.order.filter((id) => !came.includes(id));
+}
+function fillBatter(inn: Innings, id: string) {
+  if (inn.striker === null) inn.striker = id; else inn.nonStriker = id;
+  inn.batted = [...(inn.batted ?? inn.order.slice(0, inn.nextIdx)), id];
+  inn.nextIdx++;
+  inn.awaitingBatter = false;
+}
+/** Batting owner confirms the incoming batter after a wicket. */
+export function selectBatter(state: MatchState, batterId: string): { state: MatchState } | { error: string } {
+  const s: MatchState = structuredClone(state);
+  const inn = s.innings[s.current];
+  if (!inn.awaitingBatter) return { error: "No batter selection is pending" };
+  if (!yetToBat(inn).includes(batterId)) return { error: "That player can't come in to bat" };
+  fillBatter(inn, batterId);
+  return { state: s };
 }
