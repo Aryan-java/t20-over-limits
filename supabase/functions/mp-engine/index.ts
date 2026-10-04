@@ -2,10 +2,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { makeRng, newInnings, playBall, validateBowler, type MatchState, type MPPlayer, type Side } from "../_shared/mpEngine.ts";
+import { makeRng, newInnings, playBall, selectBatter, validateBowler, type MatchState, type MPPlayer, type Side } from "../_shared/mpEngine.ts";
 
 const Body = z.object({
-  action: z.enum(["start", "play", "override_play"]),
+  action: z.enum(["start", "play", "override_play", "select_batter"]),
+  batterId: z.string().min(1).max(80).optional(),
   roomId: z.string().uuid(),
   expectedVersion: z.number().int().min(0),
 });
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
-    const { action, roomId, expectedVersion } = parsed.data;
+    const { action, roomId, expectedVersion, batterId } = parsed.data;
 
     const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const [{ data: room }, { data: ms }, { data: members }, { data: secret }] = await Promise.all([
@@ -72,6 +73,19 @@ Deno.serve(async (req) => {
       return await commit(state, "live", "match_started", { tossWinner: winner, decision });
     }
 
+    if (action === "select_batter") {
+      if (!["live", "paused"].includes(room.status)) return json({ error: "Match is not in progress" }, 409);
+      const st = ms.state as unknown as MatchState;
+      const ci = st.innings[st.current];
+      const isBatOwner = me.role === "team_owner" && me.team_side === ci.battingSide;
+      const hostCover = room.host_user_id === uid && room.status === "paused";
+      if (!isBatOwner && !hostCover) return json({ error: "Only the batting team can choose the next batter" }, 403);
+      if (!batterId) return json({ error: "Choose a batter" }, 400);
+      const r = selectBatter(st, batterId);
+      if ("error" in r) return json({ error: r.error }, 400);
+      return await commit(r.state, room.status, "batter_selected", { side: ci.battingSide, batterId, byHost: !isBatOwner });
+    }
+
     // play
     const override = action === "override_play";
     if (override) {
@@ -84,10 +98,12 @@ Deno.serve(async (req) => {
     const bowlSide: Side = inn.battingSide === "A" ? "B" : "A";
     const mySide = me.role === "team_owner" ? (me.team_side as Side) : null;
     if (!override && mySide !== bowlSide) return json({ error: "Only the bowling team can play the next ball" }, 403);
-    const { data: decisions } = await db.from("multiplayer_pending_decisions").select("*").eq("room_id", roomId).eq("version", expectedVersion);
-    const bat = decisions?.find((d) => d.kind === "batting" && d.side === inn.battingSide);
+    if (inn.awaitingBatter) return json({ error: "Waiting for the batting team to choose the next batter" }, 409);
+    // Plans are sticky: the latest submitted plan of each side applies until changed. No per-ball confirmations.
+    const { data: decisions } = await db.from("multiplayer_pending_decisions").select("*").eq("room_id", roomId);
+    const bat = decisions?.find((d) => d.kind === "batting" && d.side === inn.battingSide) ?? { payload: { aggression: 50 } };
     const bowl = decisions?.find((d) => d.kind === "bowling" && d.side === bowlSide);
-    if (!bat || !bowl) return json({ error: "Waiting for both teams to lock in their decisions" }, 409);
+    if (!bowl) return json({ error: "Choose a bowler first" }, 409);
     const bw = bowl.payload as any;
     const bErr = validateBowler(inn, overs, bw.bowlerId, orders[bowlSide]);
     if (bErr) return json({ error: bErr }, 400);

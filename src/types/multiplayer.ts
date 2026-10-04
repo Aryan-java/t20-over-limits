@@ -26,6 +26,7 @@ export interface Innings {
   batters: Record<string, BatLine>; bowlers: Record<string, BowlLine>;
   currentBowler: string | null; lastOverBowler: string | null; freeHit: boolean;
   recent: BallRecord[]; overRuns: number[]; target?: number; done: boolean;
+  batted?: string[]; awaitingBatter?: boolean;
 }
 export interface MatchState {
   overs: number; current: 0 | 1; toss: { winner: Side; decision: "bat" | "bowl" };

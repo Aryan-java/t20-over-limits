@@ -21,7 +21,6 @@ export default function MultiplayerMatch({ room, state, version, me, isHost, dec
   }, [room]);
   const teamName = (s: Side) => (s === "A" ? room.team_a?.name : room.team_b?.name) ?? s;
   const live = room.status === "live";
-  const bothIn = !!decisions && decisions.version === version && decisions.batting && decisions.bowling;
   const bowlOwner = members.find((m) => m.team_side === bowlSide);
   const bowlOnline = bowlOwner ? online.has(bowlOwner.user_id) : false;
   const [busy, setBusy] = useState(false);
@@ -33,7 +32,6 @@ export default function MultiplayerMatch({ room, state, version, me, isHost, dec
     return () => clearTimeout(t);
   }, [isHost, live, bowlOwner, bowlOnline, room.id, me.user_id]);
 
-  const play = async () => { setBusy(true); await engine("play", room.id, version); setBusy(false); };
 
   return (
     <div className="grid lg:grid-cols-3 gap-4">
@@ -64,11 +62,10 @@ export default function MultiplayerMatch({ room, state, version, me, isHost, dec
 
           {!state.result && (
             <div className="pt-2 space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Batting plan: {decisions?.batting ? "locked ✓" : `waiting for ${teamName(batSide)}`} · Bowling plan: {decisions?.bowling ? "locked ✓" : `waiting for ${teamName(bowlSide)}`}
-              </p>
-              {mySide === bowlSide ? (
-                <Button size="lg" className="w-full h-14 text-lg font-bold" disabled={!live || !bothIn || busy} onClick={play}>PLAY NEXT BALL</Button>
+              {inn.awaitingBatter ? (
+                <p className="text-sm text-center p-3 rounded bg-accent/20">Wicket! Waiting for {teamName(batSide)} to send in the next batter.</p>
+              ) : mySide === bowlSide ? (
+                <p className="text-sm text-center p-3 rounded bg-primary/10">Your bowling team controls the game — use PLAY NEXT BALL below.</p>
               ) : (
                 <p className="text-sm text-center p-3 rounded bg-muted/30">Only the bowling team ({teamName(bowlSide)}) can play the next ball{bowlOwner && !bowlOnline ? " — they are offline" : ""}.</p>
               )}
@@ -78,7 +75,7 @@ export default function MultiplayerMatch({ room, state, version, me, isHost, dec
                 </Button>
               )}
               {isHost && room.status === "paused" && (
-                <Button variant="destructive" size="sm" className="ml-2" disabled={!bothIn || busy}
+                <Button variant="destructive" size="sm" className="ml-2" disabled={busy || !!inn.awaitingBatter}
                   onClick={async () => { setBusy(true); await engine("override_play", room.id, version); setBusy(false); }}>
                   Host override: play one ball
                 </Button>
@@ -90,22 +87,36 @@ export default function MultiplayerMatch({ room, state, version, me, isHost, dec
 
       {mySide && !state.result && (
         mySide === batSide
-          ? <BattingPanel key={`bat-${version}`} roomId={room.id} version={version} live={live} prev={myDecisions.find((d) => d.kind === "batting")?.payload} />
+          ? <BattingPanel key={`bat-${version}`} roomId={room.id} version={version} live={live} prev={myDecisions.find((d) => d.kind === "batting")?.payload} inn={inn} names={names} />
           : <BowlingPanel key={`bowl-${version}`} room={room} state={state} version={version} live={live} names={names} prev={myDecisions.find((d) => d.kind === "bowling")?.payload} />
       )}
     </div>
   );
 }
 
-function BattingPanel({ roomId, version, live, prev }: { roomId: string; version: number; live: boolean; prev?: any }) {
+function BattingPanel({ roomId, version, live, prev, inn, names }: { roomId: string; version: number; live: boolean; prev?: any; inn: MatchState["innings"][number]; names: Record<string, string> }) {
   const [agg, setAgg] = useState<number>(prev?.aggression ?? 50);
+  const [next, setNext] = useState("");
+  const came = inn.batted ?? inn.order.slice(0, inn.nextIdx);
+  const left = inn.order.filter((id) => !came.includes(id));
   return (
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-base">Batting plan (private)</CardTitle></CardHeader>
       <CardContent className="space-y-4">
+        {inn.awaitingBatter && (
+          <div className="space-y-2 p-3 rounded-lg border border-accent bg-accent/10">
+            <p className="text-sm font-medium">Wicket! Choose the next batter</p>
+            <Select value={next} onValueChange={setNext}>
+              <SelectTrigger><SelectValue placeholder="Next batter" /></SelectTrigger>
+              <SelectContent>{left.map((id) => <SelectItem key={id} value={id}>{names[id]}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button className="w-full" disabled={!next} onClick={() => engine("select_batter", roomId, version, { batterId: next })}>Send in batter</Button>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">Your plan stays in force until you change it.</p>
         <div className="flex justify-between text-sm"><span>Defend</span><b>{agg}</b><span>Attack</span></div>
         <Slider value={[agg]} min={0} max={100} step={5} onValueChange={(v) => setAgg(v[0])} />
-        <Button className="w-full" disabled={!live} onClick={() => rpc("mp_submit_decision", { p_room: roomId, p_kind: "batting", p_payload: { aggression: agg }, p_expected_version: version })}>Lock in</Button>
+        <Button className="w-full" disabled={!live} onClick={() => rpc("mp_submit_decision", { p_room: roomId, p_kind: "batting", p_payload: { aggression: agg }, p_expected_version: version })}>{prev ? "Update plan" : "Set plan"}</Button>
       </CardContent>
     </Card>
   );
@@ -121,6 +132,7 @@ function BowlingPanel({ room, state, version, live, names, prev }: { room: Room;
   const [field, setField] = useState<FieldPreset>(prev?.field ?? "balanced");
   const [bowler, setBowler] = useState<string>(prev?.bowlerId && eligible.includes(prev.bowlerId) ? prev.bowlerId : inn.balls % 6 !== 0 && inn.currentBowler ? inn.currentBowler : "");
   const [strat, setStrat] = useState<Record<Delivery, number>>(prev?.strategy ?? { ...defaultBowlingStrategy });
+  const [busy, setBusy] = useState(false);
   return (
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-base">Bowling plan (private)</CardTitle></CardHeader>
@@ -139,7 +151,14 @@ function BowlingPanel({ room, state, version, live, names, prev }: { room: Room;
             <Slider value={[strat[d]]} min={0} max={100} step={5} onValueChange={(v) => setStrat({ ...strat, [d]: v[0] })} />
           </div>
         ))}
-        <Button className="w-full" disabled={!live || !bowler} onClick={() => rpc("mp_submit_decision", { p_room: room.id, p_kind: "bowling", p_payload: { field, bowlerId: bowler, strategy: strat }, p_expected_version: version })}>Lock in</Button>
+        {inn.awaitingBatter && <p className="text-sm text-muted-foreground">Waiting for the batting team to choose the next batter…</p>}
+        <Button size="lg" className="w-full h-14 text-lg font-bold" disabled={!live || !bowler || !eligible.includes(bowler) || busy || !!inn.awaitingBatter}
+          onClick={async () => {
+            setBusy(true);
+            const ok = await rpc("mp_submit_decision", { p_room: room.id, p_kind: "bowling", p_payload: { field, bowlerId: bowler, strategy: strat }, p_expected_version: version });
+            if (ok) await engine("play", room.id, version);
+            setBusy(false);
+          }}>PLAY NEXT BALL</Button>
       </CardContent>
     </Card>
   );
