@@ -9,6 +9,7 @@ import { useCricketStore } from "@/hooks/useCricketStore";
 import { Team } from "@/types/cricket";
 import { useToast } from "@/hooks/use-toast";
 import { PLAYER_DATABASE, PlayerData } from "@/data/playerDatabase";
+import { UNIQUE_PLAYERS, matchesPlayerName, normalizeName } from "@/lib/playerSearch";
 import { Globe, Search, TrendingUp, Target } from "lucide-react";
 
 interface PlayerSelectionDialogProps {
@@ -32,13 +33,15 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
     if (team) {
       setSelectedPlayers([]);
       setBudget(100);
+      setSearchTerm("");
     }
   }, [team]);
 
   if (!team) return null;
 
-  const filteredPlayers = PLAYER_DATABASE.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const squadNames = new Set(team.squad.map(p => normalizeName(p.name)));
+  const filteredPlayers = UNIQUE_PLAYERS.filter(player => {
+    const matchesSearch = matchesPlayerName(player.name, searchTerm);
     const matchesPrice = priceFilter === "all" || player.price.toString() === priceFilter;
     const matchesRole = roleFilter === "all" || player.role === roleFilter;
     const matchesOverseas = overseasFilter === "all" || 
@@ -46,7 +49,7 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
       (overseasFilter === "indian" && !player.isOverseas);
     
     // Check if player is already in team squad
-    const notInTeam = !team.squad.some(p => p.name === player.name);
+    const notInTeam = !squadNames.has(normalizeName(player.name));
     
     return matchesSearch && matchesPrice && matchesRole && matchesOverseas && notInTeam;
   });
@@ -159,8 +162,8 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
         </DialogHeader>
 
         {/* Filters */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="relative">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+          <div className="relative col-span-2 md:col-span-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search players..."
@@ -215,6 +218,11 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
 
         {/* Player List */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
+          {filteredPlayers.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No players match{searchTerm ? ` "${searchTerm}"` : ""}. Try clearing the price, role or origin filters — players already in this squad are hidden.
+            </p>
+          )}
           {filteredPlayers.map((player) => (
             <div key={player.name} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
               <Checkbox
@@ -225,7 +233,7 @@ const PlayerSelectionDialog = ({ team, open, onOpenChange }: PlayerSelectionDial
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
-                  <span className="font-medium truncate">{player.name}</span>
+                  <span className="font-medium truncate" title={player.name}>{player.name}</span>
                   {player.isOverseas && (
                     <Badge variant="outline" className="text-xs">
                       <Globe className="h-3 w-3 mr-1" />
