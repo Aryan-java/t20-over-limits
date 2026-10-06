@@ -27,11 +27,21 @@ const LiveMatchTab = () => {
 
   // Memoize venue so it doesn't change on every re-render
   const venue = useMemo(() => {
-    const matchFixture = fixtures.find(
-      f => f.team1.id === currentMatch?.team1.id && f.team2.id === currentMatch?.team2.id
-    );
+    const matchFixture =
+      (currentMatch?.fixtureId && fixtures.find(f => f.id === currentMatch.fixtureId)) ||
+      fixtures.find(f => !f.played && (
+        (f.team1.id === currentMatch?.team1.id && f.team2.id === currentMatch?.team2.id) ||
+        (f.team1.id === currentMatch?.team2.id && f.team2.id === currentMatch?.team1.id)));
     return matchFixture?.venue || getRandomVenue();
-  }, [currentMatch?.team1.id, currentMatch?.team2.id, fixtures]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMatch?.id]);
+
+  // A new match must start from its own toss, not inherit the previous match's "started" flag
+  useEffect(() => {
+    setMatchStarted(!!currentMatch?.firstInnings && !currentMatch?.isCompleted);
+    setDismissedResult(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMatch?.id]);
 
   // Match conditions system
   const { conditions, modifiers, initializeConditions, updateConditions, setConditions } = useMatchConditions(venue);
