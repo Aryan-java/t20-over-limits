@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Shuffle, RotateCcw, ArrowLeftRight, Bell } from "lucide-react";
+import { Plus, Shuffle, RotateCcw, ArrowLeftRight, Bell, Dices } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { availablePlayers, maxRandomTeams } from "@/lib/randomTeams";
 import TeamCard from "./TeamCard";
 import CreateTeamDialog from "./CreateTeamDialog";
 import EditTeamDialog from "./EditTeamDialog";
@@ -23,7 +26,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const TeamsTab = () => {
-  const { teams, generateSampleTeams, resetTeams, tradeProposals } = useCricketStore();
+  const { teams, generateSampleTeams, generateRandomTeams, resetTeams, tradeProposals } = useCricketStore();
+  const [randomOpen, setRandomOpen] = useState(false);
+  const [randomCount, setRandomCount] = useState(4);
+  const maxRandom = maxRandomTeams(availablePlayers(teams.flatMap(t => t.squad.map(p => p.name))));
+  const handleRandom = () => {
+    const res = generateRandomTeams(randomCount);
+    if (!res.ok) { toast({ title: "Can't generate teams", description: res.error, variant: "destructive" }); return; }
+    setRandomOpen(false);
+    toast({ title: "Random teams created", description: `${randomCount} new team${randomCount === 1 ? "" : "s"} added.` });
+  };
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
@@ -88,6 +100,10 @@ const TeamsTab = () => {
           >
             <Shuffle className="h-3.5 w-3.5 mr-1.5" />
             Generate IPL Teams
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setRandomCount(Math.max(1, Math.min(4, maxRandom))); setRandomOpen(true); }}>
+            <Dices className="h-3.5 w-3.5 mr-1.5" />
+            Generate Random Teams
           </Button>
           
           
@@ -160,6 +176,30 @@ const TeamsTab = () => {
         open={proposalsDialogOpen}
         onOpenChange={setProposalsDialogOpen}
       />
+
+      <Dialog open={randomOpen} onOpenChange={setRandomOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Generate Random Teams</DialogTitle>
+            <DialogDescription>
+              Random names and random squads from the player list. Players already in a team aren't reused.
+            </DialogDescription>
+          </DialogHeader>
+          {maxRandom < 1 ? (
+            <p className="text-sm text-destructive">Not enough unassigned players left to build another valid squad.</p>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="random-count">Number of teams (1–{maxRandom})</label>
+              <Input id="random-count" type="number" min={1} max={maxRandom} value={randomCount}
+                onChange={(e) => setRandomCount(Math.max(1, Math.min(maxRandom, parseInt(e.target.value) || 1)))} />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRandomOpen(false)}>Cancel</Button>
+            <Button onClick={handleRandom} disabled={maxRandom < 1}>Generate</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <AlertDialogContent>
