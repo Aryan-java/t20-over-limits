@@ -615,8 +615,8 @@ export default function TournamentTab() {
 
       {selectedFixture && (
         <MatchSetupDialog
-          team1={selectedFixture.team1}
-          team2={selectedFixture.team2}
+          team1={teams.find(t => t.id === selectedFixture.team1.id) || selectedFixture.team1}
+          team2={teams.find(t => t.id === selectedFixture.team2.id) || selectedFixture.team2}
           open={matchSetupDialogOpen}
           onOpenChange={setMatchSetupDialogOpen}
           onMatchReady={(team1Setup, team2Setup) => {
@@ -630,7 +630,8 @@ export default function TournamentTab() {
               {
                 ...team2Setup,
                 impactPlayerUsed: false
-              }
+              },
+              selectedFixture.id
             );
             setCurrentMatch(match);
             setMatchSetupDialogOpen(false);

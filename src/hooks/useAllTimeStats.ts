@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface PlayerAllTimeStats {
@@ -34,13 +35,9 @@ export function useAllTimeStats() {
       // Fetch a broad dataset first, then aggregate/sort in memory.
       // Previous top-20 prefiltering could hide updates for players that
       // weren't already in those top lists.
-      const { data, error } = await supabase
-        .from("player_all_time_stats")
-        .select("*")
-        .limit(1000);
-
-      if (error) throw error;
-      return (data || []) as unknown as PlayerAllTimeStats[];
+      // Read ALL rows: a single read is capped at 1000, which silently dropped
+      // part of each player's history and made records disagree with profiles.
+      return await fetchAllRows<PlayerAllTimeStats>("player_all_time_stats");
     },
     refetchOnWindowFocus: false,
     staleTime: 60000,

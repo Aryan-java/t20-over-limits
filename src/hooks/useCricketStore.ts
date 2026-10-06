@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Team, Player, Match, Fixture, MatchHistory, Tournament, TradeProposal } from '@/types/cricket';
 import { PLAYER_DATABASE } from '@/data/playerDatabase';
 import { IPL_TEAMS_2025 } from '@/data/iplSquads';
 import { getRandomVenue, IPL_VENUES } from '@/data/venues';
 import { getPlayerCountry } from '@/data/playerCountries';
+import { buildRandomTeams } from '@/lib/randomTeams';
 
 
 interface CricketStore {
@@ -46,7 +47,7 @@ interface CricketStore {
   resetTournament: () => void;
 
   // Match actions
-  createMatch: (team1Id: string, team2Id: string, team1Setup?: Match['team1Setup'], team2Setup?: Match['team2Setup']) => Match;
+  createMatch: (team1Id: string, team2Id: string, team1Setup?: Match['team1Setup'], team2Setup?: Match['team2Setup'], fixtureId?: string) => Match;
   setCurrentMatch: (match: Match | null) => void;
   updateMatch: (updates: Partial<Match>) => void;
   completeMatch: (match: Match) => void;
@@ -56,6 +57,7 @@ interface CricketStore {
 
   // Auto-generate sample data
   generateSampleTeams: (count: number) => void;
+  generateRandomTeams: (count: number) => { ok: boolean; error?: string };
 
   // Playing XI and Impact Players
   setPlayingXI: (teamId: string, playerIds: string[]) => void;
@@ -541,13 +543,16 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     });
   },
   
-  createMatch: (team1Id, team2Id, team1Setup, team2Setup) => {
-    const { teams } = get();
-    const team1 = teams.find(t => t.id === team1Id)!;
-    const team2 = teams.find(t => t.id === team2Id)!;
+  createMatch: (team1Id, team2Id, team1Setup, team2Setup, fixtureId) => {
+    const { teams, fixtures } = get();
+    // Prefer the live team; fall back to the fixture's snapshot so an older fixture never crashes
+    const fx = fixtureId ? fixtures.find(f => f.id === fixtureId) : undefined;
+    const team1 = teams.find(t => t.id === team1Id) || (fx && (fx.team1.id === team1Id ? fx.team1 : fx.team2))!;
+    const team2 = teams.find(t => t.id === team2Id) || (fx && (fx.team2.id === team2Id ? fx.team2 : fx.team1))!;
 
     const match: Match = {
       id: generateId(),
+      fixtureId,
       team1,
       team2,
       team1Setup: team1Setup || null,
@@ -672,6 +677,10 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
       fixtures: (() => {
         // Find the first UNPLAYED fixture between these two teams to mark as played
         // (handles double round-robin where teams meet twice)
+        // Exact fixture this match was started from (if known and still unplayed)
+        if (match.fixtureId && state.fixtures.some(f => f.id === match.fixtureId && !f.played)) {
+          return state.fixtures.map(f => f.id === match.fixtureId ? { ...f, played: true, match: completedMatch } : f);
+        }
         let marked = false;
         return state.fixtures.map(fixture => {
           if (marked) return fixture;
@@ -936,9 +945,62 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
 
     set(state => ({ teams: [...state.teams, ...newTeams] }));
   },
+
+  generateRandomTeams: (count) => {
+    const { teams } = get();
+    const taken = teams.flatMap(t => t.squad.map(p => p.name));
+    const { teams: specs, error } = buildRandomTeams(count, taken, teams.map(t => t.name));
+    if (error) return { ok: false, error };
+    const newTeams: Team[] = specs.map(spec => {
+      const id = generateId();
+      return {
+        id,
+        name: spec.name,
+        subUsed: false,
+        squad: spec.players.map(pd => ({
+          id: generateId(),
+          name: pd.name,
+          imageUrl: pd.imageUrl,
+          isOverseas: pd.isOverseas,
+          batSkill: pd.batSkill,
+          bowlSkill: pd.bowlSkill,
+          currentTeamId: id,
+          performanceHistory: { last5MatchesRuns: 0, last5MatchesWickets: 0, totalMatches: 0, totalRuns: 0, totalWickets: 0, averageRuns: 0, averageWickets: 0, formRating: 50 },
+          runs: 0, balls: 0, fours: 0, sixes: 0, dismissed: false, dismissalInfo: '',
+          oversBowled: 0, maidens: 0, wickets: 0, runsConceded: 0, isPlaying: false,
+          widesConceded: 0, noBallsConceded: 0, dotBalls: 0,
+        })),
+      };
+    });
+    set(state => ({ teams: [...state.teams, ...newTeams] }));
+    return { ok: true };
+  },
 }), {
   name: 'cricket-tournament-storage',
   version: 4,
+  // Never let a full localStorage break gameplay
+  storage: createJSONStorage(() => ({
+    getItem: (k: string) => localStorage.getItem(k),
+    setItem: (k: string, v: string) => {
+      try { localStorage.setItem(k, v); } catch (e) { console.warn('[cricket-store] could not save progress:', e); }
+    },
+    removeItem: (k: string) => localStorage.removeItem(k),
+  })),
+  // Completed fixtures only store a reference; the full match lives once in matchHistory
+  partialize: (state: any) => ({
+    ...state,
+    fixtures: (state.fixtures || []).map((f: any) => f.match ? { ...f, match: { id: f.match.id, result: f.match.result } } : f),
+  }),
+  merge: (persisted: any, current: any) => {
+    const merged = { ...current, ...(persisted || {}) };
+    const history: any[] = merged.matchHistory || [];
+    merged.fixtures = (merged.fixtures || []).map((f: any) => {
+      if (!f.match) return f;
+      const full = history.find(m => m.id === f.match.id);
+      return full ? { ...f, match: full } : f;
+    });
+    return merged;
+  },
   migrate: (persisted: any, version: number) => {
     if (!persisted) return persisted;
     // v2/v3: resync batSkill/bowlSkill on every player from latest PLAYER_DATABASE (form-based)
