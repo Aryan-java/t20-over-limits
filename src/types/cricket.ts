@@ -129,6 +129,7 @@ export interface Innings {
 
 export interface Match {
   id: string;
+  fixtureId?: string;
   team1: Team;
   team2: Team;
   overs: number;
