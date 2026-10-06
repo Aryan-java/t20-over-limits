@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { UNIQUE_PLAYERS, matchesPlayerName } from "@/lib/playerSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +27,8 @@ const CreateTeamDialog = ({ open, onOpenChange }: CreateTeamDialogProps) => {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [overseasFilter, setOverseasFilter] = useState<string>("all");
 
-  const filteredPlayers = PLAYER_DATABASE.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredPlayers = UNIQUE_PLAYERS.filter(player => {
+    const matchesSearch = matchesPlayerName(player.name, searchTerm);
     const matchesRole = roleFilter === "all" || player.role === roleFilter;
     const matchesOverseas = overseasFilter === "all" || 
       (overseasFilter === "overseas" && player.isOverseas) ||
