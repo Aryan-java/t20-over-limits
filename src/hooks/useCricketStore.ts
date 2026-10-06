@@ -5,6 +5,7 @@ import { PLAYER_DATABASE } from '@/data/playerDatabase';
 import { IPL_TEAMS_2025 } from '@/data/iplSquads';
 import { getRandomVenue, IPL_VENUES } from '@/data/venues';
 import { getPlayerCountry } from '@/data/playerCountries';
+import { buildRandomTeams } from '@/lib/randomTeams';
 
 
 interface CricketStore {
@@ -56,6 +57,7 @@ interface CricketStore {
 
   // Auto-generate sample data
   generateSampleTeams: (count: number) => void;
+  generateRandomTeams: (count: number) => { ok: boolean; error?: string };
 
   // Playing XI and Impact Players
   setPlayingXI: (teamId: string, playerIds: string[]) => void;
@@ -942,6 +944,36 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     }
 
     set(state => ({ teams: [...state.teams, ...newTeams] }));
+  },
+
+  generateRandomTeams: (count) => {
+    const { teams } = get();
+    const taken = teams.flatMap(t => t.squad.map(p => p.name));
+    const { teams: specs, error } = buildRandomTeams(count, taken, teams.map(t => t.name));
+    if (error) return { ok: false, error };
+    const newTeams: Team[] = specs.map(spec => {
+      const id = generateId();
+      return {
+        id,
+        name: spec.name,
+        subUsed: false,
+        squad: spec.players.map(pd => ({
+          id: generateId(),
+          name: pd.name,
+          imageUrl: pd.imageUrl,
+          isOverseas: pd.isOverseas,
+          batSkill: pd.batSkill,
+          bowlSkill: pd.bowlSkill,
+          currentTeamId: id,
+          performanceHistory: { last5MatchesRuns: 0, last5MatchesWickets: 0, totalMatches: 0, totalRuns: 0, totalWickets: 0, averageRuns: 0, averageWickets: 0, formRating: 50 },
+          runs: 0, balls: 0, fours: 0, sixes: 0, dismissed: false, dismissalInfo: '',
+          oversBowled: 0, maidens: 0, wickets: 0, runsConceded: 0, isPlaying: false,
+          widesConceded: 0, noBallsConceded: 0, dotBalls: 0,
+        })),
+      };
+    });
+    set(state => ({ teams: [...state.teams, ...newTeams] }));
+    return { ok: true };
   },
 }), {
   name: 'cricket-tournament-storage',
