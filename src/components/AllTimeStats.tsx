@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -145,9 +146,7 @@ export default function AllTimeStats() {
   // Fetch per-innings data for fastest 50/100 categories
   const [inningsData, setInningsData] = useState<any[]>([]);
   useEffect(() => {
-    supabase.from("player_innings").select("*").limit(1000).then(({ data }) => {
-      if (data) setInningsData(data);
-    });
+    fetchAllRows("player_innings").then(setInningsData).catch((e) => console.error(e));
   }, [isRefreshing]);
 
   const handleRefresh = async () => { setIsRefreshing(true); await refetch(); setIsRefreshing(false); };
