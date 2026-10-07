@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Match, Innings } from "@/types/cricket";
+import { buildOverSeries, buildWorm, type OverPoint } from "@/lib/overData";
 import {
   BarChart,
   Bar,
@@ -22,55 +23,22 @@ interface MatchChartsProps {
   match: Match;
 }
 
-interface OverPoint {
-  over: number;
-  runs: number;
-  wickets: number;
-  cumulative: number;
-  phase: "powerplay" | "middle" | "death";
-}
-
 const phaseColor = (over: number, totalOvers: number): string => {
   if (over <= 6) return "hsl(217 91% 60%)";
   if (over > totalOvers - 4) return "hsl(0 84% 60%)";
   return "hsl(142 70% 45%)";
 };
 
-const buildOverData = (innings: Innings | null, totalOvers: number): OverPoint[] => {
-  if (!innings || !innings.overs) return [];
-  let cumulative = 0;
-  return innings.overs.map((ov) => {
-    const runs = ov.balls.reduce(
-      (s, b) => s + (b.runs || 0) + (b.extras?.runs || 0),
-      0
-    );
-    const wickets = ov.balls.filter((b) => b.isWicket).length;
-    cumulative += runs;
-    const overNum = ov.overNumber;
-    const phase: OverPoint["phase"] =
-      overNum <= 6 ? "powerplay" : overNum > totalOvers - 4 ? "death" : "middle";
-    return { over: overNum, runs, wickets, cumulative, phase };
-  });
-};
-
 const buildBoundaries = (innings: Innings | null) => {
-  if (!innings) return [] as { x: number; y: number; runs: 4 | 6; batsman: string; over: number }[];
+  if (!innings?.overs) return [] as { x: number; y: number; runs: 4 | 6; batsman: string; over: number }[];
   const pts: { x: number; y: number; runs: 4 | 6; batsman: string; over: number }[] = [];
   innings.overs.forEach((ov) => {
     ov.balls.forEach((b, i) => {
-      if (b.runs === 4 || b.runs === 6) {
-        // Deterministic-ish angle per ball
-        const seed = (ov.overNumber * 31 + i * 7 + b.batsman.length) % 360;
-        const angleDeg = seed;
+      if (!b.extras && (b.runs === 4 || b.runs === 6)) {
+        const angleDeg = (ov.overNumber * 31 + i * 7 + b.batsman.length) % 360;
         const radius = b.runs === 6 ? 95 : 75;
         const rad = (angleDeg * Math.PI) / 180;
-        pts.push({
-          x: 100 + Math.cos(rad) * radius,
-          y: 100 + Math.sin(rad) * radius,
-          runs: b.runs as 4 | 6,
-          batsman: b.batsman,
-          over: ov.overNumber,
-        });
+        pts.push({ x: 100 + Math.cos(rad) * radius, y: 100 + Math.sin(rad) * radius, runs: b.runs as 4 | 6, batsman: b.batsman, over: ov.overNumber });
       }
     });
   });
@@ -81,24 +49,9 @@ const MatchCharts = ({ match }: MatchChartsProps) => {
   const t1Name = match.team1.name;
   const t2Name = match.team2.name;
 
-  const firstData = useMemo(() => buildOverData(match.firstInnings, match.overs), [match]);
-  const secondData = useMemo(() => buildOverData(match.secondInnings, match.overs), [match]);
-
-  // Merge for worm chart
-  const wormData = useMemo(() => {
-    const max = Math.max(firstData.length, secondData.length);
-    const arr: { over: number; first?: number; second?: number; firstWicket?: number; secondWicket?: number }[] = [];
-    for (let i = 0; i < max; i++) {
-      arr.push({
-        over: i + 1,
-        first: firstData[i]?.cumulative,
-        second: secondData[i]?.cumulative,
-        firstWicket: firstData[i]?.wickets ? firstData[i].cumulative : undefined,
-        secondWicket: secondData[i]?.wickets ? secondData[i].cumulative : undefined,
-      });
-    }
-    return arr;
-  }, [firstData, secondData]);
+  const firstData = useMemo(() => buildOverSeries(match.firstInnings, match.overs), [match.firstInnings, match.overs]);
+  const secondData = useMemo(() => buildOverSeries(match.secondInnings, match.overs), [match.secondInnings, match.overs]);
+  const wormData = useMemo(() => buildWorm(firstData, secondData), [firstData, secondData]);
 
   const firstInningsBattingTeam = match.firstInnings?.battingTeam || t1Name;
   const secondInningsBattingTeam = match.secondInnings?.battingTeam || t2Name;

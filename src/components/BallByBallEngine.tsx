@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Play, RotateCcw, Zap, Award, Trophy, Crown, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Match, BallEvent, Player } from "@/types/cricket";
+import { appendBallToOvers } from "@/lib/overData";
 import { useCricketStore } from "@/hooks/useCricketStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateRealisticCommentary } from "./RealisticCommentary";
@@ -772,6 +773,8 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     };
     
     setCommentary(prev => [ballEvent, ...prev]);
+    // Record the delivery in innings.overs (source of truth for Worm/Manhattan/Run-rate charts)
+    (updatedInnings as typeof innings).overs = appendBallToOvers(innings.overs, ballEvent, innings.ballsBowled, innings.currentBowler.name);
     
     // Rebuild team setups so playing XI reflect latest player stats
     const rebuildSetup = (setup: any, team: any) => {

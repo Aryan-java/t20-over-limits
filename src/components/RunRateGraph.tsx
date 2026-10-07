@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Match, Innings } from "@/types/cricket";
+import { buildOverSeries } from "@/lib/overData";
 import {
   AreaChart,
   Area,
@@ -36,56 +37,21 @@ const RunRateGraph = ({ match }: RunRateGraphProps) => {
     return { phase: 'middle', color: 'hsl(142, 76%, 36%)' }; // Green
   };
 
+  // Deterministic: derived from actual ball-by-ball data in innings.overs
   const calculateOverData = (innings: Innings | null, totalOvers: number): OverData[] => {
-    if (!innings) return [];
-
-    const data: OverData[] = [];
-    const ballsBowled = innings.ballsBowled;
-    const completedOvers = Math.floor(ballsBowled / 6);
-    const partialBalls = ballsBowled % 6;
-
-    // Calculate runs per over from batting order stats
-    // We'll estimate based on total runs and distribution
-    let cumulativeRuns = 0;
-    const totalRuns = innings.totalRuns;
-    const avgRunsPerOver = totalRuns / (ballsBowled / 6 || 1);
-
-    // Generate data for each completed over
-    for (let over = 0; over <= completedOvers; over++) {
-      const { phase, color } = getPhaseForOver(over, totalOvers);
-      
-      // Estimate runs per over based on phase multipliers
-      let phaseMultiplier = 1;
-      if (phase === 'powerplay') phaseMultiplier = 1.2;
-      else if (phase === 'death') phaseMultiplier = 1.4;
-      else phaseMultiplier = 0.9;
-
-      const estimatedRuns = over < completedOvers 
-        ? Math.round(avgRunsPerOver * phaseMultiplier * (0.7 + Math.random() * 0.6))
-        : Math.round((totalRuns - cumulativeRuns) * (partialBalls / 6));
-
-      const runsThisOver = over < completedOvers ? estimatedRuns : (totalRuns - cumulativeRuns);
-      cumulativeRuns += runsThisOver;
-      
-      // Cap cumulative runs at actual total
-      if (cumulativeRuns > totalRuns) {
-        cumulativeRuns = totalRuns;
-      }
-
-      const ballsSoFar = over < completedOvers ? (over + 1) * 6 : ballsBowled;
-      const runRate = ballsSoFar > 0 ? (cumulativeRuns / (ballsSoFar / 6)) : 0;
-
-      data.push({
-        over: over + 1,
-        runs: Math.max(0, runsThisOver),
-        cumulativeRuns,
-        runRate: parseFloat(runRate.toFixed(2)),
+    let legal = 0;
+    return buildOverSeries(innings, totalOvers).map((p) => {
+      legal += p.legalBalls;
+      const { phase, color } = getPhaseForOver(p.over - 1, totalOvers);
+      return {
+        over: p.over,
+        runs: p.runs,
+        cumulativeRuns: p.cumulative,
+        runRate: legal > 0 ? parseFloat((p.cumulative / (legal / 6)).toFixed(2)) : 0,
         phase,
         phaseColor: color,
-      });
-    }
-
-    return data;
+      };
+    });
   };
 
   const firstInningsData = calculateOverData(match.firstInnings, match.overs);
