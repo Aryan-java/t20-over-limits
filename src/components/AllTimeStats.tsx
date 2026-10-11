@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useAllTimeStats } from "@/hooks/useAllTimeStats";
+import RecordBook from "@/components/RecordBook";
 import { supabase } from "@/integrations/supabase/client";
 import {
   User, TrendingUp, Target, Loader2, RefreshCw,
@@ -497,6 +498,8 @@ export default function AllTimeStats() {
           </Card>
         )}
       </div>
+
+      <RecordBook rows={battingLeaderboard.length >= bowlingLeaderboard.length ? Array.from(new Map([...bowlingLeaderboard, ...battingLeaderboard].map(r => [r.player_name.toLowerCase().trim(), r])).values()) : Array.from(new Map([...battingLeaderboard, ...bowlingLeaderboard].map(r => [r.player_name.toLowerCase().trim(), r])).values())} />
 
 
       {/* Batting Stats with Sidebar */}
