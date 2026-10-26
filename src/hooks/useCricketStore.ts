@@ -501,35 +501,52 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
 
   updateTournamentStats: () => {
-    const { teams, matchHistory } = get();
-    
-    let maxRuns = 0;
-    let maxWickets = 0;
-    let orangeCapPlayer: Player | null = null;
-    let purpleCapPlayer: Player | null = null;
-    
-    teams.forEach(team => {
-      team.squad.forEach(player => {
-        const totalRuns = player.performanceHistory?.totalRuns || 0;
-        const totalWickets = player.performanceHistory?.totalWickets || 0;
-        
-        if (totalRuns > maxRuns) {
-          maxRuns = totalRuns;
-          orangeCapPlayer = player;
-        }
-        
-        if (totalWickets > maxWickets) {
-          maxWickets = totalWickets;
-          purpleCapPlayer = player;
-        }
+    const { fixtures, tournament } = get();
+    if (!tournament) return;
+
+    // Only completed fixtures belonging to this tournament count; never use career totals.
+    const completedMatches = new Map<string, Match>();
+    fixtures.forEach(fixture => {
+      const match = fixture.played ? fixture.match : null;
+      if (match?.isCompleted && match.id) completedMatches.set(match.id, match);
+    });
+
+    const playerTotals = new Map<string, { player: Player; runs: number; wickets: number }>();
+    const addPlayer = (player: Player | null | undefined, runs = 0, wickets = 0) => {
+      if (!player?.id) return;
+      const current = playerTotals.get(player.id) || { player, runs: 0, wickets: 0 };
+      current.player = player;
+      current.runs += Number.isFinite(runs) ? runs : 0;
+      current.wickets += Number.isFinite(wickets) ? wickets : 0;
+      playerTotals.set(player.id, current);
+    };
+
+    completedMatches.forEach(match => {
+      // Batting totals come from each innings' batting card; bowling figures are stored
+      // on the players in the match setups. Use IDs to avoid duplicate names merging.
+      [match.firstInnings, match.secondInnings].forEach(innings => {
+        innings?.battingOrder?.forEach(player => addPlayer(player, player.runs || 0, 0));
+      });
+      [match.team1Setup, match.team2Setup].forEach(setup => {
+        [...(setup?.playingXI || []), ...(setup?.impactPlayers || [])].forEach(player => {
+          addPlayer(player, 0, player.wickets || 0);
+        });
+        if (setup?.substitutedOutPlayer) addPlayer(setup.substitutedOutPlayer, 0, setup.substitutedOutPlayer.wickets || 0);
       });
     });
-    
+
+    let orange: { player: Player; runs: number } | null = null;
+    let purple: { player: Player; wickets: number } | null = null;
+    playerTotals.forEach(({ player, runs, wickets }) => {
+      if (runs > 0 && (!orange || runs > orange.runs)) orange = { player, runs };
+      if (wickets > 0 && (!purple || wickets > purple.wickets)) purple = { player, wickets };
+    });
+
     set(state => ({
       tournament: state.tournament ? {
         ...state.tournament,
-        orangeCapHolder: orangeCapPlayer ? { player: orangeCapPlayer, runs: maxRuns } : null,
-        purpleCapHolder: purpleCapPlayer ? { player: purpleCapPlayer, wickets: maxWickets } : null,
+        orangeCapHolder: orange,
+        purpleCapHolder: purple,
       } : null,
     }));
   },
