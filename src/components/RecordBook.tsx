@@ -61,14 +61,12 @@ export default function RecordBook({ rows }: { rows: StatRow[] }) {
   const matchHistory = useCricketStore((s) => s.matchHistory);
   const p = useMemo(() => playerRecords(rows), [rows]);
   const h = useMemo(() => historyRecords((matchHistory || []) as any), [matchHistory]);
-  const histSub = `From ${h.matchCount} completed match${h.matchCount === 1 ? "" : "es"} saved on this device`;
   return (
     <div className="space-y-4">
       <Group title="Batting Records" icon={TrendingUp} color="text-primary" items={p.batting} />
       <Group title="Bowling Records" icon={Target} color="text-cricket-purple" items={p.bowling} />
-      <Group title="Appearance & Awards" icon={Award} color="text-accent" items={h.appearance} sub={histSub} />
-      <Group title="Team Records" icon={Shield} color="text-primary" items={h.team} sub={histSub} />
-      <p className="text-[11px] text-muted-foreground">Tournament titles aren't listed: past champions aren't saved once a tournament is reset.</p>
+      <Group title="Appearance & Awards" icon={Award} color="text-accent" items={h.appearance} />
+      <Group title="Team Records" icon={Shield} color="text-primary" items={h.team} />
     </div>
   );
 }

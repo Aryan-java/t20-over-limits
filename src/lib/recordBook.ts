@@ -133,7 +133,7 @@ export function historyRecords(history: HistMatch[]): { appearance: RecordResult
     }
     if (m.manOfTheMatch?.name) inc(potm, m.manOfTheMatch.name);
     for (const inn of [m.firstInnings, m.secondInnings]) {
-      if (inn?.battingTeam && typeof inn.totalRuns === "number") totals.push({ team: inn.battingTeam, runs: inn.totalRuns, wkts: n(inn.wickets), vs: inn.battingTeam === t1 ? t2 : t1 });
+      if (inn?.battingTeam && typeof inn.totalRuns === "number" && Number.isFinite(inn.totalRuns) && inn.totalRuns >= 0) totals.push({ team: inn.battingTeam, runs: inn.totalRuns, wkts: n(inn.wickets), vs: inn.battingTeam === t1 ? t2 : t1 });
     }
   }
 
@@ -147,7 +147,8 @@ export function historyRecords(history: HistMatch[]): { appearance: RecordResult
   const team: RecordResult[] = [
     { id: "tm", title: "Most Matches", unit: "matches", entries: fromMap(tPlayed, ""), unavailable: empty },
     { id: "tw", title: "Most Wins", unit: "wins", entries: fromMap(tWins, ""), unavailable: empty },
-    { id: "ht", title: "Highest Team Total", unit: "runs", entries: rank(totals, (t) => t.runs, (t) => e(t.team, t.runs, `${t.runs}/${t.wkts}`, `vs ${t.vs}`)), unavailable: empty },
+    { id: "ht", title: "Highest Ever Team Score", unit: "runs", entries: rank(totals, (t) => t.runs, (t) => e(t.team, t.runs, `${t.runs}/${t.wkts}`, `vs ${t.vs}`)), unavailable: totals.length === 0 ? "No valid team scores yet" : undefined },
+    { id: "lt", title: "Lowest Ever Team Score", unit: "runs", entries: rank(totals, (t) => t.runs, (t) => e(t.team, t.runs, `${t.runs}/${t.wkts}`, `vs ${t.vs}`), { asc: true }), unavailable: totals.length === 0 ? "No valid team scores yet" : undefined },
     { id: "bwr", title: "Biggest Win (by runs)", unit: "runs", entries: rank(winsByRuns, (t) => t.m, (t) => e(t.team, t.m, `${t.m} runs`, `vs ${t.vs}`)), unavailable: empty },
     { id: "bww", title: "Biggest Win (by wickets)", unit: "wkts", entries: rank(winsByWkts, (t) => t.m, (t) => e(t.team, t.m, `${t.m} wkts`, `vs ${t.vs}`)), unavailable: empty },
     { id: "ws", title: "Longest Winning Streak", unit: "wins", entries: rank([...streak.entries()].filter(([, s]) => s.best > 0), ([, s]) => s.best, ([k, s]) => e(k, s.best, `${s.best}`)), unavailable: empty },

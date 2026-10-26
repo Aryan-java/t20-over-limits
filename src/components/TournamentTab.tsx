@@ -88,52 +88,44 @@ export default function TournamentTab() {
     setMatchSetupDialogOpen(true);
   };
 
-  const getTopRunScorers = () => {
-    const allPlayers: Player[] = [];
-
-    teams.forEach(team => {
-      team.squad.forEach(player => {
-        if (player.performanceHistory && player.performanceHistory.totalRuns > 0) {
-          allPlayers.push(player);
-        }
+  // Tournament leaderboards are computed from completed fixtures, not career performance history.
+  const tournamentPlayerStats = (() => {
+    const totals = new Map<string, { player: Player; runs: number; wickets: number }>();
+    const add = (player: Player | null | undefined, runs = 0, wickets = 0) => {
+      if (!player?.id) return;
+      const row = totals.get(player.id) || { player, runs: 0, wickets: 0 };
+      row.player = player;
+      row.runs += Number.isFinite(runs) ? runs : 0;
+      row.wickets += Number.isFinite(wickets) ? wickets : 0;
+      totals.set(player.id, row);
+    };
+    const seen = new Set<string>();
+    fixtures.forEach(fixture => {
+      const match = fixture.played ? fixture.match : null;
+      if (!match?.isCompleted || seen.has(match.id)) return;
+      seen.add(match.id);
+      [match.firstInnings, match.secondInnings].forEach(innings => {
+        innings?.battingOrder?.forEach(player => add(player, player.runs || 0, 0));
+      });
+      [match.team1Setup, match.team2Setup].forEach(setup => {
+        [...(setup?.playingXI || []), ...(setup?.impactPlayers || [])].forEach(player => add(player, 0, player.wickets || 0));
+        if (setup?.substitutedOutPlayer) add(setup.substitutedOutPlayer, 0, setup.substitutedOutPlayer.wickets || 0);
       });
     });
+    return Array.from(totals.values());
+  })();
 
-    if (allPlayers.length === 0) return [];
+  const topRunScorers = tournamentPlayerStats
+    .filter(row => row.runs > 0)
+    .sort((a, b) => b.runs - a.runs)
+    .slice(0, 5)
+    .map(row => ({ ...row.player, performanceHistory: { ...row.player.performanceHistory, totalRuns: row.runs, totalWickets: row.wickets, averageRuns: row.runs, averageWickets: row.wickets, totalMatches: row.player.performanceHistory?.totalMatches || 0, last5MatchesRuns: row.runs, last5MatchesWickets: row.wickets, formRating: row.player.performanceHistory?.formRating || 50 } }));
 
-    allPlayers.sort((a, b) => {
-      const runsA = a.performanceHistory?.totalRuns || 0;
-      const runsB = b.performanceHistory?.totalRuns || 0;
-      return runsB - runsA;
-    });
-
-    return allPlayers.slice(0, 5);
-  };
-
-  const getTopWicketTakers = () => {
-    const allPlayers: Player[] = [];
-
-    teams.forEach(team => {
-      team.squad.forEach(player => {
-        if (player.performanceHistory && player.performanceHistory.totalWickets > 0) {
-          allPlayers.push(player);
-        }
-      });
-    });
-
-    if (allPlayers.length === 0) return [];
-
-    allPlayers.sort((a, b) => {
-      const wicketsA = a.performanceHistory?.totalWickets || 0;
-      const wicketsB = b.performanceHistory?.totalWickets || 0;
-      return wicketsB - wicketsA;
-    });
-
-    return allPlayers.slice(0, 5);
-  };
-
-  const topRunScorers = getTopRunScorers();
-  const topWicketTakers = getTopWicketTakers();
+  const topWicketTakers = tournamentPlayerStats
+    .filter(row => row.wickets > 0)
+    .sort((a, b) => b.wickets - a.wickets)
+    .slice(0, 5)
+    .map(row => ({ ...row.player, performanceHistory: { ...row.player.performanceHistory, totalRuns: row.runs, totalWickets: row.wickets, averageRuns: row.runs, averageWickets: row.wickets, totalMatches: row.player.performanceHistory?.totalMatches || 0, last5MatchesRuns: row.runs, last5MatchesWickets: row.wickets, formRating: row.player.performanceHistory?.formRating || 50 } }));
 
   const handleOpenFormatDialog = () => {
     if (teams.length < 2) {
@@ -325,7 +317,7 @@ export default function TournamentTab() {
                         {player.performanceHistory?.totalWickets}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Avg: {player.performanceHistory?.averageWickets.toFixed(1)}/match
+                        Tournament wickets
                       </p>
                     </div>
                   </div>
