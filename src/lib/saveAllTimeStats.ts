@@ -28,7 +28,12 @@ async function upsertPlayerStats(player: Player, teamName: string, didBat: boole
   const hundreds = battingRuns >= 100 ? 1 : 0;
   const wickets = player.wickets || 0;
   const runsConceded = player.runsConceded || 0;
-  const ballsBowled = Math.floor((player.oversBowled || 0) * 6);
+  // Cricket overs use base-10 notation for the remainder (e.g. 3.4 = 22 balls),
+  // not decimal fractions (3.4 * 6 would incorrectly produce 20 balls).
+  const oversBowled = Math.max(0, player.oversBowled || 0);
+  const completeOvers = Math.floor(oversBowled);
+  const ballsInPartialOver = Math.round((oversBowled - completeOvers) * 10);
+  const ballsBowled = completeOvers * 6 + Math.min(5, ballsInPartialOver);
   const maidens = player.maidens || 0;
 
   if (existing) {
