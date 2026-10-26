@@ -148,14 +148,25 @@ export async function saveAllTimeStats(match: Match): Promise<boolean> {
       }));
 
     if (inningsRecords.length > 0) {
-      // Delete existing innings for this match to avoid duplicates on re-save
-      await supabase.from("player_innings").delete().eq("match_id", match.id);
+      // Replace this match's innings atomically from the caller's perspective:
+      // surface delete/insert failures instead of reporting a successful save with missing records.
+      const { error: deleteError } = await supabase
+        .from("player_innings")
+        .delete()
+        .eq("match_id", match.id);
+      if (deleteError) {
+        console.error("Failed to replace existing innings for match:", deleteError);
+        throw deleteError;
+      }
       await delay(100);
 
       for (let i = 0; i < inningsRecords.length; i += batchSize) {
         const batch = inningsRecords.slice(i, i + batchSize);
         const { error } = await supabase.from("player_innings").insert(batch as any);
-        if (error) console.error("Failed to insert innings batch:", error);
+        if (error) {
+          console.error(`Failed to insert innings batch (${i}–${i + batch.length - 1}):`, error);
+          throw error;
+        }
         if (i + batchSize < inningsRecords.length) await delay(200);
       }
     }
