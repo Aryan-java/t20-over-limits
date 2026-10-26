@@ -6,11 +6,18 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function upsertPlayerStats(player: Player, teamName: string, didBat: boolean, didBowl: boolean) {
   const playerId = player.id;
 
-  const { data: existing } = await supabase
+  const { data: existing, error: lookupError } = await supabase
     .from("player_all_time_stats")
     .select("*")
     .eq("player_id", playerId)
     .maybeSingle();
+
+  // A failed lookup must not be treated as "player has no saved stats".
+  // Otherwise we attempt an insert and can silently lose this player's match stats.
+  if (lookupError) {
+    console.error(`Failed to look up existing stats for ${player.name}:`, lookupError);
+    throw lookupError;
+  }
 
   const battingRuns = player.runs || 0;
   const ballsFaced = player.balls || 0;
