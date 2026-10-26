@@ -55,7 +55,6 @@ const BOWLING_CATEGORIES = [
   { key: "best-economy", label: "Best Economy" },
   { key: "best-sr", label: "Best Strike-Rates" },
   { key: "most-runs-conceded", label: "Most Runs Conceded" },
-  { key: "most-dot-balls", label: "Most Dot Balls Bowled" },
   { key: "most-maidens", label: "Most Maiden Overs Bowled" },
   { key: "most-balls-bowled", label: "Most Balls Bowled" },
 ];
@@ -258,7 +257,6 @@ export default function AllTimeStats() {
       case "best-economy": return list.filter(p => p.balls_bowled >= 12).sort((a, b) => parseFloat(calcEcon(a.runs_conceded, a.balls_bowled)) - parseFloat(calcEcon(b.runs_conceded, b.balls_bowled)));
       case "best-sr": return list.filter(p => p.total_wickets > 0).sort((a, b) => parseFloat(calcBowlSR(a.balls_bowled, a.total_wickets) === "-" ? "999" : calcBowlSR(a.balls_bowled, a.total_wickets)) - parseFloat(calcBowlSR(b.balls_bowled, b.total_wickets) === "-" ? "999" : calcBowlSR(b.balls_bowled, b.total_wickets)));
       case "most-runs-conceded": return list.sort((a, b) => b.runs_conceded - a.runs_conceded);
-      case "most-dot-balls": return list.sort((a, b) => b.maidens - a.maidens); // using maidens as proxy for dot ball dominance
       case "most-maidens": return list.sort((a, b) => b.maidens - a.maidens);
       case "most-balls-bowled": return list.sort((a, b) => b.balls_bowled - a.balls_bowled);
       default: return list;
@@ -297,11 +295,8 @@ export default function AllTimeStats() {
       case "best-economy": return [{ label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled), highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Overs", value: (p.balls_bowled / 6).toFixed(1) }];
       case "best-sr": return [{ label: "SR", value: calcBowlSR(p.balls_bowled, p.total_wickets), highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Balls", value: p.balls_bowled }];
       case "most-runs-conceded": return [{ label: "Runs", value: p.runs_conceded, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Overs", value: (p.balls_bowled / 6).toFixed(1) }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
-      case "most-dot-balls": return [{ label: "Mdns", value: p.maidens, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
       case "most-maidens": return [{ label: "Mdns", value: p.maidens, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
       case "most-balls-bowled": return [{ label: "Balls", value: p.balls_bowled, highlight: true }, { label: "Overs", value: (p.balls_bowled / 6).toFixed(1) }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
-      case "best-sr": return [{ label: "SR", value: calcBowlSR(p.balls_bowled, p.total_wickets), highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Balls", value: p.balls_bowled }];
-      case "most-maidens": return [{ label: "Maidens", value: p.maidens, highlight: true }, { label: "Wkts", value: p.total_wickets }, { label: "Econ", value: calcEcon(p.runs_conceded, p.balls_bowled) }];
       default: return [];
     }
   };
