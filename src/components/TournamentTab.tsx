@@ -317,7 +317,7 @@ export default function TournamentTab() {
                         {player.performanceHistory?.totalWickets}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Avg: {player.performanceHistory?.averageWickets.toFixed(1)}/match
+                        Tournament wickets
                       </p>
                     </div>
                   </div>
