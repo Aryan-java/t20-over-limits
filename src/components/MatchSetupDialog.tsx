@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useCricketStore } from "@/hooks/useCricketStore";
+import { Activity } from "lucide-react";
 import { Team, Player } from "@/types/cricket";
 import { useToast } from "@/hooks/use-toast";
 import { Globe, ArrowUp, ArrowDown, MapPin, Zap } from "lucide-react";
@@ -31,6 +32,7 @@ interface TeamSetup {
 
 const MatchSetupDialog = ({ team1, team2, venue, open, onOpenChange, onMatchReady }: MatchSetupDialogProps) => {
   const { toast } = useToast();
+  const matchHistory = useCricketStore((s) => s.matchHistory);
   const [currentTeam, setCurrentTeam] = useState<1 | 2>(1);
   const [team1Setup, setTeam1Setup] = useState<Partial<TeamSetup>>({});
   const [team2Setup, setTeam2Setup] = useState<Partial<TeamSetup>>({});
@@ -296,14 +298,43 @@ const MatchSetupDialog = ({ team1, team2, venue, open, onOpenChange, onMatchRead
                             </Badge>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Bat: {player.batSkill} | Bowl: {player.bowlSkill}
-                        </div>
-                        {player.performanceHistory && player.performanceHistory.totalMatches > 0 && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {player.performanceHistory.totalRuns} runs, {player.performanceHistory.totalWickets} wkts
-                          </div>
-                        )}
+                        {(() => {
+                          const recent = (matchHistory || []).filter((m: any) => m?.isCompleted && m?.result && [
+                            ...(m.firstInnings?.battingOrder || []), ...(m.secondInnings?.battingOrder || []),
+                            ...(m.team1Setup?.playingXI || []), ...(m.team2Setup?.playingXI || []),
+                            ...(m.team1Setup?.impactPlayers || []), ...(m.team2Setup?.impactPlayers || [])
+                          ].some((p: any) => p?.id === player.id || p?.name?.toLowerCase() === player.name.toLowerCase())).slice(-5);
+                          let runs = 0, balls = 0, outs = 0, wickets = 0, conceded = 0, bowlBalls = 0, wins = 0;
+                          recent.forEach((m: any) => {
+                            [m.firstInnings, m.secondInnings].filter(Boolean).forEach((inn: any) => {
+                              const bat = (inn.battingOrder || []).find((p: any) => p?.id === player.id || p?.name?.toLowerCase() === player.name.toLowerCase());
+                              if (bat) { runs += Number(bat.runs) || 0; balls += Number(bat.balls) || 0; if (bat.dismissed) outs++; }
+                            });
+                            [m.team1Setup, m.team2Setup].forEach((setup: any) => {
+                              const p = [...(setup?.playingXI || []), ...(setup?.impactPlayers || []), ...(setup?.substitutedOutPlayer ? [setup.substitutedOutPlayer] : [])].find((x: any) => x?.id === player.id || x?.name?.toLowerCase() === player.name.toLowerCase());
+                              if (p) { wickets += Number(p.wickets) || 0; conceded += Number(p.runsConceded) || 0; const ov = Number(p.oversBowled) || 0; bowlBalls += Math.floor(ov) * 6 + Math.round((ov % 1) * 10); }
+                            });
+                            const winner = String(m.result || "").match(/^(.*?) won by /i)?.[1]?.trim();
+                            const isWinner = [m.team1Setup, m.team2Setup].some((setup: any, i: number) => {
+                              const team = i === 0 ? m.team1 : m.team2;
+                              const players = [...(setup?.playingXI || []), ...(setup?.impactPlayers || []), ...(setup?.substitutedOutPlayer ? [setup.substitutedOutPlayer] : [])];
+                              return team?.name === winner && players.some((p: any) => p?.id === player.id || p?.name?.toLowerCase() === player.name.toLowerCase());
+                            });
+                            if (isWinner) wins++;
+                          });
+                          const rating = Math.round(Math.min(99, Math.max(1, player.batSkill * 0.42 + player.bowlSkill * 0.28 + (player.performanceHistory?.formRating ?? 50) * 0.15 + Math.min(100, (player.performanceHistory?.totalRuns ?? 0) / 8) * 0.08 + Math.min(100, (player.performanceHistory?.totalWickets ?? 0) * 5) * 0.07));
+                          return <div className="mt-1 space-y-1">
+                            <div className="text-xs text-muted-foreground">Bat {player.batSkill} · Bowl {player.bowlSkill} · <span className="font-semibold text-primary">Rating {rating}/100</span></div>
+                            <div className="rounded-md border border-border/50 bg-muted/40 px-2 py-1.5">
+                              <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><Activity className="h-3 w-3" /> Last {recent.length} completed matches</div>
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                                <span>Runs: <b>{runs}</b></span><span>Bat avg: <b>{outs ? (runs / outs).toFixed(1) : "—"}</b></span>
+                                <span>Strike rate: <b>{balls ? ((runs / balls) * 100).toFixed(1) : "—"}</b></span><span>Wickets: <b>{wickets}</b></span>
+                                <span>Economy: <b>{bowlBalls ? (conceded / bowlBalls * 6).toFixed(2) : "—"}</b></span><span>Team wins: <b>{wins}/{recent.length}</b></span>
+                              </div>
+                            </div>
+                          </div>;
+                        })()}
                       </div>
                       {suitability && (
                         <Tooltip>
