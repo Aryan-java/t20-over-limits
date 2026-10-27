@@ -322,7 +322,7 @@ const MatchSetupDialog = ({ team1, team2, venue, open, onOpenChange, onMatchRead
                             });
                             if (isWinner) wins++;
                           });
-                          const rating = Math.round(Math.min(99, Math.max(1, player.batSkill * 0.42 + player.bowlSkill * 0.28 + (player.performanceHistory?.formRating ?? 50) * 0.15 + Math.min(100, (player.performanceHistory?.totalRuns ?? 0) / 8) * 0.08 + Math.min(100, (player.performanceHistory?.totalWickets ?? 0) * 5) * 0.07));
+                          const rating = Math.round(Math.min(99, Math.max(1, player.batSkill * 0.42 + player.bowlSkill * 0.28 + (player.performanceHistory?.formRating ?? 50) * 0.15 + Math.min(100, (player.performanceHistory?.totalRuns ?? 0) / 8) * 0.08 + Math.min(100, (player.performanceHistory?.totalWickets ?? 0) * 5) * 0.07)));
                           return <div className="mt-1 space-y-1">
                             <div className="text-xs text-muted-foreground">Bat {player.batSkill} · Bowl {player.bowlSkill} · <span className="font-semibold text-primary">Rating {rating}/100</span></div>
                             <div className="rounded-md border border-border/50 bg-muted/40 px-2 py-1.5">
