@@ -261,7 +261,7 @@ export default function TournamentTab() {
                         {player.performanceHistory?.totalRuns}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Avg: {player.performanceHistory?.averageRuns.toFixed(1)}
+                        Tournament runs
                       </p>
                     </div>
                   </div>
