@@ -12,11 +12,13 @@ import {
 } from "../_shared/fixtureEngineAdapter.ts";
 
 const Body = z.object({
-  action: z.enum(["get_state", "start", "play", "select_batter", "set_batting_decision", "pause", "resume"]),
+  action: z.enum(["get_state", "start", "play", "select_batter", "set_batting_decision", "substitute_impact", "pause", "resume"]),
   matchId: z.string().uuid(),
   expectedVersion: z.number().int().min(0).optional(),
   batterId: z.string().min(1).max(80).optional(),
   aggression: z.number().int().min(0).max(100).optional(),
+  outgoingPlayerId: z.string().min(1).max(80).optional(),
+  impactPlayerId: z.string().min(1).max(80).optional(),
   bowling: z.object({
     field: z.enum(["attacking", "balanced", "defensive", "death"]),
     bowlerId: z.string().min(1).max(80),
@@ -154,9 +156,53 @@ Deno.serve(async (req) => {
       const state = match.state as MatchState;
       if (!state || !state.innings || !state.innings[state.current]) return json({ error: "Match state is invalid" }, 500);
       const context = adaptFixtureForEngine({ overs: state.overs, home: teamInput(home), away: teamInput(away), homeLineup: lineupInput(homeLineup), awayLineup: lineupInput(awayLineup) });
+      const fixtureState = state as MatchState & { impactSubstitutions?: Partial<Record<Side, { outgoing: string; incoming: string }>> };
+      for (const side of ["A", "B"] as Side[]) {
+        const substitution = fixtureState.impactSubstitutions?.[side];
+        if (!substitution) continue;
+        const index = context.orders[side].indexOf(substitution.outgoing);
+        if (index >= 0) context.orders[side][index] = substitution.incoming;
+      }
       const inn = state.innings[state.current];
       const bowlingSide: Side = inn.battingSide === "A" ? "B" : "A";
       const ownerFor = (teamId: string) => ownerIds.get(teamId);
+      if (action === "substitute_impact") {
+        const teamSide = (["A", "B"] as Side[]).find((side) => ownerFor(context.teamIds[side]) === userId);
+        if (!teamSide) return json({ error: "Only a participating team owner can make an Impact Player substitution" }, 403);
+        const outgoing = parsed.data.outgoingPlayerId;
+        const incoming = parsed.data.impactPlayerId;
+        if (!outgoing || !incoming) return json({ error: "Choose an outgoing XI player and an Impact Player" }, 400);
+        const currentSubs = fixtureState.impactSubstitutions ?? {};
+        if (currentSubs[teamSide]) return json({ error: "Each team may make only one Impact Player substitution" }, 409);
+        if (!context.orders[teamSide].includes(outgoing)) return json({ error: "Outgoing player must be in the confirmed Playing XI" }, 400);
+        if (!context.impactPlayers[teamSide].includes(incoming)) return json({ error: "Incoming player must be in the confirmed Impact Player list" }, 400);
+        const usedAsBatter = state.innings.some((i) => {
+          const line = i.batters[outgoing];
+          return !!line && (line.balls > 0 || line.runs > 0 || line.out || (i.batted ?? []).includes(outgoing));
+        });
+        const usedAsBowler = state.innings.some((i) => !!i.bowlers[outgoing] && state.innings.some((inn) => inn.bowlers[outgoing].balls > 0));
+        if (usedAsBatter || usedAsBowler) return json({ error: "A player who has already participated cannot be replaced" }, 409);
+        const nextState = structuredClone(state) as MatchState & { impactSubstitutions?: Partial<Record<Side, { outgoing: string; incoming: string }>> };
+        nextState.impactSubstitutions = { ...(nextState.impactSubstitutions ?? {}), [teamSide]: { outgoing, incoming } };
+        for (const innings of nextState.innings) {
+          if (innings.battingSide !== teamSide) continue;
+          const slot = innings.order.indexOf(outgoing);
+          if (slot >= 0) {
+            innings.order[slot] = incoming;
+            delete innings.batters[outgoing];
+            innings.batters[incoming] ??= { runs: 0, balls: 0, fours: 0, sixes: 0, out: false };
+            if (innings.striker === outgoing) innings.striker = incoming;
+            if (innings.nonStriker === outgoing) innings.nonStriker = incoming;
+            innings.batted = (innings.batted ?? []).map((id) => id === outgoing ? incoming : id);
+          }
+        }
+        const committed = await db.rpc("mp_commit_fixture_state", {
+          p_match: match.id, p_actor: userId, p_expected_version: expectedVersion,
+          p_state: nextState, p_status: match.status, p_delivery: null, p_result: null, p_winner_team: null,
+        });
+        if (committed.error) return json({ error: committed.error.message }, committed.error.message.toLowerCase().includes("version") ? 409 : 400);
+        return json({ ok: true, version: committed.data, state: nextState, substitution: { teamSide, outgoing, incoming } });
+      }
       if (action === "set_batting_decision") {
         if (ownerFor(context.teamIds[inn.battingSide]) !== userId) return json({ error: "Only the batting team owner can set batting aggression" }, 403);
         if (parsed.data.aggression === undefined) return json({ error: "Aggression from 0 to 100 is required" }, 400);
