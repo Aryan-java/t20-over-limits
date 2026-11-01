@@ -45,6 +45,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install npm dependencies for Deno node_modules resolution
+        run: bun install --frozen-lockfile
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
