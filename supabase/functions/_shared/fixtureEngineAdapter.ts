@@ -31,7 +31,9 @@ export interface FixtureEngineStart {
 
 function validateTeam(team: FixtureTeamInput, label: string): Map<string, MPPlayer> {
   if (!team.id || !team.name.trim()) throw new Error(`${label} team needs an id and name`);
-  if (!Array.isArray(team.squad) || team.squad.length < 11) throw new Error(`${label} squad must contain at least 11 players`);
+  if (!Array.isArray(team.squad) || team.squad.length < 18 || team.squad.length > 25) throw new Error(`${label} squad must contain between 18 and 25 players`);
+  const overseasCount = team.squad.filter((player) => player.isOverseas === true).length;
+  if (overseasCount > 8) throw new Error(label + " squad exceeds the eight overseas-player limit");
   const byId = new Map<string, MPPlayer>();
   for (const player of team.squad) {
     if (!player.id || !player.name || !Number.isFinite(player.batSkill) || !Number.isFinite(player.bowlSkill)

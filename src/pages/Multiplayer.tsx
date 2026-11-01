@@ -9,6 +9,7 @@ import MultiplayerHome from "@/components/multiplayer/MultiplayerHome";
 import MultiplayerLobby from "@/components/multiplayer/MultiplayerLobby";
 import MultiplayerMatch from "@/components/multiplayer/MultiplayerMatch";
 import ActivityFeed from "@/components/multiplayer/ActivityFeed";
+import FixtureTournamentPanel from "@/components/multiplayer/FixtureTournamentPanel";
 import { rpc } from "@/lib/mpApi";
 import { toast } from "@/hooks/use-toast";
 
@@ -58,6 +59,7 @@ function RoomView({ roomId, userId }: { roomId: string; userId: string }) {
         </div>
         <ActivityFeed events={r.events} teamName={teamName} />
       </div>
+      <FixtureTournamentPanel roomId={roomId} userId={userId} isHost={isHost} members={r.members} />
     </div>
   );
 }

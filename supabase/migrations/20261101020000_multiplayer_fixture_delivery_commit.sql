@@ -57,7 +57,8 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN
       RAISE EXCEPTION 'Delivery sequence fields must be integers';
     END;
-    IF innings_no IS NULL OR delivery_no IS NULL OR over_no IS NULL OR ball_no IS NULL\n       OR innings_no NOT IN (1,2) OR delivery_no < 1 OR over_no < 1 OR ball_no NOT BETWEEN 1 AND 6 THEN
+    IF innings_no IS NULL OR delivery_no IS NULL OR over_no IS NULL OR ball_no IS NULL
+       OR innings_no NOT IN (1,2) OR delivery_no < 1 OR over_no < 1 OR ball_no NOT BETWEEN 1 AND 6 THEN
       RAISE EXCEPTION 'Invalid delivery sequence';
     END IF;
     IF jsonb_typeof(p_delivery->'payload') <> 'object' THEN

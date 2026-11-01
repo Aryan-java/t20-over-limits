@@ -158,7 +158,8 @@ export function playBall(state: MatchState, squads: Record<Side, MPPlayer[]>, or
     text ||= o.runs === 0 ? "Dot ball." : o.runs === 4 ? "FOUR!" : o.runs === 6 ? "SIX!" : `${o.runs} run${o.runs > 1 ? "s" : ""}.`;
   }
   if (legal) { inn.balls++; bl.balls++; }
-  inn.freeHit = o.extra === "no-ball";
+  if (o.extra === "no-ball") inn.freeHit = true;
+  else if (o.extra !== "wide") inn.freeHit = false;
   // Strike: odd runs swap (not on wides), wicket brings new batter at striker end.
   const ranRuns = o.extra === "no-ball" ? o.runs - 1 : o.runs;
   if (!wicket && o.extra !== "wide" && ranRuns % 2 === 1) [inn.striker, inn.nonStriker] = [inn.nonStriker, inn.striker];
