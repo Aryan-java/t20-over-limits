@@ -12,3 +12,6 @@
 - [ ] Port the full single-player engine (DRS, conditions, commentary, Impact swap, stats saving) into a shared module the server runs
 - [ ] Server re-checks player ratings against the player database
 - [ ] Two-account live test (needs second confirmed account)
+
+## Fixture/tournament PR stack (#5-#10)
+- [ ] Inspect GitHub main + PRs #5-#10, map what has landed, write a staged plan (read-only; blocked: no GitHub access)
