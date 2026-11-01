@@ -176,24 +176,25 @@ Deno.serve(async (req) => {
         if (currentSubs[teamSide]) return json({ error: "Each team may make only one Impact Player substitution" }, 409);
         if (!context.orders[teamSide].includes(outgoing)) return json({ error: "Outgoing player must be in the confirmed Playing XI" }, 400);
         if (!context.impactPlayers[teamSide].includes(incoming)) return json({ error: "Incoming player must be in the confirmed Impact Player list" }, 400);
-        const usedAsBatter = state.innings.some((i) => {
-          const line = i.batters[outgoing];
-          return !!line && (line.balls > 0 || line.runs > 0 || line.out || (i.batted ?? []).includes(outgoing));
-        });
-        const usedAsBowler = state.innings.some((innings) => (innings.bowlers[outgoing]?.balls ?? 0) > 0);
-        if (usedAsBatter || usedAsBowler) return json({ error: "A player who has already participated cannot be replaced" }, 409);
+        // A player may already have batted or bowled; the replacement only
+        // affects future participation. Preserve any completed batting record.
         const nextState = structuredClone(state) as MatchState & { impactSubstitutions?: Partial<Record<Side, { outgoing: string; incoming: string }>> };
         nextState.impactSubstitutions = { ...(nextState.impactSubstitutions ?? {}), [teamSide]: { outgoing, incoming } };
         for (const innings of nextState.innings) {
           if (innings.battingSide !== teamSide) continue;
           const slot = innings.order.indexOf(outgoing);
           if (slot >= 0) {
-            innings.order[slot] = incoming;
-            delete innings.batters[outgoing];
-            innings.batters[incoming] ??= { runs: 0, balls: 0, fours: 0, sixes: 0, out: false };
-            if (innings.striker === outgoing) innings.striker = incoming;
-            if (innings.nonStriker === outgoing) innings.nonStriker = incoming;
-            innings.batted = (innings.batted ?? []).map((id) => id === outgoing ? incoming : id);
+            const outgoingLine = innings.batters[outgoing];
+            const alreadyBatted = (innings.batted ?? []).includes(outgoing)
+              || !!outgoingLine && (outgoingLine.balls > 0 || outgoingLine.runs > 0 || outgoingLine.out);
+            if (!alreadyBatted) {
+              innings.order[slot] = incoming;
+              delete innings.batters[outgoing];
+              innings.batters[incoming] ??= { runs: 0, balls: 0, fours: 0, sixes: 0, out: false };
+              if (innings.striker === outgoing) innings.striker = incoming;
+              if (innings.nonStriker === outgoing) innings.nonStriker = incoming;
+              innings.batted = (innings.batted ?? []).map((id) => id === outgoing ? incoming : id);
+            }
           }
         }
         const committed = await db.rpc("mp_commit_fixture_state", {
