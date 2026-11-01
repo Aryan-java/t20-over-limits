@@ -34,6 +34,10 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const [impact, setImpact] = useState<string[]>([]);
   const [activeMatch, setActiveMatch] = useState<{ id: string; version: number; status: string; state: any } | null>(null);
   const [selectedBowler, setSelectedBowler] = useState("");
+  const [aggression, setAggression] = useState("50");
+  const [outgoingPlayer, setOutgoingPlayer] = useState("");
+  const [incomingImpact, setIncomingImpact] = useState("");
+  const [selectedBowler, setSelectedBowler] = useState("");
   const byName = useMemo(() => new Map(PLAYER_DATABASE.map((p) => [p.name, p])), []);
 
   const refresh = useCallback(async () => {
@@ -121,6 +125,24 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const selectedFixture = fixtures.find((f) => f.id === lineupFixture);
   const myLineupTeamId = selectedFixture && [selectedFixture.home_team_id, selectedFixture.away_team_id].find((id) => owners[id] === userId);
   const myLineupTeam = myLineupTeamId ? teamById(myLineupTeamId) : null;
+  const activeFixture = fixtures.find((f) => f.status === "live" && f.tournament_id === selectedTournament);
+  const activeInnings = activeMatch?.state?.innings?.[activeMatch.state.current];
+  const battingTeamId = activeInnings ? (activeInnings.battingSide === "A" ? activeFixture?.home_team_id : activeFixture?.away_team_id) : undefined;
+  const bowlingTeamId = activeInnings ? (activeInnings.battingSide === "A" ? activeFixture?.away_team_id : activeFixture?.home_team_id) : undefined;
+  const battingOwner = !!battingTeamId && owners[battingTeamId] === userId;
+  const bowlingOwner = !!bowlingTeamId && owners[bowlingTeamId] === userId;
+  const battingTeam = battingTeamId ? teamById(battingTeamId) : undefined;
+  const bowlingTeam = bowlingTeamId ? teamById(bowlingTeamId) : undefined;
+  const battingLineup = activeFixture && battingTeamId ? lineups.find((l) => l.fixture_id === activeFixture.id && l.team_id === battingTeamId) : undefined;
+  const bowlingLineup = activeFixture && bowlingTeamId ? lineups.find((l) => l.fixture_id === activeFixture.id && l.team_id === bowlingTeamId) : undefined;
+  const fixtureAction = async (action: string, extra: Record<string, unknown> = {}) => {
+    if (!activeMatch) return;
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action, matchId: activeMatch.id, expectedVersion: activeMatch.version, ...extra } });
+    if (error) toast({ title: "Fixture action failed", description: error.message, variant: "destructive" });
+    else setActiveMatch({ ...activeMatch, version: data.version ?? activeMatch.version, status: data.status ?? activeMatch.status, state: data.state ?? activeMatch.state });
+    setBusy(false);
+  };
 
   return <Card className="border-primary/30">
     <CardHeader><CardTitle className="flex items-center gap-2">Tournament mode <Badge variant="outline">New multi-team flow</Badge></CardTitle></CardHeader>
@@ -150,7 +172,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
       {tournament && <section className="space-y-2">
         <h3 className="font-semibold">{tournament.name} · Fixtures ({tournamentFixtures.length})</h3>
         {tournamentFixtures.map((f) => <div key={f.id} className="flex flex-wrap items-center gap-2 rounded border p-2 text-sm"><span className="flex-1">R{f.round_number} · {teamById(f.home_team_id)?.name} vs {teamById(f.away_team_id)?.name}</span><Badge variant="outline">{f.status}</Badge><span className="text-xs text-muted-foreground">Lineups {lineups.filter((l) => l.fixture_id === f.id).length}/2</span></div>)}
-        {isHost && tournament.status === "ready" && <Button disabled={busy || fixtures.some((f) => f.status === "live")} onClick={activateFixture}>Activate next fixture</Button>}
+        {isHost && ["ready","live"].includes(tournament.status) && <Button disabled={busy || fixtures.some((f) => f.tournament_id === selectedTournament && f.status === "live")} onClick={activateFixture}>Activate next fixture</Button>}
       </section>}
       {selectedFixture && myLineupTeam && <section className="space-y-2 rounded-lg border p-3">
         <h3 className="font-semibold">Confirm XI: {myLineupTeam.name}</h3>
@@ -162,7 +184,20 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
       <section className="space-y-2">
         <Select value={lineupFixture} onValueChange={(id) => { setLineupFixture(id); const old = lineups.find((l) => l.fixture_id === id && l.owner_user_id === userId); setXi(old?.playing_xi ?? []); setImpact(old?.impact_players ?? []); }}><SelectTrigger><SelectValue placeholder="Choose fixture to submit your XI" /></SelectTrigger><SelectContent>{fixtures.filter((f) => f.tournament_id === selectedTournament && ["scheduled","ready"].includes(f.status)).map((f) => <SelectItem key={f.id} value={f.id}>R{f.round_number}: {teamById(f.home_team_id)?.name} vs {teamById(f.away_team_id)?.name}</SelectItem>)}</SelectContent></Select>
       </section>
-      {activeMatch && <section className="rounded-lg border p-3 space-y-3">\n        <h3 className="font-semibold">Active fixture match</h3>\n        <p className="text-sm">Status: {activeMatch.status} · Version {activeMatch.version}</p>\n        <Button disabled={busy || activeMatch.status !== "ready"} onClick={startFixture}>Start fixture & conduct toss</Button>\n        <Button variant="outline" disabled={busy} onClick={async () => { const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "get_state", matchId: activeMatch.id } }); if (error) toast({ title: "Refresh failed", description: error.message, variant: "destructive" }); else setActiveMatch({ ...activeMatch, status: data.status, version: data.version, state: data.state }); }}>Refresh match state</Button>\n        {activeMatch.state?.innings?.[activeMatch.state.current] && <p className="text-sm">Score: {activeMatch.state.innings[activeMatch.state.current].runs}/{activeMatch.state.innings[activeMatch.state.current].wickets} · {activeMatch.state.innings[activeMatch.state.current].balls} legal balls</p>}\n        {isHost && activeMatch.status === "live" && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "pause", matchId: activeMatch.id, expectedVersion: activeMatch.version } }); if (error) toast({ title: "Pause failed", description: error.message, variant: "destructive" }); else setActiveMatch({ ...activeMatch, status: data.status, version: data.version }); setBusy(false); }}>Pause fixture</Button>}\n        {isHost && activeMatch.status === "paused" && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "resume", matchId: activeMatch.id, expectedVersion: activeMatch.version } }); if (error) toast({ title: "Resume failed", description: error.message, variant: "destructive" }); else setActiveMatch({ ...activeMatch, status: data.status, version: data.version }); setBusy(false); }}>Resume fixture</Button>}\n      </section>}
+      {activeMatch && <section className="rounded-lg border p-3 space-y-3">
+        <h3 className="font-semibold">Active fixture match</h3>
+        <p className="text-sm">Status: {activeMatch.status} · Version {activeMatch.version}</p>
+        <Button disabled={busy || activeMatch.status !== "ready"} onClick={startFixture}>Start fixture & conduct toss</Button>
+        <Button variant="outline" disabled={busy} onClick={async () => { const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "get_state", matchId: activeMatch.id } }); if (error) toast({ title: "Refresh failed", description: error.message, variant: "destructive" }); else setActiveMatch({ ...activeMatch, status: data.status, version: data.version, state: data.state }); }}>Refresh match state</Button>
+        {activeInnings && <p className="text-sm">Score: {activeInnings.runs}/{activeInnings.wickets} · {activeInnings.balls} legal balls · {activeInnings.battingSide === "A" ? "Home" : "Away"} batting</p>}
+        {activeInnings && battingOwner && <div className="space-y-2 border-t pt-2"><h4 className="font-medium">Batting · {battingTeam?.name}</h4><div className="flex gap-2"><Input type="number" min="0" max="100" value={aggression} onChange={(e) => setAggression(e.target.value)} className="w-24" /><Button size="sm" disabled={busy || Number(aggression) < 0 || Number(aggression) > 100} onClick={() => fixtureAction("set_batting_decision", { aggression: Number(aggression) })}>Set aggression</Button></div>
+        {activeInnings.awaitingBatter && <Select onValueChange={(batterId) => fixtureAction("select_batter", { batterId })}><SelectTrigger><SelectValue placeholder="Select next batter" /></SelectTrigger><SelectContent>{(activeInnings.order ?? []).filter((id: string) => !(activeInnings.batted ?? []).includes(id)).map((id: string) => <SelectItem key={id} value={id}>{battingTeam?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select>}</div>}
+        {activeInnings && bowlingOwner && bowlingLineup && <div className="space-y-2 border-t pt-2"><h4 className="font-medium">Bowling · {bowlingTeam?.name}</h4><Select value={selectedBowler} onValueChange={setSelectedBowler}><SelectTrigger><SelectValue placeholder="Select bowler" /></SelectTrigger><SelectContent>{bowlingLineup.playing_xi.map((id) => <SelectItem key={id} value={id}>{bowlingTeam?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select><Button disabled={busy || !selectedBowler || !!activeInnings.awaitingBatter || activeMatch.status !== "live"} onClick={() => fixtureAction("play", { bowling: { field: "balanced", bowlerId: selectedBowler, strategy: { normal: 20, yorker: 20, bouncer: 20, slower: 20, knuckle: 20 } } })}>Play next ball</Button></div>}
+        {(battingOwner || bowlingOwner) && <div className="space-y-2 border-t pt-2"><h4 className="font-medium">Impact Player substitution</h4><Select value={outgoingPlayer} onValueChange={setOutgoingPlayer}><SelectTrigger><SelectValue placeholder="Outgoing XI player" /></SelectTrigger><SelectContent>{(battingOwner ? battingLineup : bowlingLineup)?.playing_xi.map((id) => <SelectItem key={id} value={id}>{(battingOwner ? battingTeam : bowlingTeam)?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select><Select value={incomingImpact} onValueChange={setIncomingImpact}><SelectTrigger><SelectValue placeholder="Incoming Impact Player" /></SelectTrigger><SelectContent>{(battingOwner ? battingLineup : bowlingLineup)?.impact_players.map((id) => <SelectItem key={id} value={id}>{(battingOwner ? battingTeam : bowlingTeam)?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select><Button variant="secondary" disabled={busy || !outgoingPlayer || !incomingImpact || activeMatch.status !== "live"} onClick={() => fixtureAction("substitute_impact", { outgoingPlayerId: outgoingPlayer, impactPlayerId: incomingImpact })}>Make substitution</Button></div>}
+        {activeMatch.state?.innings?.map((inn: any, i: number) => <div key={i} className="border-t pt-2 text-sm"><b>Innings {i + 1}:</b> {inn.runs}/{inn.wickets} ({Math.floor(inn.balls / 6)}.{inn.balls % 6} overs)</div>)}
+        {isHost && activeMatch.status === "live" && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "pause", matchId: activeMatch.id, expectedVersion: activeMatch.version } }); if (error) toast({ title: "Pause failed", description: error.message, variant: "destructive" }); else setActiveMatch({ ...activeMatch, status: data.status, version: data.version }); setBusy(false); }}>Pause fixture</Button>}
+        {isHost && activeMatch.status === "paused" && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "resume", matchId: activeMatch.id, expectedVersion: activeMatch.version } }); if (error) toast({ title: "Resume failed", description: error.message, variant: "destructive" }); else setActiveMatch({ ...activeMatch, status: data.status, version: data.version }); setBusy(false); }}>Resume fixture</Button>}
+      </section>}
       <Button variant="ghost" size="sm" onClick={refresh}>Refresh tournament data</Button>
     </CardContent>
   </Card>;
