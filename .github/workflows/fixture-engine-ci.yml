@@ -41,6 +41,29 @@ jobs:
       - name: Build frontend
         run: bun run build
 
+  sql-migration-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PostgreSQL SQL parser
+        run: python -m pip install --disable-pip-version-check pglast
+      - name: Parse all Supabase migrations
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from pglast import parse_sql
+
+          migrations = sorted(Path("supabase/migrations").glob("*.sql"))
+          if not migrations:
+              raise SystemExit("No Supabase migrations found")
+          for migration in migrations:
+              parse_sql(migration.read_text(encoding="utf-8"))
+              print(f"Parsed {migration}")
+          PY
+
   edge-function-typecheck:
     runs-on: ubuntu-latest
     steps:
