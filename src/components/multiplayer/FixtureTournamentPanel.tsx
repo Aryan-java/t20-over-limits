@@ -37,7 +37,6 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const [aggression, setAggression] = useState("50");
   const [outgoingPlayer, setOutgoingPlayer] = useState("");
   const [incomingImpact, setIncomingImpact] = useState("");
-  const [selectedBowler, setSelectedBowler] = useState("");
   const byName = useMemo(() => new Map(PLAYER_DATABASE.map((p) => [p.name, p])), []);
 
   const refresh = useCallback(async () => {
