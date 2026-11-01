@@ -32,7 +32,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const [lineupFixture, setLineupFixture] = useState("");
   const [xi, setXi] = useState<string[]>([]);
   const [impact, setImpact] = useState<string[]>([]);
-  const [activeMatch, setActiveMatch] = useState<{ id: string; version: number; status: string; state: any } | null>(null);
+  const [activeMatch, setActiveMatch] = useState<{ id: string; fixture_id: string; version: number; status: string; state: any } | null>(null);
   const [selectedBowler, setSelectedBowler] = useState("");
   const [aggression, setAggression] = useState("50");
   const [outgoingPlayer, setOutgoingPlayer] = useState("");
@@ -50,11 +50,11 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     for (const x of [t,ts,fs,ls,os]) if (x.error) { console.error(x.error); toast({ title: "Could not load tournament data", description: x.error.message, variant: "destructive" }); return; }
     setTeams(t.data ?? []); setTournaments(ts.data ?? []); setFixtures(fs.data ?? []); setLineups(ls.data ?? []);
     setOwners(Object.fromEntries((os.data ?? []).map((x: any) => [x.team_id, x.user_id])));
-    const liveFixtureIds = (fs.data ?? []).filter((fixture: any) => fixture.status === "live").map((fixture: any) => fixture.id);
-    if (liveFixtureIds.length) {
-      const { data: matches, error: matchError } = await db.from("multiplayer_matches").select("id,version,status,state").in("fixture_id", liveFixtureIds).limit(1);
+    const relevantFixtureIds = (fs.data ?? []).filter((fixture: any) => ["live", "completed"].includes(fixture.status)).map((fixture: any) => fixture.id);
+    if (relevantFixtureIds.length) {
+      const { data: matches, error: matchError } = await db.from("multiplayer_matches").select("id,fixture_id,version,status,state,updated_at").in("fixture_id", relevantFixtureIds).order("updated_at", { ascending: false }).limit(1);
       if (!matchError && matches?.[0]) setActiveMatch(matches[0]);
-    }
+    } else setActiveMatch(null);
     if (!selectedTournament && ts.data?.[0]) setSelectedTournament(ts.data[0].id);
   }, [db, roomId, selectedTournament]);
 
@@ -91,7 +91,10 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const registerAndGenerate = async () => {
     if (!tournament || teams.length < 2) return;
     setBusy(true);
-    for (const team of teams) {
+    const { data: registered, error: registeredError } = await db.from("multiplayer_tournament_teams").select("team_id").eq("room_id", roomId).eq("tournament_id", tournament.id);
+    if (registeredError) { toast({ title: "Could not check team registrations", description: registeredError.message, variant: "destructive" }); setBusy(false); return; }
+    const registeredIds = new Set((registered ?? []).map((row: any) => row.team_id));
+    for (const team of teams.filter((candidate) => !registeredIds.has(candidate.id))) {
       const { error } = await db.rpc("mp_register_tournament_team", { p_room: roomId, p_tournament: tournament.id, p_team: team.id, p_seed: null });
       if (error) { toast({ title: "Registration stopped", description: error.message, variant: "destructive" }); setBusy(false); await refresh(); return; }
     }
@@ -130,7 +133,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const selectedFixture = fixtures.find((f) => f.id === lineupFixture);
   const myLineupTeamId = selectedFixture && [selectedFixture.home_team_id, selectedFixture.away_team_id].find((id) => owners[id] === userId);
   const myLineupTeam = myLineupTeamId ? teamById(myLineupTeamId) : null;
-  const activeFixture = fixtures.find((f) => f.status === "live" && f.tournament_id === selectedTournament);
+  const activeFixture = activeMatch ? fixtures.find((f) => f.id === activeMatch.fixture_id && f.tournament_id === selectedTournament) : fixtures.find((f) => f.status === "live" && f.tournament_id === selectedTournament);
   const activeInnings = activeMatch?.state?.innings?.[activeMatch.state.current];
   const battingTeamId = activeInnings ? (activeInnings.battingSide === "A" ? activeFixture?.home_team_id : activeFixture?.away_team_id) : undefined;
   const bowlingTeamId = activeInnings ? (activeInnings.battingSide === "A" ? activeFixture?.away_team_id : activeFixture?.home_team_id) : undefined;
