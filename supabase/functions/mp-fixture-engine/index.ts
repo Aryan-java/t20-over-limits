@@ -12,10 +12,11 @@ import {
 } from "../_shared/fixtureEngineAdapter.ts";
 
 const Body = z.object({
-  action: z.enum(["get_state", "start", "play", "select_batter"]),
+  action: z.enum(["get_state", "start", "play", "select_batter", "set_batting_decision", "pause", "resume"]),
   matchId: z.string().uuid(),
   expectedVersion: z.number().int().min(0).optional(),
   batterId: z.string().min(1).max(80).optional(),
+  aggression: z.number().int().min(0).max(100).optional(),
   bowling: z.object({
     field: z.enum(["attacking", "balanced", "defensive", "death"]),
     bowlerId: z.string().min(1).max(80),
