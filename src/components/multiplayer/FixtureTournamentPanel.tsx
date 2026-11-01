@@ -65,9 +65,25 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const standings = teams.filter((team) => participantIds.has(team.id)).map((team) => {
     const played = tournamentFixtures.filter((f) => f.status === "completed" && (f.home_team_id === team.id || f.away_team_id === team.id));
     const won = played.filter((f) => f.winner_team_id === team.id).length;
-    const tied = played.filter((f) => f.winner_team_id == null && !!f.result).length;
-    return { team, played: played.length, won, tied, lost: played.length - won - tied, points: won * 2 + tied };
-  }).sort((a, b) => b.points - a.points || b.won - a.won || a.team.name.localeCompare(b.team.name));
+    const tied = played.filter((f) => f.result?.winner === "tie").length;
+    const noResults = played.filter((f) => f.result?.winner === "no_result").length;
+    let runsFor = 0, ballsFaced = 0, runsAgainst = 0, ballsBowled = 0;
+    let nrrComplete = played.length > 0;
+    for (const fixture of played) {
+      const innings = fixture.result?.innings;
+      if (!Array.isArray(innings) || innings.length !== 2) { nrrComplete = false; continue; }
+      const ownSide = fixture.home_team_id === team.id ? "A" : "B";
+      const own = innings.find((inn: any) => inn.battingSide === ownSide);
+      const opposition = innings.find((inn: any) => inn.battingSide !== ownSide);
+      if (!own || !opposition || !Number.isFinite(own.runs) || !Number.isFinite(opposition.runs)) { nrrComplete = false; continue; }
+      const ownBalls = own.wickets >= 10 ? own.oversLimitBalls : own.balls;
+      const oppositionBalls = opposition.wickets >= 10 ? opposition.oversLimitBalls : opposition.balls;
+      if (!Number.isFinite(ownBalls) || !Number.isFinite(oppositionBalls) || ownBalls <= 0 || oppositionBalls <= 0) { nrrComplete = false; continue; }
+      runsFor += own.runs; ballsFaced += ownBalls; runsAgainst += opposition.runs; ballsBowled += oppositionBalls;
+    }
+    const nrr = nrrComplete && ballsFaced > 0 && ballsBowled > 0 ? (runsFor * 6 / ballsFaced) - (runsAgainst * 6 / ballsBowled) : null;
+    return { team, played: played.length, won, tied, lost: played.length - won - tied - noResults, points: won * 2 + tied + noResults, nrr };
+  }).sort((a, b) => b.points - a.points || (b.nrr ?? -Infinity) - (a.nrr ?? -Infinity) || b.won - a.won || a.team.name.localeCompare(b.team.name));
   const teamById = (id: string) => teams.find((t) => t.id === id);
   const runRpc = async (name: string, args: Record<string, unknown>) => {
     const { data, error } = await db.rpc(name, args);
@@ -185,8 +201,8 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
       </section>}
       {tournament && tournamentFixtures.some((f) => f.status === "completed") && <section className="space-y-2">
         <h3 className="font-semibold">Points table</h3>
-        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-2 text-left">Team</th><th className="p-2">P</th><th className="p-2">W</th><th className="p-2">T</th><th className="p-2">L</th><th className="p-2">Pts</th></tr></thead><tbody>{standings.map((row) => <tr key={row.team.id} className="border-b"><td className="p-2 font-medium">{row.team.name}</td><td className="p-2 text-center">{row.played}</td><td className="p-2 text-center">{row.won}</td><td className="p-2 text-center">{row.tied}</td><td className="p-2 text-center">{row.lost}</td><td className="p-2 text-center font-semibold">{row.points}</td></tr>)}</tbody></table></div>
-        <p className="text-xs text-muted-foreground">Scoring: win = 2 points, tie/no winner = 1 point. Net run rate is not calculated yet.</p>
+        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-2 text-left">Team</th><th className="p-2">P</th><th className="p-2">W</th><th className="p-2">T</th><th className="p-2">L</th><th className="p-2">NRR</th><th className="p-2">Pts</th></tr></thead><tbody>{standings.map((row) => <tr key={row.team.id} className="border-b"><td className="p-2 font-medium">{row.team.name}</td><td className="p-2 text-center">{row.played}</td><td className="p-2 text-center">{row.won}</td><td className="p-2 text-center">{row.tied}</td><td className="p-2 text-center">{row.lost}</td><td className="p-2 text-center tabular-nums">{row.nrr == null ? "—" : row.nrr.toFixed(3)}</td><td className="p-2 text-center font-semibold">{row.points}</td></tr>)}</tbody></table></div>
+        <p className="text-xs text-muted-foreground">Scoring: win = 2 points, tie/no result = 1 point. NRR uses innings totals; older matches without saved innings data show —.</p>
       </section>}
       {selectedFixture && myLineupTeam && <section className="space-y-2 rounded-lg border p-3">
         <h3 className="font-semibold">Confirm XI: {myLineupTeam.name}</h3>
