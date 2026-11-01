@@ -60,4 +60,19 @@ describe("multiplayer engine", () => {
     expect(validateBowler(inn, 20, "A1", orders.B)).toBeTruthy();
     expect(validateBowler(inn, 20, "B9", orders.B)).toBeNull();
   });
+  test("a wide does not cancel an outstanding free hit", () => {
+    const bowlerId = orders.B[0];
+    let foundWide = false;
+    for (let i = 0; i < 10000 && !foundWide; i++) {
+      const innings = newInnings("A", orders.A);
+      innings.freeHit = true;
+      const state: MatchState = { overs: 20, current: 0, toss: { winner: "A", decision: "bat" }, innings: [innings] };
+      const played = playBall(state, squads, orders, { aggression: 50 }, { field: "balanced", bowlerId, strategy: { normal: 100, yorker: 0, bouncer: 0, slower: 0, knuckle: 0 } }, makeRng("free-hit-wide:" + i));
+      if (played.ball.extra === "wide") {
+        foundWide = true;
+        expect(played.state.innings[0].freeHit).toBe(true);
+      }
+    }
+    expect(foundWide).toBe(true);
+  });
 });
