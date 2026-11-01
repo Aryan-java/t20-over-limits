@@ -13,11 +13,17 @@ import {
 
 const Body = z.object({
   action: z.enum(["get_state", "start", "play", "select_batter"]),
-matchId: z.string().uuid(),
-expectedVersion: z.number().int().min(0).optional(),
-batterId: z.string().min(1).max(80).optional(),
-bowling: z.object({ field: z.enum(["attacking", "balanced", "defensive", "death"]), bowlerId: z.string().min(1).max(80), strategy: z.object({ normal: z.number().min(0), yorker: z.number().min(0), bouncer: z.number().min(0), slower: z.number().min(0), knuckle: z.number().min(0) }) }).optional(),
-aggression: z.number().min(0).max(100).optional(),
+  matchId: z.string().uuid(),
+  expectedVersion: z.number().int().min(0).optional(),
+  batterId: z.string().min(1).max(80).optional(),
+  bowling: z.object({
+    field: z.enum(["attacking", "balanced", "defensive", "death"]),
+    bowlerId: z.string().min(1).max(80),
+    strategy: z.object({
+      normal: z.number().min(0), yorker: z.number().min(0), bouncer: z.number().min(0),
+      slower: z.number().min(0), knuckle: z.number().min(0),
+    }),
+  }).optional(),
 });
 
 const json = (body: unknown, status = 200) =>
@@ -154,11 +160,18 @@ Deno.serve(async (req) => {
       const invalidBowler = validateBowler(inn, state.overs, bowling.bowlerId, context.orders[bowlingSide]);
       if (invalidBowler) return json({ error: invalidBowler }, 400);
       const rng = makeRng(String(secret.seed) + ":fixture:" + match.fixture_id + ":v" + expectedVersion);
-      const played = playBall(state, context.squads, context.orders, { aggression: parsed.data.aggression ?? 50 }, bowling, rng);
+      // Batting aggression stays neutral until fixture-scoped batting decisions are persisted.
+      const played = playBall(state, context.squads, context.orders, { aggression: 50 }, bowling, rng);
       const countResult = await db.from("multiplayer_deliveries").select("id", { count: "exact", head: true }).eq("match_id", match.id).eq("innings_number", state.current + 1);
       if (countResult.error) throw countResult.error;
+      const deliveryNumber = (countResult.count ?? 0) + 1;
+      // The engine keeps only 18 recent balls; archive numbering remains match-long.
+      played.ball.n = deliveryNumber;
+      played.state.lastBall = played.ball;
+      const recent = played.state.innings[state.current].recent;
+      if (recent.length) recent[recent.length - 1].n = deliveryNumber;
       const legalBalls = played.state.innings[state.current].balls;
-      const delivery = { innings_number: state.current + 1, delivery_number: (countResult.count ?? 0) + 1, over_number: Math.floor(Math.max(0, legalBalls - 1) / 6) + 1, ball_in_over: legalBalls % 6 || 6, payload: played.ball };
+      const delivery = { innings_number: state.current + 1, delivery_number: deliveryNumber, over_number: Math.floor(Math.max(0, legalBalls - 1) / 6) + 1, ball_in_over: legalBalls % 6 || 6, payload: played.ball };
       const status = played.state.result ? "completed" : played.state.current !== state.current ? "innings_break" : "live";
       const winnerTeam = played.state.result && played.state.result.winner === "A" ? context.teamIds.A : played.state.result && played.state.result.winner === "B" ? context.teamIds.B : null;
       const committed = await db.rpc("mp_commit_fixture_state", { p_match: match.id, p_actor: userId, p_expected_version: expectedVersion, p_state: played.state, p_status: status, p_delivery: delivery, p_result: played.state.result ? { winner: played.state.result.winner, text: played.state.result.text, winnerTeamId: winnerTeam } : null, p_winner_team: winnerTeam });
