@@ -196,8 +196,14 @@ Deno.serve(async (req) => {
       played.state.lastBall = played.ball;
       const recent = played.state.innings[state.current].recent;
       if (recent.length) recent[recent.length - 1].n = deliveryNumber;
-      const legalBalls = played.state.innings[state.current].balls;
-      const delivery = { innings_number: state.current + 1, delivery_number: deliveryNumber, over_number: Math.floor(Math.max(0, legalBalls - 1) / 6) + 1, ball_in_over: legalBalls % 6 || 6, payload: played.ball };
+      const legalBallsBeforeDelivery = state.innings[state.current].balls;
+      const delivery = {
+        innings_number: state.current + 1,
+        delivery_number: deliveryNumber,
+        over_number: Math.floor(legalBallsBeforeDelivery / 6) + 1,
+        ball_in_over: (legalBallsBeforeDelivery % 6) + 1,
+        payload: played.ball,
+      };
       const status = played.state.result ? "completed" : played.state.current !== state.current ? "innings_break" : "live";
       const winnerTeam = played.state.result && played.state.result.winner === "A" ? context.teamIds.A : played.state.result && played.state.result.winner === "B" ? context.teamIds.B : null;
       const committed = await db.rpc("mp_commit_fixture_state", { p_match: match.id, p_actor: userId, p_expected_version: expectedVersion, p_state: played.state, p_status: status, p_delivery: delivery, p_result: played.state.result ? { winner: played.state.result.winner, text: played.state.result.text, winnerTeamId: winnerTeam } : null, p_winner_team: winnerTeam });
