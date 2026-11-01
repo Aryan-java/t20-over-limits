@@ -12,7 +12,7 @@ import type { Member } from "@/types/multiplayer";
 
 type Team = { id: string; name: string; squad: any[] };
 type Tournament = { id: string; name: string; status: string; settings: any };
-type Fixture = { id: string; round_number: number; fixture_number: number; home_team_id: string; away_team_id: string; status: string };
+type Fixture = { id: string; tournament_id: string; round_number: number; fixture_number: number; home_team_id: string; away_team_id: string; status: string };
 type Lineup = { fixture_id: string; team_id: string; playing_xi: string[]; impact_players: string[]; owner_user_id: string };
 
 export default function FixtureTournamentPanel({ roomId, userId, isHost, members }: { roomId: string; userId: string; isHost: boolean; members: Member[] }) {
@@ -24,6 +24,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const [owners, setOwners] = useState<Record<string, string>>({});
   const [selectedTournament, setSelectedTournament] = useState("");
   const [teamName, setTeamName] = useState("");
+  const [playerQuery, setPlayerQuery] = useState("");
   const [teamOwner, setTeamOwner] = useState("");
   const [tournamentName, setTournamentName] = useState("My Tournament");
   const [squadNames, setSquadNames] = useState<string[]>([]);
@@ -38,7 +39,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     const [t, ts, fs, ls, os] = await Promise.all([
       db.from("multiplayer_teams").select("id,name,squad").eq("room_id", roomId).order("created_at"),
       db.from("multiplayer_tournaments").select("id,name,status,settings").eq("room_id", roomId).order("created_at", { ascending: false }),
-      db.from("multiplayer_fixtures").select("id,round_number,fixture_number,home_team_id,away_team_id,status").eq("room_id", roomId).order("round_number").order("fixture_number"),
+      db.from("multiplayer_fixtures").select("id,tournament_id,round_number,fixture_number,home_team_id,away_team_id,status").eq("room_id", roomId).order("round_number").order("fixture_number"),
       db.from("multiplayer_fixture_lineups").select("fixture_id,team_id,playing_xi,impact_players,owner_user_id").eq("room_id", roomId),
       db.from("multiplayer_team_members").select("team_id,user_id").eq("room_id", roomId).eq("role", "owner"),
     ]);
@@ -50,7 +51,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
 
   useEffect(() => { void refresh(); }, [refresh]);
   const tournament = tournaments.find((t) => t.id === selectedTournament);
-  const tournamentFixtures = fixtures.filter((f) => !selectedTournament || true);
+  const tournamentFixtures = fixtures.filter((f) => f.tournament_id === selectedTournament);
   const teamById = (id: string) => teams.find((t) => t.id === id);
   const runRpc = async (name: string, args: Record<string, unknown>) => {
     const { data, error } = await db.rpc(name, args);
@@ -124,8 +125,8 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
           <Input placeholder="Team name" value={teamName} onChange={(e) => setTeamName(e.target.value)} maxLength={60} />
           <Select value={teamOwner} onValueChange={setTeamOwner}><SelectTrigger><SelectValue placeholder="Assign team owner" /></SelectTrigger><SelectContent>{members.map((m) => <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>)}</SelectContent></Select>
           <p className="text-xs text-muted-foreground">Squad: {squadNames.length}/25 (minimum 18), overseas limit 8.</p>
-          <Input placeholder="Search player database" onChange={(e) => (document.getElementById("fixture-player-search") as HTMLInputElement).dataset.q = e.target.value.toLowerCase()} id="fixture-player-search" />
-          <div className="max-h-48 overflow-y-auto grid sm:grid-cols-2 gap-1">{PLAYER_DATABASE.filter((p) => p.name.toLowerCase().includes(((document.getElementById("fixture-player-search") as HTMLInputElement | null)?.dataset.q ?? ""))).slice(0,120).map((p) => <label key={p.name} className="flex items-center gap-2 text-xs p-1"><Checkbox checked={squadNames.includes(p.name)} disabled={!squadNames.includes(p.name) && (squadNames.length >= 25 || (p.isOverseas && squadNames.filter((n) => byName.get(n)?.isOverseas).length >= 8))} onCheckedChange={(v) => setSquadNames((old) => v ? [...old,p.name] : old.filter((n) => n !== p.name))} /><span>{p.name}{p.isOverseas ? " ✈" : ""}</span></label>)}</div>
+          <Input placeholder="Search player database" value={playerQuery} onChange={(e) => setPlayerQuery(e.target.value)} />
+          <div className="max-h-48 overflow-y-auto grid sm:grid-cols-2 gap-1">{PLAYER_DATABASE.filter((p) => p.name.toLowerCase().includes(playerQuery.toLowerCase())).slice(0,120).map((p) => <label key={p.name} className="flex items-center gap-2 text-xs p-1"><Checkbox checked={squadNames.includes(p.name)} disabled={!squadNames.includes(p.name) && (squadNames.length >= 25 || (p.isOverseas && squadNames.filter((n) => byName.get(n)?.isOverseas).length >= 8))} onCheckedChange={(v) => setSquadNames((old) => v ? [...old,p.name] : old.filter((n) => n !== p.name))} /><span>{p.name}{p.isOverseas ? " ✈" : ""}</span></label>)}</div>
           <Button disabled={busy || !teamName.trim() || !teamOwner || squadNames.length < 18} onClick={createTeam}>Create team</Button>
         </section>
         <section className="space-y-2 rounded-lg border p-3">
@@ -153,7 +154,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
         <Button disabled={busy || xi.length !== 11 || xi.filter((id) => myLineupTeam.squad.find((p: any) => p.id === id)?.isOverseas).length > 4} onClick={submitLineup}>Confirm fixture XI</Button>
       </section>}
       <section className="space-y-2">
-        <Select value={lineupFixture} onValueChange={(id) => { setLineupFixture(id); const old = lineups.find((l) => l.fixture_id === id && l.owner_user_id === userId); setXi(old?.playing_xi ?? []); setImpact(old?.impact_players ?? []); }}><SelectTrigger><SelectValue placeholder="Choose fixture to submit your XI" /></SelectTrigger><SelectContent>{fixtures.filter((f) => ["scheduled","ready"].includes(f.status)).map((f) => <SelectItem key={f.id} value={f.id}>R{f.round_number}: {teamById(f.home_team_id)?.name} vs {teamById(f.away_team_id)?.name}</SelectItem>)}</SelectContent></Select>
+        <Select value={lineupFixture} onValueChange={(id) => { setLineupFixture(id); const old = lineups.find((l) => l.fixture_id === id && l.owner_user_id === userId); setXi(old?.playing_xi ?? []); setImpact(old?.impact_players ?? []); }}><SelectTrigger><SelectValue placeholder="Choose fixture to submit your XI" /></SelectTrigger><SelectContent>{fixtures.filter((f) => f.tournament_id === selectedTournament && ["scheduled","ready"].includes(f.status)).map((f) => <SelectItem key={f.id} value={f.id}>R{f.round_number}: {teamById(f.home_team_id)?.name} vs {teamById(f.away_team_id)?.name}</SelectItem>)}</SelectContent></Select>
       </section>
       {activeMatch && <section className="rounded-lg border p-3 space-y-2"><h3 className="font-semibold">Active fixture match</h3><p className="text-sm">Status: {activeMatch.status} · Version {activeMatch.version}</p><Button disabled={busy || activeMatch.status !== "ready"} onClick={startFixture}>Start fixture & conduct toss</Button><Button variant="outline" onClick={async () => { const { data } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "get_state", matchId: activeMatch.id } }); if (data) setActiveMatch({ ...activeMatch, status: data.status, version: data.version, state: data.state }); }}>Refresh match state</Button>{activeMatch.state?.innings?.[activeMatch.state.current] && <p className="text-sm">Score: {activeMatch.state.innings[activeMatch.state.current].runs}/{activeMatch.state.innings[activeMatch.state.current].wickets} · {activeMatch.state.innings[activeMatch.state.current].balls} legal balls</p>}</section>}
       <Button variant="ghost" size="sm" onClick={refresh}>Refresh tournament data</Button>
