@@ -69,11 +69,13 @@ BEGIN
     RAISE EXCEPTION 'Only this team owner can submit its lineup' USING ERRCODE='42501';
   END IF;
   IF p_xi IS NULL OR cardinality(p_xi) <> 11
+     OR array_position(p_xi,NULL) IS NOT NULL
      OR (SELECT count(DISTINCT x) FROM unnest(p_xi) x) <> 11 THEN
     RAISE EXCEPTION 'Select exactly 11 unique players';
   END IF;
   p_impact := coalesce(p_impact,'{}'::text[]);
   IF cardinality(p_impact) > 4
+     OR array_position(p_impact,NULL) IS NOT NULL
      OR (SELECT count(DISTINCT x) FROM unnest(p_impact) x) <> cardinality(p_impact) THEN
     RAISE EXCEPTION 'Select up to 4 unique impact players';
   END IF;
@@ -89,7 +91,7 @@ BEGIN
   SELECT count(*) INTO overseas_count
     FROM jsonb_array_elements(tm.squad) p
     WHERE p->>'id' = ANY(p_xi)
-      AND coalesce((p->>'isOverseas')::boolean,false);
+      AND CASE WHEN p->>'isOverseas' IN ('true','false') THEN (p->>'isOverseas')::boolean ELSE false END;
   IF overseas_count > 4 THEN RAISE EXCEPTION 'Maximum 4 overseas players in the Playing XI'; END IF;
 
   INSERT INTO public.multiplayer_fixture_lineups(
