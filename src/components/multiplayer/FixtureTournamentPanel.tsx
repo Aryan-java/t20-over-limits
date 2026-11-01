@@ -50,7 +50,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     for (const x of [t,ts,fs,ls,os]) if (x.error) { console.error(x.error); toast({ title: "Could not load tournament data", description: x.error.message, variant: "destructive" }); return; }
     setTeams(t.data ?? []); setTournaments(ts.data ?? []); setFixtures(fs.data ?? []); setLineups(ls.data ?? []);
     setOwners(Object.fromEntries((os.data ?? []).map((x: any) => [x.team_id, x.user_id])));
-    const relevantFixtureIds = (fs.data ?? []).filter((fixture: any) => ["live", "completed"].includes(fixture.status)).map((fixture: any) => fixture.id);
+    const relevantFixtureIds = (fs.data ?? []).filter((fixture: any) => ["live", "completed"].includes(fixture.status) && (!selectedTournament || fixture.tournament_id === selectedTournament)).map((fixture: any) => fixture.id);
     if (relevantFixtureIds.length) {
       const { data: matches, error: matchError } = await db.from("multiplayer_matches").select("id,fixture_id,version,status,state,updated_at").in("fixture_id", relevantFixtureIds).order("updated_at", { ascending: false }).limit(1);
       if (!matchError && matches?.[0]) setActiveMatch(matches[0]);
@@ -61,7 +61,8 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   useEffect(() => { void refresh(); }, [refresh]);
   const tournament = tournaments.find((t) => t.id === selectedTournament);
   const tournamentFixtures = fixtures.filter((f) => f.tournament_id === selectedTournament);
-  const standings = teams.map((team) => {
+  const participantIds = new Set(tournamentFixtures.flatMap((fixture) => [fixture.home_team_id, fixture.away_team_id]));
+  const standings = teams.filter((team) => participantIds.has(team.id)).map((team) => {
     const played = tournamentFixtures.filter((f) => f.status === "completed" && (f.home_team_id === team.id || f.away_team_id === team.id));
     const won = played.filter((f) => f.winner_team_id === team.id).length;
     const tied = played.filter((f) => f.winner_team_id == null && !!f.result).length;
