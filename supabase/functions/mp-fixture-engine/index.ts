@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { makeRng } from "../_shared/mpEngine.ts";
+import { makeRng, playBall, selectBatter, validateBowler, type MatchState, type Side, type BowlingDecision } from "../_shared/mpEngine.ts";
 import {
   adaptFixtureForEngine,
   createFixtureMatchState,
@@ -12,9 +12,12 @@ import {
 } from "../_shared/fixtureEngineAdapter.ts";
 
 const Body = z.object({
-  action: z.enum(["get_state", "start"]),
-  matchId: z.string().uuid(),
-  expectedVersion: z.number().int().min(0).optional(),
+  action: z.enum(["get_state", "start", "play", "select_batter"]),
+matchId: z.string().uuid(),
+expectedVersion: z.number().int().min(0).optional(),
+batterId: z.string().min(1).max(80).optional(),
+bowling: z.object({ field: z.enum(["attacking", "balanced", "defensive", "death"]), bowlerId: z.string().min(1).max(80), strategy: z.object({ normal: z.number().min(0), yorker: z.number().min(0), bouncer: z.number().min(0), slower: z.number().min(0), knuckle: z.number().min(0) }) }).optional(),
+aggression: z.number().min(0).max(100).optional(),
 });
 
 const json = (body: unknown, status = 200) =>
@@ -62,18 +65,11 @@ Deno.serve(async (req) => {
     if (memberError) throw memberError;
     if (!member) return json({ error: "Not a member of this room" }, 403);
 
-    if (action === "get_state") {
-      return json({
-        matchId: match.id,
-        fixtureId: match.fixture_id,
-        status: match.status,
-        version: match.version,
-        state: match.state,
-      });
-    }
-
-    if (match.status !== "ready") return json({ error: "Fixture match is not ready to start" }, 409);
+    if (action === "get_state") return json({ matchId: match.id, fixtureId: match.fixture_id, status: match.status, version: match.version, state: match.state });
+    if (expectedVersion === undefined) return json({ error: "expectedVersion is required" }, 400);
     if (match.version !== expectedVersion) return json({ error: "Stale version — refresh" }, 409);
+    if (action === "start" && match.status !== "ready") return json({ error: "Fixture match is not ready to start" }, 409);
+    if (action !== "start" && !["live", "innings_break"].includes(match.status)) return json({ error: "Fixture match is not in progress" }, 409);
 
     const [{ data: room, error: roomError }, { data: fixture, error: fixtureError },
       { data: lineups, error: lineupError }, { data: secret, error: secretError }] = await Promise.all([
@@ -91,8 +87,8 @@ Deno.serve(async (req) => {
     if (lineupError) throw lineupError;
     if (secretError) throw secretError;
     if (!room || !fixture || !secret?.seed) return json({ error: "Fixture setup is incomplete" }, 409);
-    if (room.host_user_id !== userId) return json({ error: "Only the room host can start this fixture" }, 403);
     if (fixture.status !== "live") return json({ error: "Fixture has not been activated" }, 409);
+    if (action === "start" && room.host_user_id !== userId) return json({ error: "Only the room host can start this fixture" }, 403);
 
     const [{ data: home, error: homeError }, { data: away, error: awayError },
       { data: owners, error: ownersError }] = await Promise.all([
@@ -134,6 +130,41 @@ Deno.serve(async (req) => {
       homeLineup: lineupInput(homeLineup),
       awayLineup: lineupInput(awayLineup),
     });
+
+    if (action !== "start") {
+      const state = match.state as MatchState;
+      if (!state || !state.innings || !state.innings[state.current]) return json({ error: "Match state is invalid" }, 500);
+      const context = adaptFixtureForEngine({ overs: state.overs, home: teamInput(home), away: teamInput(away), homeLineup: lineupInput(homeLineup), awayLineup: lineupInput(awayLineup) });
+      const inn = state.innings[state.current];
+      const bowlingSide: Side = inn.battingSide === "A" ? "B" : "A";
+      const ownerFor = (teamId: string) => ownerIds.get(teamId);
+      if (action === "select_batter") {
+        if (ownerFor(context.teamIds[inn.battingSide]) !== userId) return json({ error: "Only the batting team owner can select the next batter" }, 403);
+        if (!parsed.data.batterId) return json({ error: "Choose a batter" }, 400);
+        const selected = selectBatter(state, parsed.data.batterId);
+        if ("error" in selected) return json({ error: selected.error }, 400);
+        const committed = await db.rpc("mp_commit_fixture_state", { p_match: match.id, p_actor: userId, p_expected_version: expectedVersion, p_state: selected.state, p_status: "live", p_delivery: null, p_result: null, p_winner_team: null });
+        if (committed.error) return json({ error: committed.error.message }, committed.error.message.toLowerCase().includes("version") ? 409 : 400);
+        return json({ ok: true, version: committed.data, state: selected.state });
+      }
+      if (ownerFor(context.teamIds[bowlingSide]) !== userId) return json({ error: "Only the bowling team owner can play the next ball" }, 403);
+      if (!parsed.data.bowling) return json({ error: "Bowling plan is required" }, 400);
+      if (inn.awaitingBatter) return json({ error: "Waiting for the batting team to select the next batter" }, 409);
+      const bowling = parsed.data.bowling as BowlingDecision;
+      const invalidBowler = validateBowler(inn, state.overs, bowling.bowlerId, context.orders[bowlingSide]);
+      if (invalidBowler) return json({ error: invalidBowler }, 400);
+      const rng = makeRng(String(secret.seed) + ":fixture:" + match.fixture_id + ":v" + expectedVersion);
+      const played = playBall(state, context.squads, context.orders, { aggression: parsed.data.aggression ?? 50 }, bowling, rng);
+      const countResult = await db.from("multiplayer_deliveries").select("id", { count: "exact", head: true }).eq("match_id", match.id).eq("innings_number", state.current + 1);
+      if (countResult.error) throw countResult.error;
+      const legalBalls = played.state.innings[state.current].balls;
+      const delivery = { innings_number: state.current + 1, delivery_number: (countResult.count ?? 0) + 1, over_number: Math.floor(Math.max(0, legalBalls - 1) / 6) + 1, ball_in_over: legalBalls % 6 || 6, payload: played.ball };
+      const status = played.state.result ? "completed" : played.state.current !== state.current ? "innings_break" : "live";
+      const winnerTeam = played.state.result && played.state.result.winner === "A" ? context.teamIds.A : played.state.result && played.state.result.winner === "B" ? context.teamIds.B : null;
+      const committed = await db.rpc("mp_commit_fixture_state", { p_match: match.id, p_actor: userId, p_expected_version: expectedVersion, p_state: played.state, p_status: status, p_delivery: delivery, p_result: played.state.result ? { winner: played.state.result.winner, text: played.state.result.text, winnerTeamId: winnerTeam } : null, p_winner_team: winnerTeam });
+      if (committed.error) return json({ error: committed.error.message }, committed.error.message.toLowerCase().includes("version") ? 409 : 400);
+      return json({ ok: true, version: committed.data, state: played.state, ball: played.ball, status });
+    }
 
     const rng = makeRng(`${secret.seed}:fixture:${match.fixture_id}:toss`);
     const tossWinnerTeamId = rng() < 0.5 ? context.teamIds.A : context.teamIds.B;
