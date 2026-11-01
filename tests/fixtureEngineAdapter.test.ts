@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { makeRng, playBall, selectBatter, type BowlingDecision } from "../supabase/functions/_shared/mpEngine.ts";
 import {
   adaptFixtureForEngine,
   createFixtureMatchState,
@@ -69,5 +70,34 @@ describe("fixture engine adapter", () => {
     const bad = input();
     bad.home.squad.forEach((p, i) => { p.isOverseas = i < 5; });
     expect(() => adaptFixtureForEngine(bad)).toThrow("four overseas");
+  });
+  test("fixture-created state can resolve a seeded ball using fixture XIs", () => {
+    const context = adaptFixtureForEngine(input());
+    const state = createFixtureMatchState(2, context, "team-home", "bat");
+    const bowlingSide = state.innings[0].battingSide === "A" ? "B" : "A";
+    const bowling: BowlingDecision = {
+      field: "balanced",
+      bowlerId: context.orders[bowlingSide][0],
+      strategy: { normal: 100, yorker: 0, bouncer: 0, slower: 0, knuckle: 0 },
+    };
+    const first = playBall(state, context.squads, context.orders, { aggression: 50 }, bowling, makeRng("fixture-test-seed"));
+    const second = playBall(state, context.squads, context.orders, { aggression: 50 }, bowling, makeRng("fixture-test-seed"));
+    expect(first.ball).toEqual(second.ball);
+    expect(first.state.innings[0].balls).toBeGreaterThanOrEqual(0);
+    expect(first.state.lastBall).toEqual(first.ball);
+  });
+
+  test("fixture engine supports the existing pending-batter selection contract", () => {
+    const context = adaptFixtureForEngine(input());
+    const state = createFixtureMatchState(20, context, "team-home", "bat");
+    const innings = state.innings[0];
+    innings.awaitingBatter = true;
+    innings.striker = null;
+    const next = selectBatter(state, context.orders.A[2]);
+    expect("error" in next).toBe(false);
+    if (!("error" in next)) {
+      expect(next.state.innings[0].striker).toBe(context.orders.A[2]);
+      expect(next.state.innings[0].awaitingBatter).toBe(false);
+    }
   });
 });
