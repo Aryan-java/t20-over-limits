@@ -76,7 +76,9 @@ Deno.serve(async (req) => {
     if (expectedVersion === undefined) return json({ error: "expectedVersion is required" }, 400);
     if (match.version !== expectedVersion) return json({ error: "Stale version — refresh" }, 409);
     if (action === "start" && match.status !== "ready") return json({ error: "Fixture match is not ready to start" }, 409);
-    if (action !== "start" && !["live", "innings_break"].includes(match.status)) return json({ error: "Fixture match is not in progress" }, 409);
+    if (action === "pause" && match.status !== "live") return json({ error: "Only a live match can be paused" }, 409);
+    if (action === "resume" && match.status !== "paused") return json({ error: "Match is not paused" }, 409);
+    if (!["start", "pause", "resume"].includes(action) && !["live", "innings_break"].includes(match.status)) return json({ error: "Fixture match is not in progress" }, 409);
 
     const [{ data: room, error: roomError }, { data: fixture, error: fixtureError },
       { data: lineups, error: lineupError }, { data: secret, error: secretError }] = await Promise.all([
@@ -95,7 +97,7 @@ Deno.serve(async (req) => {
     if (secretError) throw secretError;
     if (!room || !fixture || !secret?.seed) return json({ error: "Fixture setup is incomplete" }, 409);
     if (fixture.status !== "live") return json({ error: "Fixture has not been activated" }, 409);
-    if (action === "start" && room.host_user_id !== userId) return json({ error: "Only the room host can start this fixture" }, 403);
+    if (["start", "pause", "resume"].includes(action) && room.host_user_id !== userId) return json({ error: "Only the room host can control this fixture" }, 403);
 
     const [{ data: home, error: homeError }, { data: away, error: awayError },
       { data: owners, error: ownersError }] = await Promise.all([
@@ -137,6 +139,16 @@ Deno.serve(async (req) => {
       homeLineup: lineupInput(homeLineup),
       awayLineup: lineupInput(awayLineup),
     });
+
+    if (action === "pause" || action === "resume") {
+      const targetStatus = action === "pause" ? "paused" : "live";
+      const committed = await db.rpc("mp_commit_fixture_state", {
+        p_match: match.id, p_actor: userId, p_expected_version: expectedVersion,
+        p_state: match.state, p_status: targetStatus, p_delivery: null, p_result: null, p_winner_team: null,
+      });
+      if (committed.error) return json({ error: committed.error.message }, committed.error.message.toLowerCase().includes("version") ? 409 : 400);
+      return json({ ok: true, version: committed.data, status: targetStatus, state: match.state });
+    }
 
     if (action !== "start") {
       const state = match.state as MatchState;
