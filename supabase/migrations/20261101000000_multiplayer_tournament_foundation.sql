@@ -114,7 +114,9 @@ CREATE TABLE IF NOT EXISTS public.multiplayer_matches (
   completed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (room_id, id)
+  UNIQUE (room_id, id),
+  FOREIGN KEY (room_id, fixture_id)
+    REFERENCES public.multiplayer_fixtures(room_id, id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_mp_matches_room_status
