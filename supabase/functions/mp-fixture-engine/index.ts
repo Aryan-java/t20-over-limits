@@ -1,7 +1,7 @@
 // Fixture-based multiplayer engine entry point.
 // Kept separate from mp-engine so the existing A/B room flow is unchanged.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { z } from "npm:zod@3";
 import { makeRng, playBall, selectBatter, validateBowler, type MatchState, type Side, type BowlingDecision } from "../_shared/mpEngine.ts";
 import {
