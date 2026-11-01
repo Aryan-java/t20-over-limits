@@ -54,9 +54,9 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     setOwners(Object.fromEntries((os.data ?? []).map((x: any) => [x.team_id, x.user_id])));
     const relevantFixtureIds = (fs.data ?? []).filter((fixture: any) => ["live", "completed"].includes(fixture.status) && (!selectedTournament || fixture.tournament_id === selectedTournament)).map((fixture: any) => fixture.id);
     if (relevantFixtureIds.length) {
-      const { data: matches, error: matchError } = await db.from("multiplayer_matches").select("id,fixture_id,version,status,state,updated_at").in("fixture_id", relevantFixtureIds).order("updated_at", { ascending: false }).limit(1);
+      const { data: matches, error: matchError } = await db.from("multiplayer_matches").select("id,fixture_id,version,status,state,updated_at").in("fixture_id", relevantFixtureIds).order("updated_at", { ascending: false }).limit(20);
       if (matchError) { console.error(matchError); setActiveMatch(null); }
-      else setActiveMatch(matches?.[0] ?? null);
+      else setActiveMatch((matches ?? []).find((match: any) => match.status === "live" || match.status === "innings_break" || match.status === "paused") ?? matches?.[0] ?? null);
     } else setActiveMatch(null);
     if (!selectedTournament && ts.data?.[0]) setSelectedTournament(ts.data[0].id);
   }, [db, roomId, selectedTournament]);
@@ -86,7 +86,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     }
     const nrr = nrrComplete && ballsFaced > 0 && ballsBowled > 0 ? (runsFor * 6 / ballsFaced) - (runsAgainst * 6 / ballsBowled) : null;
     return { team, played: played.length, won, tied, lost: played.length - won - tied - noResults, points: won * 2 + tied + noResults, nrr };
-  }).sort((a, b) => b.points - a.points || (b.nrr ?? -Infinity) - (a.nrr ?? -Infinity) || b.won - a.won || a.team.name.localeCompare(b.team.name));
+  }).sort((a, b) => b.points - a.points || (a.nrr != null && b.nrr != null ? b.nrr - a.nrr : 0) || b.won - a.won || a.team.name.localeCompare(b.team.name));
   const teamById = (id: string) => teams.find((t) => t.id === id);
   const runRpc = async (name: string, args: Record<string, unknown>) => {
     const { data, error } = await db.rpc(name, args);
@@ -150,7 +150,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     else { setActiveMatch({ ...activeMatch, version: data.version, status: "live", state: data.state }); toast({ title: "Fixture started", description: "Toss completed. Fixture engine is live." }); }
     setBusy(false);
   };
-  const selectedFixture = fixtures.find((f) => f.id === lineupFixture);
+  const selectedFixture = fixtures.find((f) => f.id === lineupFixture && f.tournament_id === selectedTournament);
   const myLineupTeamId = selectedFixture && [selectedFixture.home_team_id, selectedFixture.away_team_id].find((id) => owners[id] === userId);
   const myLineupTeam = myLineupTeamId ? teamById(myLineupTeamId) : null;
   const activeFixture = activeMatch ? fixtures.find((f) => f.id === activeMatch.fixture_id && f.tournament_id === selectedTournament) : fixtures.find((f) => f.status === "live" && f.tournament_id === selectedTournament);
