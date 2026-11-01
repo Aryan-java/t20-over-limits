@@ -157,6 +157,18 @@ Deno.serve(async (req) => {
       const inn = state.innings[state.current];
       const bowlingSide: Side = inn.battingSide === "A" ? "B" : "A";
       const ownerFor = (teamId: string) => ownerIds.get(teamId);
+      if (action === "set_batting_decision") {
+        if (ownerFor(context.teamIds[inn.battingSide]) !== userId) return json({ error: "Only the batting team owner can set batting aggression" }, 403);
+        if (parsed.data.aggression === undefined) return json({ error: "Aggression from 0 to 100 is required" }, 400);
+        const nextState = structuredClone(state) as MatchState & { battingDecision?: { aggression: number } };
+        nextState.battingDecision = { aggression: parsed.data.aggression };
+        const committed = await db.rpc("mp_commit_fixture_state", {
+          p_match: match.id, p_actor: userId, p_expected_version: expectedVersion,
+          p_state: nextState, p_status: match.status, p_delivery: null, p_result: null, p_winner_team: null,
+        });
+        if (committed.error) return json({ error: committed.error.message }, committed.error.message.toLowerCase().includes("version") ? 409 : 400);
+        return json({ ok: true, version: committed.data, state: nextState });
+      }
       if (action === "select_batter") {
         if (ownerFor(context.teamIds[inn.battingSide]) !== userId) return json({ error: "Only the batting team owner can select the next batter" }, 403);
         if (!parsed.data.batterId) return json({ error: "Choose a batter" }, 400);
@@ -173,8 +185,9 @@ Deno.serve(async (req) => {
       const invalidBowler = validateBowler(inn, state.overs, bowling.bowlerId, context.orders[bowlingSide]);
       if (invalidBowler) return json({ error: invalidBowler }, 400);
       const rng = makeRng(String(secret.seed) + ":fixture:" + match.fixture_id + ":v" + expectedVersion);
-      // Batting aggression stays neutral until fixture-scoped batting decisions are persisted.
-      const played = playBall(state, context.squads, context.orders, { aggression: 50 }, bowling, rng);
+      const battingDecision = (state as MatchState & { battingDecision?: { aggression: number } }).battingDecision;
+      const played = playBall(state, context.squads, context.orders, { aggression: battingDecision?.aggression ?? 50 }, bowling, rng);
+      delete (played.state as MatchState & { battingDecision?: { aggression: number } }).battingDecision;
       const countResult = await db.from("multiplayer_deliveries").select("id", { count: "exact", head: true }).eq("match_id", match.id).eq("innings_number", state.current + 1);
       if (countResult.error) throw countResult.error;
       const deliveryNumber = (countResult.count ?? 0) + 1;
