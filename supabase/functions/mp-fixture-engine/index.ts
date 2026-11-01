@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
       };
       const status = played.state.result ? "completed" : played.state.current !== state.current ? "innings_break" : "live";
       const winnerTeam = played.state.result && played.state.result.winner === "A" ? context.teamIds.A : played.state.result && played.state.result.winner === "B" ? context.teamIds.B : null;
-      const committed = await db.rpc("mp_commit_fixture_state", { p_match: match.id, p_actor: userId, p_expected_version: expectedVersion, p_state: played.state, p_status: status, p_delivery: delivery, p_result: played.state.result ? { winner: played.state.result.winner, text: played.state.result.text, winnerTeamId: winnerTeam } : null, p_winner_team: winnerTeam });
+      const committed = await db.rpc("mp_commit_fixture_state", { p_match: match.id, p_actor: userId, p_expected_version: expectedVersion, p_state: played.state, p_status: status, p_delivery: delivery, p_result: played.state.result ? { winner: played.state.result.winner, text: played.state.result.text, winnerTeamId: winnerTeam, overs: played.state.overs, innings: played.state.innings.map((inn) => ({ battingSide: inn.battingSide, runs: inn.runs, wickets: inn.wickets, balls: inn.balls, oversLimitBalls: played.state.overs * 6 })) } : null, p_winner_team: winnerTeam });
       if (committed.error) return json({ error: committed.error.message }, committed.error.message.toLowerCase().includes("version") ? 409 : 400);
       return json({ ok: true, version: committed.data, state: played.state, ball: played.ball, status });
     }
