@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
           const line = i.batters[outgoing];
           return !!line && (line.balls > 0 || line.runs > 0 || line.out || (i.batted ?? []).includes(outgoing));
         });
-        const usedAsBowler = state.innings.some((i) => !!i.bowlers[outgoing] && state.innings.some((inn) => inn.bowlers[outgoing].balls > 0));
+        const usedAsBowler = state.innings.some((innings) => (innings.bowlers[outgoing]?.balls ?? 0) > 0);
         if (usedAsBatter || usedAsBowler) return json({ error: "A player who has already participated cannot be replaced" }, 409);
         const nextState = structuredClone(state) as MatchState & { impactSubstitutions?: Partial<Record<Side, { outgoing: string; incoming: string }>> };
         nextState.impactSubstitutions = { ...(nextState.impactSubstitutions ?? {}), [teamSide]: { outgoing, incoming } };
