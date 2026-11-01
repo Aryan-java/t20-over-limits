@@ -7,7 +7,7 @@ import {
   type FixtureEngineInput,
 } from "../supabase/functions/_shared/fixtureEngineAdapter.ts";
 
-const squad = (prefix: string) => Array.from({ length: 15 }, (_, i) => ({
+const squad = (prefix: string) => Array.from({ length: 20 }, (_, i) => ({
   id: `${prefix}-${i}`,
   name: `${prefix} Player ${i}`,
   batSkill: 70 + (i % 5),
