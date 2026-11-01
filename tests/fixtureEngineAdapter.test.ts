@@ -71,6 +71,12 @@ describe("fixture engine adapter", () => {
     bad.home.squad.forEach((p, i) => { p.isOverseas = i < 5; });
     expect(() => adaptFixtureForEngine(bad)).toThrow("four overseas");
   });
+
+  test("rejects a ninth overseas player in the squad", () => {
+    const bad = input();
+    bad.home.squad.forEach((p, i) => { p.isOverseas = i < 9; });
+    expect(() => adaptFixtureForEngine(bad)).toThrow("eight overseas");
+  });
   test("fixture-created state can resolve a seeded ball using fixture XIs", () => {
     const context = adaptFixtureForEngine(input());
     const state = createFixtureMatchState(2, context, "team-home", "bat");
