@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "bun test",
+    "test:mp": "bun test tests/mpEngine.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
