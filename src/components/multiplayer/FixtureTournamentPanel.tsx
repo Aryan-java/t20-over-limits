@@ -12,7 +12,7 @@ import type { Member } from "@/types/multiplayer";
 
 type Team = { id: string; name: string; squad: any[] };
 type Tournament = { id: string; name: string; status: string; settings: any };
-type Fixture = { id: string; tournament_id: string; round_number: number; fixture_number: number; home_team_id: string; away_team_id: string; status: string };
+type Fixture = { id: string; tournament_id: string; round_number: number; fixture_number: number; home_team_id: string; away_team_id: string; status: string; winner_team_id?: string | null; result?: any };
 type Lineup = { fixture_id: string; team_id: string; playing_xi: string[]; impact_players: string[]; owner_user_id: string };
 
 export default function FixtureTournamentPanel({ roomId, userId, isHost, members }: { roomId: string; userId: string; isHost: boolean; members: Member[] }) {
@@ -44,7 +44,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     const [t, ts, fs, ls, os] = await Promise.all([
       db.from("multiplayer_teams").select("id,name,squad").eq("room_id", roomId).order("created_at"),
       db.from("multiplayer_tournaments").select("id,name,status,settings").eq("room_id", roomId).order("created_at", { ascending: false }),
-      db.from("multiplayer_fixtures").select("id,tournament_id,round_number,fixture_number,home_team_id,away_team_id,status").eq("room_id", roomId).order("round_number").order("fixture_number"),
+      db.from("multiplayer_fixtures").select("id,tournament_id,round_number,fixture_number,home_team_id,away_team_id,status,winner_team_id,result").eq("room_id", roomId).order("round_number").order("fixture_number"),
       db.from("multiplayer_fixture_lineups").select("fixture_id,team_id,playing_xi,impact_players,owner_user_id").eq("room_id", roomId),
       db.from("multiplayer_team_members").select("team_id,user_id").eq("room_id", roomId).eq("role", "owner"),
     ]);
@@ -62,6 +62,12 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   useEffect(() => { void refresh(); }, [refresh]);
   const tournament = tournaments.find((t) => t.id === selectedTournament);
   const tournamentFixtures = fixtures.filter((f) => f.tournament_id === selectedTournament);
+  const standings = teams.map((team) => {
+    const played = tournamentFixtures.filter((f) => f.status === "completed" && (f.home_team_id === team.id || f.away_team_id === team.id));
+    const won = played.filter((f) => f.winner_team_id === team.id).length;
+    const tied = played.filter((f) => f.winner_team_id == null && !!f.result).length;
+    return { team, played: played.length, won, tied, lost: played.length - won - tied, points: won * 2 + tied };
+  }).sort((a, b) => b.points - a.points || b.won - a.won || a.team.name.localeCompare(b.team.name));
   const teamById = (id: string) => teams.find((t) => t.id === id);
   const runRpc = async (name: string, args: Record<string, unknown>) => {
     const { data, error } = await db.rpc(name, args);
@@ -174,6 +180,11 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
         {tournamentFixtures.map((f) => <div key={f.id} className="flex flex-wrap items-center gap-2 rounded border p-2 text-sm"><span className="flex-1">R{f.round_number} · {teamById(f.home_team_id)?.name} vs {teamById(f.away_team_id)?.name}</span><Badge variant="outline">{f.status}</Badge><span className="text-xs text-muted-foreground">Lineups {lineups.filter((l) => l.fixture_id === f.id).length}/2</span></div>)}
         {isHost && ["ready","live"].includes(tournament.status) && <Button disabled={busy || fixtures.some((f) => f.tournament_id === selectedTournament && f.status === "live")} onClick={activateFixture}>Activate next fixture</Button>}
       </section>}
+      {tournament && tournamentFixtures.some((f) => f.status === "completed") && <section className="space-y-2">
+        <h3 className="font-semibold">Points table</h3>
+        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-2 text-left">Team</th><th className="p-2">P</th><th className="p-2">W</th><th className="p-2">T</th><th className="p-2">L</th><th className="p-2">Pts</th></tr></thead><tbody>{standings.map((row) => <tr key={row.team.id} className="border-b"><td className="p-2 font-medium">{row.team.name}</td><td className="p-2 text-center">{row.played}</td><td className="p-2 text-center">{row.won}</td><td className="p-2 text-center">{row.tied}</td><td className="p-2 text-center">{row.lost}</td><td className="p-2 text-center font-semibold">{row.points}</td></tr>)}</tbody></table></div>
+        <p className="text-xs text-muted-foreground">Scoring: win = 2 points, tie/no winner = 1 point. Net run rate is not calculated yet.</p>
+      </section>}
       {selectedFixture && myLineupTeam && <section className="space-y-2 rounded-lg border p-3">
         <h3 className="font-semibold">Confirm XI: {myLineupTeam.name}</h3>
         <p className="text-xs text-muted-foreground">Select 11 players and up to 4 Impact Players. Maximum 4 overseas players in XI.</p>
@@ -192,7 +203,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
         {activeInnings && <p className="text-sm">Score: {activeInnings.runs}/{activeInnings.wickets} · {activeInnings.balls} legal balls · {activeInnings.battingSide === "A" ? "Home" : "Away"} batting</p>}
         {activeInnings && battingOwner && <div className="space-y-2 border-t pt-2"><h4 className="font-medium">Batting · {battingTeam?.name}</h4><div className="flex gap-2"><Input type="number" min="0" max="100" value={aggression} onChange={(e) => setAggression(e.target.value)} className="w-24" /><Button size="sm" disabled={busy || Number(aggression) < 0 || Number(aggression) > 100} onClick={() => fixtureAction("set_batting_decision", { aggression: Number(aggression) })}>Set aggression</Button></div>
         {activeInnings.awaitingBatter && <Select onValueChange={(batterId) => fixtureAction("select_batter", { batterId })}><SelectTrigger><SelectValue placeholder="Select next batter" /></SelectTrigger><SelectContent>{(activeInnings.order ?? []).filter((id: string) => !(activeInnings.batted ?? []).includes(id)).map((id: string) => <SelectItem key={id} value={id}>{battingTeam?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select>}</div>}
-        {activeInnings && bowlingOwner && bowlingLineup && <div className="space-y-2 border-t pt-2"><h4 className="font-medium">Bowling · {bowlingTeam?.name}</h4><Select value={selectedBowler} onValueChange={setSelectedBowler}><SelectTrigger><SelectValue placeholder="Select bowler" /></SelectTrigger><SelectContent>{bowlingLineup.playing_xi.map((id) => <SelectItem key={id} value={id}>{bowlingTeam?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select><Button disabled={busy || !selectedBowler || !!activeInnings.awaitingBatter || activeMatch.status !== "live"} onClick={() => fixtureAction("play", { bowling: { field: "balanced", bowlerId: selectedBowler, strategy: { normal: 20, yorker: 20, bouncer: 20, slower: 20, knuckle: 20 } } })}>Play next ball</Button></div>}
+        {activeInnings && bowlingOwner && bowlingLineup && <div className="space-y-2 border-t pt-2"><h4 className="font-medium">Bowling · {bowlingTeam?.name}</h4><Select value={selectedBowler} onValueChange={setSelectedBowler}><SelectTrigger><SelectValue placeholder="Select bowler" /></SelectTrigger><SelectContent>{bowlingLineup.playing_xi.map((id) => { const sub = activeMatch?.state?.impactSubstitutions?.B; const mapped = sub?.outgoing === id ? sub.incoming : id; return <SelectItem key={mapped} value={mapped}>{bowlingTeam?.squad.find((p: any) => p.id === mapped)?.name ?? mapped}</SelectItem>; })}</SelectContent></Select><Button disabled={busy || !selectedBowler || !!activeInnings.awaitingBatter || activeMatch.status !== "live"} onClick={() => fixtureAction("play", { bowling: { field: "balanced", bowlerId: selectedBowler, strategy: { normal: 20, yorker: 20, bouncer: 20, slower: 20, knuckle: 20 } } })}>Play next ball</Button></div>}
         {(battingOwner || bowlingOwner) && <div className="space-y-2 border-t pt-2"><h4 className="font-medium">Impact Player substitution</h4><Select value={outgoingPlayer} onValueChange={setOutgoingPlayer}><SelectTrigger><SelectValue placeholder="Outgoing XI player" /></SelectTrigger><SelectContent>{(battingOwner ? battingLineup : bowlingLineup)?.playing_xi.map((id) => <SelectItem key={id} value={id}>{(battingOwner ? battingTeam : bowlingTeam)?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select><Select value={incomingImpact} onValueChange={setIncomingImpact}><SelectTrigger><SelectValue placeholder="Incoming Impact Player" /></SelectTrigger><SelectContent>{(battingOwner ? battingLineup : bowlingLineup)?.impact_players.map((id) => <SelectItem key={id} value={id}>{(battingOwner ? battingTeam : bowlingTeam)?.squad.find((p: any) => p.id === id)?.name ?? id}</SelectItem>)}</SelectContent></Select><Button variant="secondary" disabled={busy || !outgoingPlayer || !incomingImpact || activeMatch.status !== "live"} onClick={() => fixtureAction("substitute_impact", { outgoingPlayerId: outgoingPlayer, impactPlayerId: incomingImpact })}>Make substitution</Button></div>}
         {activeMatch.state?.innings?.map((inn: any, i: number) => <div key={i} className="border-t pt-2 text-sm"><b>Innings {i + 1}:</b> {inn.runs}/{inn.wickets} ({Math.floor(inn.balls / 6)}.{inn.balls % 6} overs)</div>)}
         {isHost && activeMatch.status === "live" && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); const { data, error } = await supabase.functions.invoke("mp-fixture-engine", { body: { action: "pause", matchId: activeMatch.id, expectedVersion: activeMatch.version } }); if (error) toast({ title: "Pause failed", description: error.message, variant: "destructive" }); else setActiveMatch({ ...activeMatch, status: data.status, version: data.version }); setBusy(false); }}>Pause fixture</Button>}
