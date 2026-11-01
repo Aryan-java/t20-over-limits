@@ -47,6 +47,11 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
     for (const x of [t,ts,fs,ls,os]) if (x.error) { console.error(x.error); toast({ title: "Could not load tournament data", description: x.error.message, variant: "destructive" }); return; }
     setTeams(t.data ?? []); setTournaments(ts.data ?? []); setFixtures(fs.data ?? []); setLineups(ls.data ?? []);
     setOwners(Object.fromEntries((os.data ?? []).map((x: any) => [x.team_id, x.user_id])));
+    const liveFixtureIds = (fs.data ?? []).filter((fixture: any) => fixture.status === "live").map((fixture: any) => fixture.id);
+    if (liveFixtureIds.length) {
+      const { data: matches, error: matchError } = await db.from("multiplayer_matches").select("id,version,status,state").in("fixture_id", liveFixtureIds).limit(1);
+      if (!matchError && matches?.[0]) setActiveMatch(matches[0]);
+    }
     if (!selectedTournament && ts.data?.[0]) setSelectedTournament(ts.data[0].id);
   }, [db, roomId, selectedTournament]);
 
@@ -124,7 +129,7 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
         <section className="space-y-2 rounded-lg border p-3">
           <h3 className="font-semibold">Create tournament team</h3>
           <Input placeholder="Team name" value={teamName} onChange={(e) => setTeamName(e.target.value)} maxLength={60} />
-          <Select value={teamOwner} onValueChange={setTeamOwner}><SelectTrigger><SelectValue placeholder="Assign team owner" /></SelectTrigger><SelectContent>{members.map((m) => <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>)}</SelectContent></Select>
+          <Select value={teamOwner} onValueChange={setTeamOwner}><SelectTrigger><SelectValue placeholder="Assign team owner" /></SelectTrigger><SelectContent>{members.filter((m) => !Object.values(owners).includes(m.user_id)).map((m) => <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>)}</SelectContent></Select>
           <p className="text-xs text-muted-foreground">Squad: {squadNames.length}/25 (minimum 18), overseas limit 8.</p>
           <Input placeholder="Search player database" value={playerQuery} onChange={(e) => setPlayerQuery(e.target.value)} />
           <div className="max-h-48 overflow-y-auto grid sm:grid-cols-2 gap-1">{PLAYER_DATABASE.filter((p) => p.name.toLowerCase().includes(playerQuery.toLowerCase())).slice(0,120).map((p) => <label key={p.name} className="flex items-center gap-2 text-xs p-1"><Checkbox checked={squadNames.includes(p.name)} disabled={!squadNames.includes(p.name) && (squadNames.length >= 25 || (p.isOverseas && squadNames.filter((n) => byName.get(n)?.isOverseas).length >= 8))} onCheckedChange={(v) => setSquadNames((old) => v ? [...old,p.name] : old.filter((n) => n !== p.name))} /><span>{p.name}{p.isOverseas ? " ✈" : ""}</span></label>)}</div>
