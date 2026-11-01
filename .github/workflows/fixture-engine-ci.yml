@@ -54,4 +54,4 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check fixture engine Edge Function
-        run: deno check supabase/functions/mp-fixture-engine/index.ts
+        run: deno check supabase/functions/mp-fixture-engine/index.ts supabase/functions/mp-engine/index.ts
