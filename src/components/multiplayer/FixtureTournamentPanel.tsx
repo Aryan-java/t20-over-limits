@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,8 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   const [tournamentName, setTournamentName] = useState("My Tournament");
   const [squadNames, setSquadNames] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const lastLoadError = useRef<string | null>(null);
   const [lineupFixture, setLineupFixture] = useState("");
   const [xi, setXi] = useState<string[]>([]);
   const [impact, setImpact] = useState<string[]>([]);
@@ -49,7 +51,18 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
       db.from("multiplayer_fixture_lineups").select("fixture_id,team_id,playing_xi,impact_players,owner_user_id").eq("room_id", roomId),
       db.from("multiplayer_team_members").select("team_id,user_id").eq("room_id", roomId).eq("role", "owner"),
     ]);
-    for (const x of [t,ts,fs,ls,os]) if (x.error) { console.error(x.error); toast({ title: "Could not load tournament data", description: x.error.message, variant: "destructive" }); return; }
+    for (const x of [t,ts,fs,ls,os]) if (x.error) {
+      const message = x.error.message || "An unexpected database error occurred.";
+      console.error("Tournament data refresh failed:", x.error);
+      setLoadError(message);
+      if (lastLoadError.current !== message) {
+        lastLoadError.current = message;
+        toast({ title: "Could not load tournament data", description: message, variant: "destructive" });
+      }
+      return;
+    }
+    setLoadError(null);
+    lastLoadError.current = null;
     setTeams(t.data ?? []); setTournaments(ts.data ?? []); setFixtures(fs.data ?? []); setLineups(ls.data ?? []);
     setOwners(Object.fromEntries((os.data ?? []).map((x: any) => [x.team_id, x.user_id])));
     const relevantFixtureIds = (fs.data ?? []).filter((fixture: any) => ["live", "completed"].includes(fixture.status) && (!selectedTournament || fixture.tournament_id === selectedTournament)).map((fixture: any) => fixture.id);
