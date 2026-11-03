@@ -176,6 +176,11 @@ Deno.serve(async (req) => {
         if (currentSubs[teamSide]) return json({ error: "Each team may make only one Impact Player substitution" }, 409);
         if (!context.orders[teamSide].includes(outgoing)) return json({ error: "Outgoing player must be in the confirmed Playing XI" }, 400);
         if (!context.impactPlayers[teamSide].includes(incoming)) return json({ error: "Incoming player must be in the confirmed Impact Player list" }, 400);
+        // A bowling-side replacement cannot interrupt an over already in progress.
+        // The current bowler must complete the over before leaving the XI.
+        if (inn.battingSide !== teamSide && inn.currentBowler === outgoing && inn.balls % 6 !== 0) {
+          return json({ error: "The current bowler must complete the over before an Impact Player substitution" }, 409);
+        }
         // A player may already have batted or bowled; the replacement only
         // affects future participation. Preserve any completed batting record.
         const nextState = structuredClone(state) as MatchState & { impactSubstitutions?: Partial<Record<Side, { outgoing: string; incoming: string }>> };
