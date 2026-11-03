@@ -62,6 +62,33 @@ export default function FixtureTournamentPanel({ roomId, userId, isHost, members
   }, [db, roomId, selectedTournament]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  // Keep both fixture participants in sync when either side commits a delivery
+  // or changes fixture readiness. The room filter prevents cross-room updates.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`fixture-tournament-${roomId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "multiplayer_matches", filter: `room_id=eq.${roomId}` },
+        () => { void refresh(); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "multiplayer_fixtures", filter: `room_id=eq.${roomId}` },
+        () => { void refresh(); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "multiplayer_fixture_lineups", filter: `room_id=eq.${roomId}` },
+        () => { void refresh(); },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [roomId, refresh]);
   const tournament = tournaments.find((t) => t.id === selectedTournament);
   const tournamentFixtures = fixtures.filter((f) => f.tournament_id === selectedTournament);
   const participantIds = new Set(tournamentFixtures.flatMap((fixture) => [fixture.home_team_id, fixture.away_team_id]));
