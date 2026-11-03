@@ -15,13 +15,14 @@ function simulate(seed: string, overs = 2) {
     const bowler = orders[bs].slice(6).find((id) => !validateBowler(inn, overs, id, orders[bs]))!;
     const prev = s.current;
     const r = playBall(s, squads, orders, { aggression: 60 }, { field: "balanced", bowlerId: bowler, strategy: strat }, makeRng(`${seed}:${v}`));
-    // wide never changes strike
+    // A wide is an extra delivery and must not change the striker.
     if (r.ball.extra === "wide" && r.state.current === prev) expect(r.state.innings[prev].striker).toBe(inn.striker);
     s = r.state; v++;
     const ni = s.innings[s.current];
     if (ni.awaitingBatter) { const out = selectBatter(s, yetToBat(ni)[0]); if ("error" in out) throw new Error(out.error); s = out.state; }
     if (s.current !== prev) innSwitch = v;
   }
+  if (!s.result) throw new Error("Simulation did not finish within the safety limit");
   return { s, v, innSwitch };
 }
 
@@ -44,15 +45,27 @@ describe("multiplayer engine", () => {
     }
     throw new Error("no wicket fell");
   });
-  test("same seed gives identical match (both clients see same result)", () => {
-    expect(JSON.stringify(simulate("x").s)).toBe(JSON.stringify(simulate("x").s));
+
+  test("identical seeds produce identical match states across independent simulations", () => {
+    const first = simulate("repeatable-seed").s;
+    const second = simulate("repeatable-seed").s;
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
+
+  test("different seeds produce different match states", () => {
+    const first = simulate("seed-one").s;
+    const second = simulate("seed-two").s;
+    expect(JSON.stringify(first)).not.toBe(JSON.stringify(second));
+  });
+
   test("completes match with innings transition and target", () => {
-    const { s, innSwitch } = simulate("y");
+    const { s, innSwitch } = simulate("innings-transition");
     expect(s.result).toBeDefined();
     expect(innSwitch).toBeGreaterThan(0);
+    expect(s.innings).toHaveLength(2);
     expect(s.innings[1].target).toBe(s.innings[0].runs + 1);
   });
+
   test("bowler rules: no consecutive overs, XI only", () => {
     const inn = newInnings("A", orders.A);
     inn.lastOverBowler = "B10";
