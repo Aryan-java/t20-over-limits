@@ -468,7 +468,7 @@ const players: Omit<PlayerData, 'imageUrl'>[] = [
   { name: "David Payne", price: 1, isOverseas: true, batSkill: 30, bowlSkill: 75, role: "Bowler" },
 ];
 
-import { getPlayerCricinfoImage } from "./playerImages";
+import { getPlayerCricinfoImage } from "./playerImages.ts";
 
 export const PLAYER_DATABASE: PlayerData[] = players.map(player => ({
   ...player,
