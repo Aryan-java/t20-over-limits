@@ -93,52 +93,47 @@ const createIndexedDBStorage = () => {
   };
 
   const read = async (name: string): Promise<string | null> => {
+    let db: IDBDatabase;
     try {
-      const db = await openDatabase();
-      const value = await new Promise<string | undefined>((resolve, reject) => {
-        const request = db.transaction(storeName, 'readonly').objectStore(storeName).get(name);
-        request.onsuccess = () => resolve(request.result as string | undefined);
-        request.onerror = () => reject(request.error || new Error('Unable to read saved cricket data'));
-      });
-      if (value !== undefined) return value;
-
-      // One-time migration from the previous localStorage-backed store.
-      const legacyValue = localStorage.getItem(name);
-      if (legacyValue !== null) {
-        await writeToDatabase(db, name, legacyValue);
-        localStorage.removeItem(name);
-      }
-      return legacyValue;
+      db = await openDatabase();
     } catch (error) {
-      // Keep the old store readable if IndexedDB is unavailable; never silently discard writes.
+      // Older/private browser contexts may not expose IndexedDB.
       if (typeof localStorage !== 'undefined') return localStorage.getItem(name);
       throw error;
     }
-  };
 
-  const writeToDatabase = (db: IDBDatabase, name: string, value: string): Promise<void> =>
-    new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, 'readwrite');
-      transaction.objectStore(storeName).put(value, name);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error || new Error('Unable to save cricket data'));
-      transaction.onabort = () => reject(transaction.error || new Error('Cricket data save was aborted'));
+    const value = await new Promise<string | undefined>((resolve, reject) => {
+      const request = db.transaction(storeName, 'readonly').objectStore(storeName).get(name);
+      request.onsuccess = () => resolve(request.result as string | undefined);
+      request.onerror = () => reject(request.error || new Error('Unable to read saved cricket data'));
     });
+    if (value !== undefined) return value;
+
+    // One-time migration from the previous localStorage-backed store.
+    const legacyValue = localStorage.getItem(name);
+    if (legacyValue !== null) {
+      await writeToDatabase(db, name, legacyValue);
+      localStorage.removeItem(name);
+    }
+    return legacyValue;
+  };
 
   return {
     getItem: read,
     setItem: async (name: string, value: string): Promise<void> => {
+      let db: IDBDatabase;
       try {
-        const db = await openDatabase();
-        await writeToDatabase(db, name, value);
+        db = await openDatabase();
       } catch (error) {
         if (typeof localStorage !== 'undefined') {
-          // Fallback only when IndexedDB cannot be used. Quota errors are allowed to surface.
+          // Fallback only when IndexedDB itself is unavailable. Quota errors surface.
           localStorage.setItem(name, value);
           return;
         }
         throw error;
       }
+      // Do not mask transaction/quota failures by pretending the IndexedDB write succeeded.
+      await writeToDatabase(db, name, value);
     },
     removeItem: async (name: string): Promise<void> => {
       try {
