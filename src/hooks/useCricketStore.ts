@@ -64,6 +64,98 @@ interface CricketStore {
   setImpactPlayers: (teamId: string, playerIds: string[]) => void;
 }
 
+// IndexedDB avoids localStorage's small quota for full ball-by-ball tournament history.
+// Existing v4 localStorage data is migrated lazily on the first read without discarding it
+// until the IndexedDB write succeeds.
+const createIndexedDBStorage = () => {
+  const databaseName = 't20-over-limits-storage';
+  const storeName = 'zustand';
+  let databasePromise: Promise<IDBDatabase> | null = null;
+
+  const openDatabase = (): Promise<IDBDatabase> => {
+    if (typeof indexedDB === 'undefined') {
+      return Promise.reject(new Error('IndexedDB is unavailable in this browser'));
+    }
+    if (!databasePromise) {
+      databasePromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(databaseName, 1);
+        request.onupgradeneeded = () => {
+          if (!request.result.objectStoreNames.contains(storeName)) {
+            request.result.createObjectStore(storeName);
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('Unable to open IndexedDB'));
+        request.onblocked = () => reject(new Error('IndexedDB upgrade is blocked by another tab'));
+      });
+    }
+    return databasePromise;
+  };
+
+  const read = async (name: string): Promise<string | null> => {
+    let db: IDBDatabase;
+    try {
+      db = await openDatabase();
+    } catch (error) {
+      // Older/private browser contexts may not expose IndexedDB.
+      if (typeof localStorage !== 'undefined') return localStorage.getItem(name);
+      throw error;
+    }
+
+    const value = await new Promise<string | undefined>((resolve, reject) => {
+      const request = db.transaction(storeName, 'readonly').objectStore(storeName).get(name);
+      request.onsuccess = () => resolve(request.result as string | undefined);
+      request.onerror = () => reject(request.error || new Error('Unable to read saved cricket data'));
+    });
+    if (value !== undefined) return value;
+
+    // One-time migration from the previous localStorage-backed store.
+    const legacyValue = localStorage.getItem(name);
+    if (legacyValue !== null) {
+      await writeToDatabase(db, name, legacyValue);
+      localStorage.removeItem(name);
+    }
+    return legacyValue;
+  };
+
+  return {
+    getItem: read,
+    setItem: async (name: string, value: string): Promise<void> => {
+      let db: IDBDatabase;
+      try {
+        db = await openDatabase();
+      } catch (error) {
+        if (typeof localStorage !== 'undefined') {
+          // Fallback only when IndexedDB itself is unavailable. Quota errors surface.
+          localStorage.setItem(name, value);
+          return;
+        }
+        throw error;
+      }
+      // Do not mask transaction/quota failures by pretending the IndexedDB write succeeded.
+      await writeToDatabase(db, name, value);
+    },
+    removeItem: async (name: string): Promise<void> => {
+      try {
+        const db = await openDatabase();
+        await new Promise<void>((resolve, reject) => {
+          const transaction = db.transaction(storeName, 'readwrite');
+          transaction.objectStore(storeName).delete(name);
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error || new Error('Unable to remove saved cricket data'));
+          transaction.onabort = () => reject(transaction.error || new Error('Cricket data removal was aborted'));
+        });
+      } catch (error) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(name);
+          return;
+        }
+        throw error;
+      }
+    },
+  };
+};
+
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
 const createSamplePlayer = (name: string, isOverseas: boolean = false): Omit<Player, 'id'> => ({
@@ -612,7 +704,14 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
     // Get all players who played in the match from both team setups
     const team1Players = match.team1Setup?.playingXI || [];
     const team2Players = match.team2Setup?.playingXI || [];
-    const allPlayers = [...team1Players, ...team2Players];
+    // The outgoing player is no longer in playingXI after an Impact substitution,
+    // but still participated and must retain the stats earned before leaving.
+    const allPlayers = [
+      ...team1Players,
+      ...team2Players,
+      ...(match.team1Setup?.substitutedOutPlayer ? [match.team1Setup.substitutedOutPlayer] : []),
+      ...(match.team2Setup?.substitutedOutPlayer ? [match.team2Setup.substitutedOutPlayer] : []),
+    ];
 
     console.log('Completing match - players who played:', allPlayers.length);
 
@@ -994,15 +1093,9 @@ export const useCricketStore = create<CricketStore>()(persist((set, get) => ({
   },
 }), {
   name: 'cricket-tournament-storage',
-  version: 4,
-  // Never let a full localStorage break gameplay
-  storage: createJSONStorage(() => ({
-    getItem: (k: string) => localStorage.getItem(k),
-    setItem: (k: string, v: string) => {
-      try { localStorage.setItem(k, v); } catch (e) { console.warn('[cricket-store] could not save progress:', e); }
-    },
-    removeItem: (k: string) => localStorage.removeItem(k),
-  })),
+  version: 5,
+  // Full match histories are stored in IndexedDB; v4 localStorage data migrates on first read.
+  storage: createJSONStorage(() => createIndexedDBStorage()),
   // Completed fixtures only store a reference; the full match lives once in matchHistory
   partialize: (state: any) => ({
     ...state,
