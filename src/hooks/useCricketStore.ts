@@ -92,6 +92,15 @@ const createIndexedDBStorage = () => {
     return databasePromise;
   };
 
+  const writeToDatabase = (db: IDBDatabase, name: string, value: string): Promise<void> =>
+    new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, 'readwrite');
+      transaction.objectStore(storeName).put(value, name);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error || new Error('Unable to save cricket data'));
+      transaction.onabort = () => reject(transaction.error || new Error('Cricket data save was aborted'));
+    });
+
   const read = async (name: string): Promise<string | null> => {
     let db: IDBDatabase;
     try {
