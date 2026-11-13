@@ -57,7 +57,8 @@ const Index = () => {
       <div className="relative z-10">
         <CricketHeader />
         
-        <main className="container mx-auto px-4 py-8">\n          <SinglePlayerCloudSync />
+        <main className="container mx-auto px-4 py-8">
+          <SinglePlayerCloudSync />
           <div className="flex justify-end mb-4">
             <Button asChild variant="secondary"><Link to="/multiplayer"><Users className="h-4 w-4 mr-2" />Multiplayer</Link></Button>
           </div>
