@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, Loader2 } from "lucide-react";
 import { useCricketStore } from "@/hooks/useCricketStore";
+import SinglePlayerCloudSync from "@/components/SinglePlayerCloudSync";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("teams");
@@ -56,7 +57,7 @@ const Index = () => {
       <div className="relative z-10">
         <CricketHeader />
         
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-8">\n          <SinglePlayerCloudSync />
           <div className="flex justify-end mb-4">
             <Button asChild variant="secondary"><Link to="/multiplayer"><Users className="h-4 w-4 mr-2" />Multiplayer</Link></Button>
           </div>
