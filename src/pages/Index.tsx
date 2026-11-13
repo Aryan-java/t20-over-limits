@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import CricketHeader from "@/components/CricketHeader";
 import TabNavigation from "@/components/TabNavigation";
@@ -12,10 +12,36 @@ import IPLSquadsTab from "@/components/IPLSquadsTab";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Users, Loader2 } from "lucide-react";
+import { useCricketStore } from "@/hooks/useCricketStore";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("teams");
+  const [storeHydrated, setStoreHydrated] = useState(() => useCricketStore.persist.hasHydrated());
+
+  // IndexedDB is asynchronous. Do not mount tournament screens with the initial
+  // empty Zustand state, otherwise a refresh briefly looks like all teams and
+  // fixtures have been deleted before the saved state is restored.
+  useEffect(() => {
+    if (useCricketStore.persist.hasHydrated()) {
+      setStoreHydrated(true);
+      return;
+    }
+
+    const unsubscribe = useCricketStore.persist.onFinishHydration(() => {
+      setStoreHydrated(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (!storeHydrated) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Restoring your saved teams, fixtures and tournament matches…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">

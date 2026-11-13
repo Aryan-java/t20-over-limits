@@ -84,7 +84,14 @@ const createIndexedDBStorage = () => {
             request.result.createObjectStore(storeName);
           }
         };
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => {
+          // Ask the browser to protect this database from automatic storage eviction.
+          // This is best-effort; users can still clear site data themselves.
+          if (typeof navigator !== 'undefined' && navigator.storage?.persist) {
+            void navigator.storage.persist().catch(() => undefined);
+          }
+          resolve(request.result);
+        };
         request.onerror = () => reject(request.error || new Error('Unable to open IndexedDB'));
         request.onblocked = () => reject(new Error('IndexedDB upgrade is blocked by another tab'));
       });
