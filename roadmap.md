@@ -15,3 +15,7 @@
 
 ## Fixture/tournament PR stack (#5-#10)
 - [ ] Inspect GitHub main + PRs #5-#10, map what has landed, write a staged plan (read-only; blocked: no GitHub access)
+
+## Current single-player requests
+- [ ] Diagnose and fix teams/tournament progress disappearing after refresh; verify saved state through a real reload.
+- [ ] Upgrade DRS reviews for batting and bowling sides with replay-style evidence, ball tracking, and Snicko; verify both sides can review.
