@@ -16,6 +16,7 @@ import { saveAllTimeStats } from "@/lib/saveAllTimeStats";
 import TacticalPanel from "./TacticalPanel";
 import FieldPlacementEditor, { PRESET_FIELDS } from "./FieldPlacementEditor";
 import DRSReviewDialog from "./DRSReviewDialog";
+import { createDRSIncident, type DRSIncident, type DRSDismissalType, type DRSResolution, type DRSReviewSide } from "@/lib/drsReview";
 import {
   BowlingStrategy,
   FieldPreset,
@@ -55,12 +56,18 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const [showTactics, setShowTactics] = useState(false);
   // 2 DRS per innings per side, reset on second innings start
   const [drsReviews, setDrsReviews] = useState({ batting: 2, bowling: 2 });
-  // Pending wicket awaiting DRS resolution
+  // A frozen incident keeps the replay evidence and final ruling tied to this delivery.
   const [pendingBall, setPendingBall] = useState<null | {
-    outcome: any;
+    outcome: { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } };
     isFreeHit: boolean;
-    dismissalType: string;
+    dismissalType: DRSDismissalType;
+    reviewingSide: DRSReviewSide;
+    incident: DRSIncident;
   }>(null);
+
+  useEffect(() => {
+    setDrsReviews({ batting: 2, bowling: 2 });
+  }, [match.id, match.currentInnings]);
 
   const getTopRunScorer = () => {
     const allPlayers: Player[] = [];
@@ -476,10 +483,31 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       outcome.runs = 0;
     }
 
-    // === DRS: batting side may review on a wicket (40% chance if review left) ===
-    if (outcome.isWicket && !outcome.extras && drsReviews.batting > 0 && Math.random() < 0.4) {
-      const dismissalType = delivery === 'yorker' ? 'LBW' : 'caught';
-      setPendingBall({ outcome, isFreeHit, dismissalType });
+    const dismissalType: DRSDismissalType = delivery === 'yorker' ? 'lbw' : 'caught-behind';
+
+    // The batting side can review every eligible on-field dismissal while it has reviews left.
+    if (outcome.isWicket && !outcome.extras && !isFreeHit && drsReviews.batting > 0) {
+      const reviewingSide: DRSReviewSide = 'batting';
+      setPendingBall({
+        outcome,
+        isFreeHit,
+        dismissalType,
+        reviewingSide,
+        incident: createDRSIncident(reviewingSide, dismissalType),
+      });
+      return;
+    }
+
+    // A small number of close, non-extra appeals can be reviewed by the bowling side.
+    if (!outcome.isWicket && !outcome.extras && !isFreeHit && drsReviews.bowling > 0 && Math.random() < 0.08) {
+      const reviewingSide: DRSReviewSide = 'bowling';
+      setPendingBall({
+        outcome,
+        isFreeHit,
+        dismissalType,
+        reviewingSide,
+        incident: createDRSIncident(reviewingSide, dismissalType),
+      });
       return;
     }
 
@@ -489,6 +517,7 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
   const applyBallOutcome = async (
     outcome: { runs: number; isWicket: boolean; extras?: { type: 'wide' | 'no-ball' | 'bye' | 'leg-bye'; runs: number } },
     isFreeHit: boolean,
+    dismissalType?: DRSDismissalType,
   ) => {
     const innings = getCurrentInnings();
     if (!innings || !innings.currentBowler) return;
@@ -521,7 +550,11 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
     
     if (isWicket) {
       striker.dismissed = true;
-      striker.dismissalInfo = `b ${innings.currentBowler.name}`;
+      striker.dismissalInfo = dismissalType === 'lbw'
+        ? `lbw b ${innings.currentBowler.name}`
+        : dismissalType === 'caught-behind'
+          ? `caught behind b ${innings.currentBowler.name}`
+          : `b ${innings.currentBowler.name}`;
     }
     
     // Update bowler stats
@@ -1305,28 +1338,43 @@ const BallByBallEngine = ({ match }: BallByBallEngineProps) => {
       {/* ============ DRS REVIEW DIALOG ============ */}
       <DRSReviewDialog
         open={!!pendingBall}
-        reviewingTeam="batting"
-        reviewsLeft={drsReviews.batting}
-        dismissalType={pendingBall?.dismissalType || 'caught'}
+        incident={pendingBall?.incident || null}
+        reviewsLeft={pendingBall?.reviewingSide === 'bowling' ? drsReviews.bowling : drsReviews.batting}
         batsmanName={innings?.currentBatsmen.striker?.name || ''}
         bowlerName={innings?.currentBowler?.name || ''}
-        onResolve={(overturned, reviewUsed) => {
+        onResolve={(resolution: DRSResolution | null) => {
           if (!pendingBall) return;
           const finalOutcome = { ...pendingBall.outcome };
-          if (overturned) {
-            finalOutcome.isWicket = false;
+          if (resolution) {
+            finalOutcome.isWicket = resolution.finalDecision === 'out';
+            if (finalOutcome.isWicket) {
+              finalOutcome.runs = 0;
+              delete finalOutcome.extras;
+            }
+            if (resolution.overturned) {
+              toast({
+                title: 'Decision Overturned',
+                description: finalOutcome.isWicket ? 'Out — the bowling review is retained.' : 'Not out — the batting review is retained.',
+              });
+            } else if (resolution.reviewRetained) {
+              toast({ title: "Umpire's Call", description: 'The original decision stands and the review is retained.' });
+            } else {
+              setDrsReviews(current => ({
+                ...current,
+                [pendingBall.reviewingSide]: Math.max(0, current[pendingBall.reviewingSide] - 1),
+              }));
+              toast({ title: 'Decision Stands', description: 'Review lost.', variant: 'destructive' });
+            }
+          }
+          if (!finalOutcome.isWicket && pendingBall.outcome.isWicket) {
             finalOutcome.runs = 0;
-            toast({ title: '🎉 Decision Overturned!', description: 'Not out — review retained.' });
-          } else if (reviewUsed) {
-            setDrsReviews(d => ({ ...d, batting: Math.max(0, d.batting - 1) }));
-            toast({ title: 'Decision Stands', description: 'Review lost.', variant: 'destructive' });
           }
           const fh = pendingBall.isFreeHit;
+          const type = pendingBall.dismissalType;
           setPendingBall(null);
           // Defer until state updates flush
-          setTimeout(() => applyBallOutcome(finalOutcome, fh), 0);
+          setTimeout(() => applyBallOutcome(finalOutcome, fh, type), 0);
         }}
-        onClose={() => setPendingBall(null)}
       />
     </div>
   );
